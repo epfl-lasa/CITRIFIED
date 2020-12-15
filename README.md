@@ -4,6 +4,21 @@ Controlled Incision Task Recordings In Fruits, to Inhibit Excessive Depth
 Work in progress repository to host the data processing, analysis and control implementation
 for the fruit cutting task.
 
+## Setting up
+
+First, you need to create the python environment with `conda`:
+
+```bash
+conda env create -f environment.yml
+```
+
+This package requires the library from [surgeon_recording](https://github.com/epfl-lasa/surgeon_recording/tree/master/source/surgeon_recording). To install it, after the environment creation:
+
+```bash
+conda activate citrified
+git clone https://github.com/epfl-lasa/surgeon_recording.git
+cd surgeon_recording/source/surgeon_recording && python setup.py install
+```
 
 ## Structure
 

@@ -10,7 +10,7 @@ function [T, Data] = findForcePlateTransform(path, showFigure)
 %   https://drive.google.com/drive/folders/1sX-ajnjc_xIMf_L_6g38yl-gBkSbCy5o?usp=sharing
 arguments
     path string = '../data/raw_data/calibration/force_plate_frame'
-    showFigure bool = true
+    showFigure logical = true
 end
 
 %% import data

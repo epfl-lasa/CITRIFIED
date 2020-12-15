@@ -118,13 +118,7 @@ function [T, R, t] = findTransform(A, B)
 
     % find rotation
     [U,~,V] = svd(H);
-    R = V*U';
-
-    % correct reflection 
-    if det(R) < 0
-        V(:,3) = -V(:,3);
-        R = V*U';
-    end
+    R = V*diag([1,1,det(V*U')])*U';
 
     % find offset
     t = -R*Au + Bu;

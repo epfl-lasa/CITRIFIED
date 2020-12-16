@@ -103,6 +103,8 @@ end
 end
 
 % Find rigid transformation to best fit 3D indexed point sets using SVD
+% See also:
+%   https://math.stackexchange.com/questions/23197/finding-a-rotation-transformation-from-two-coordinate-frames-in-3-space
 function [T, R, t] = findTransform(A, B)
     assert(all(size(A) == size(B)));
     
@@ -113,7 +115,7 @@ function [T, R, t] = findTransform(A, B)
     Am = A - repmat(Au, 1, size(A, 2));
     Bm = B - repmat(Bu, 1, size(B, 2));
 
-    % calculate covariance matrix (is this the correct terminology?)
+    % calculate covariance matrix
     H = Am * Bm';
 
     % find rotation

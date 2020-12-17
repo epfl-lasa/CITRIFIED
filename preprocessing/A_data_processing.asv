@@ -3,7 +3,7 @@
 %   process all data and get impedance estimate
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-for i=2:6
+for i=1:15
 close all;
 % clear all;
 clearvars -except i;
@@ -17,13 +17,13 @@ clc;
 %%  1 choice dataset and set path
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 data_of_exp='curve_cut_1211';
-task='avocado';
+% task='avocado';
 % task='banana';
-% task='orange';
+task='orange';
 
 %%%%% auto
-exp_name=['deep'];
-% exp_name=['good'];
+% exp_name=['deep'];
+exp_name=['good'];
 % exp_name=['shallow'];
 
 % exp_time=['1'];
@@ -472,13 +472,7 @@ dx_nth         = sgolay_time_derivatives(chabu_Hand(1:end,6:8), dt, 2, 3, window
 Ori_hand(:,4:6) = dx_nth(:,:,1);
     clear dx_nth
     Ori_hand=downsample(Ori_hand, n);
-    sum_ori1=sum(Ori_hand(:,4)-Ori_hand(:,2));
-    sum_ori2=sum(Ori_hand(:,5)-Ori_hand(:,3));
-    if sum_ori1==0 & sum_ori2==0
-    else
-        !echo Ori Error
-        break
-    end
+    Ori_hand()
 
 dx_nth         = sgolay_time_derivatives(IMP(1:end,2:4), dt, 2, 3, window_size);
 IMP1(:,2:4) = dx_nth(:,:,1);
@@ -494,17 +488,17 @@ F_knife1(:,5:7) = dx_nth(:,:,2);
 
 
     %% velocity in kinfe frame
-for i=1:length(Ori_hand(:,1))
+for i=1:length(chabu_Hand(:,1))
     % Convert quaternion to rotation matrix
-    rotm=quat2rotm([Ori_hand(i,6) Ori_hand(i,1:3)]);
+    rotm=quat2rotm([chabu_Hand(i,8) chabu_Hand(i,5:7)]);
 
-    world_T_knife=[rotm chabu_Hand1(i,1:3)';0 0 0 1];
+    world_T_knife=[rotm chabu_Hand(i,2:4)';0 0 0 1];
 
     ft_T_knife=ft_T_world*world_T_knife;
 
-    knife_T_world=inv(world_T_knife);
+    knife_T_ft=inv(ft_T_knife);
 
-    V_matrix_knife=knife_T_world*[chabu_Hand1(i,4:6) 1]';
+    V_matrix_knife=knife_T_ft*[chabu_Hand1(i,4:6) 1]';
     V_knife(i,1:3)=V_matrix_knife(1:3);
 end
 
@@ -570,12 +564,12 @@ if plot_all_figure==1
     plot(1:length(IMP1(:,1)),IMP1(:,1) ,'LineWidth',3);hold on;
     plot(1:length(IMP1(:,1)),IMP1(:,2) ,'LineWidth',3);hold on;
     plot(1:length(IMP1(:,1)),IMP1(:,3) ,'LineWidth',3);hold on;
-    legend('IMPX','IMPY','IMPZ');xlabel('t/s');ylabel('m');title('I');
+    legend('IMPX','IMPY','IMPZ');xlabel('t/s');ylabel('m');
     subplot(212)
     plot(1:length(IMP1(:,1)),IMP1(:,4) ,'LineWidth',3);hold on;
     plot(1:length(IMP1(:,1)),IMP1(:,5) ,'LineWidth',3);hold on;
     plot(1:length(IMP1(:,1)),IMP1(:,6) ,'LineWidth',3);hold on;
-    legend('d-IMPX','d-IMPY','d-IMPZ');xlabel('t/s');ylabel('m');title('dI');
+    legend('d-IMPX','d-IMPY','d-IMPZ');xlabel('t/s');ylabel('m');
 %     picture2Dsavename=[path_of_plot 'imp_angle'];
 %     saveas(h1,[picture2Dsavename '.fig'])
     title('IMP_knife');
@@ -587,12 +581,12 @@ if plot_all_figure==1
     plot(1:length(F_knife1(:,1)),F_knife1(:,1) ,'LineWidth',3);hold on;
     plot(1:length(F_knife1(:,1)),F_knife1(:,2) ,'LineWidth',3);hold on;
     plot(1:length(F_knife1(:,1)),F_knife1(:,3) ,'LineWidth',3);hold on;
-    legend('F_knife_X','F_knife_Y','F_knife_Z');xlabel('t/s');ylabel('m');title('F');
+    legend('F_knife_X','F_knife_Y','F_knife_Z');xlabel('t/s');ylabel('m');
     subplot(212)
     plot(1:length(F_knife1(:,1)),F_knife1(:,4) ,'LineWidth',3);hold on;
     plot(1:length(F_knife1(:,1)),F_knife1(:,5) ,'LineWidth',3);hold on;
     plot(1:length(F_knife1(:,1)),F_knife1(:,6) ,'LineWidth',3);hold on;
-    legend('dF_knife_X','dF_knife_Y','dF_knife_Z');xlabel('t/s');ylabel('m');title('dF');
+    legend('dF_knife_X','dF_knife_Y','dF_knife_Z');xlabel('t/s');ylabel('m');
 %     picture2Dsavename=[path_of_plot 'imp_angle'];
 %     saveas(h1,[picture2Dsavename '.fig'])
     suptitle('F_knife');
@@ -603,12 +597,12 @@ if plot_all_figure==1
     plot(1:length(V_knife1(:,1)),V_knife1(:,1) ,'LineWidth',3);hold on;
     plot(1:length(V_knife1(:,1)),V_knife1(:,2) ,'LineWidth',3);hold on;
     plot(1:length(V_knife1(:,1)),V_knife1(:,3) ,'LineWidth',3);hold on;
-    legend('V_knife_X','V_knife_Y','V_knife_Z');xlabel('t/s');ylabel('m');title('V');
+    legend('V_knife_X','V_knife_Y','V_knife_Z');xlabel('t/s');ylabel('m');
     subplot(212)
     plot(1:length(V_knife1(:,1)),V_knife1(:,4) ,'LineWidth',3);hold on;
     plot(1:length(V_knife1(:,1)),V_knife1(:,5) ,'LineWidth',3);hold on;
     plot(1:length(V_knife1(:,1)),V_knife1(:,6) ,'LineWidth',3);hold on;
-    legend('dV_knife_X','dV_knife_Y','dV_knife_Z');xlabel('t/s');ylabel('m');title('A');
+    legend('dV_knife_X','dV_knife_Y','dV_knife_Z');xlabel('t/s');ylabel('m');
 %     picture2Dsavename=[path_of_plot 'imp_angle'];
 %     saveas(h1,[picture2Dsavename '.fig'])
     suptitle('V_knife');
@@ -619,12 +613,12 @@ if plot_all_figure==1
     plot(1:length(chabu_Hand1(:,1)),chabu_Hand1(:,1) ,'LineWidth',3);hold on;
     plot(1:length(chabu_Hand1(:,1)),chabu_Hand1(:,2) ,'LineWidth',3);hold on;
     plot(1:length(chabu_Hand1(:,1)),chabu_Hand1(:,3) ,'LineWidth',3);hold on;
-    legend('P_X','P_Y','P_Z');xlabel('t/s');ylabel('m');title('P');
+    legend('P_X','P_Y','P_Z');xlabel('t/s');ylabel('m');
     subplot(212)
     plot(1:length(chabu_Hand1(:,1)),chabu_Hand1(:,4) ,'LineWidth',3);hold on;
     plot(1:length(chabu_Hand1(:,1)),chabu_Hand1(:,5) ,'LineWidth',3);hold on;
     plot(1:length(chabu_Hand1(:,1)),chabu_Hand1(:,6) ,'LineWidth',3);hold on;
-    legend('dP_X','dP_Y','dP_Z');xlabel('t/s');ylabel('m');title('V');
+    legend('dP_X','dP_Y','dP_Z');xlabel('t/s');ylabel('m');
 %     picture2Dsavename=[path_of_plot 'imp_angle'];
 %     saveas(h1,[picture2Dsavename '.fig'])
     suptitle('demo trj and vel');
@@ -640,9 +634,9 @@ end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 4 save data
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-filename1=[path_of_save  task '_' exp_name '_' exp_time  '.mat'];   
-    save(filename1, 'IMP1','F_knife1','chabu_Hand1','eigen_vector1','V_knife1')
-    !echo save done
+% filename1=[path_of_save  task '_' exp_name '_' exp_time  '.mat'];   
+%     save(filename1, 'IMP1','F_knife1','chabu_Hand1','eigen_vector1','V_knife1')
+%     !echo save done
 
 end
 

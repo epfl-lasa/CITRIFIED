@@ -16,6 +16,7 @@ This package requires the library from [surgeon_recording](https://github.com/ep
 
 ```bash
 conda activate citrified
+mkdir lib && cd lib
 git clone https://github.com/epfl-lasa/surgeon_recording.git
 cd surgeon_recording/source/surgeon_recording && python setup.py install
 ```

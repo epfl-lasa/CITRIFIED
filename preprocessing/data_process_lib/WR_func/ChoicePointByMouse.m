@@ -20,7 +20,8 @@ getxX = []; getxY = [];
             getxY=[getxY;y];
         end;
     end
-    [getxX getxY]
+    getxX
+    !echo cut point
 
     %% deal data after cut    
 %     idf= Force(:,1)<time_begin | Force(:,1)> time_end;

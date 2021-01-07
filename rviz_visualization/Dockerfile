@@ -26,8 +26,7 @@ USER ros
 ENV HOME /home/ros
 
 # workspace setup
-RUN mkdir -p ~/ros_ws/src/citrified_visualization
-COPY ros_ws/src/citrified_visualization home/ros/ros_ws/src/citrified_visualization
+RUN mkdir -p ~/ros_ws/src/
 
 RUN cd ~/ros_ws/src && /bin/bash -c "source /ros_entrypoint.sh; catkin_init_workspace"
 RUN cd ~/ros_ws && /bin/bash -c "source /ros_entrypoint.sh; catkin_make"

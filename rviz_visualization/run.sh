@@ -10,9 +10,9 @@ docker volume create --driver local \
 
 docker volume create --driver local \
   --opt type=none \
-  --opt device=$PWD/ros_ws/ \
+  --opt device=$PWD/citrified_visualization/ \
   --opt o=bind \
-  ${NAME}_ros_ws_vol
+  ${NAME}_package_vol
 
 xhost +
 docker run \
@@ -23,5 +23,5 @@ docker run \
   --env="DISPLAY" \
   --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
   --volume="${NAME}_data_vol:/home/ros/data/:rw" \
-  --volume="${NAME}_ros_ws_vol:/home/ros/ros_ws/:rw" \
+  --volume="${NAME}_package_vol:/home/ros/ros_ws/src/citrified_visualization/:rw" \
   $NAME:$TAG

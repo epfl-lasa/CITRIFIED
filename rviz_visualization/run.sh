@@ -1,5 +1,3 @@
-mkdir -p ros_ws
-
 NAME=$(echo "${PWD##*/}" | tr _ -)
 TAG=melodic-desktop-full
 
@@ -12,7 +10,7 @@ docker volume create --driver local \
 
 docker volume create --driver local \
   --opt type=none \
-  --opt device=$PWD/../data/ \
+  --opt device=$PWD/ros_ws/ \
   --opt o=bind \
   ${NAME}_ros_ws_vol
 

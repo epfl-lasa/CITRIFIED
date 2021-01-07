@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <rosparam param="use_sim_time">true</rosparam>
+
+  <node name="rviz" pkg="rviz" type="rviz" respawn="false"
+        args="-d $(find citrified_visualization)/config/rviz_config.rviz" output="screen" required="true"/>
+
+</launch>

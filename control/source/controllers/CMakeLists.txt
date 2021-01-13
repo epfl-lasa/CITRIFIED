@@ -1,0 +1,4 @@
+target_sources(lib_controllers PUBLIC CartesianPoseController.cpp)
+
+target_include_directories(lib_controllers PUBLIC ${Eigen3_INCLUDE_DIRS})
+target_link_libraries(lib_controllers Eigen3::Eigen cppzmq state_representation dynamical_systems passive-ds-control)

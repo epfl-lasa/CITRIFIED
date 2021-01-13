@@ -1,0 +1,2 @@
+add_executable(example example.cpp)
+target_link_libraries(example lib_motion_gen lib_controllers)

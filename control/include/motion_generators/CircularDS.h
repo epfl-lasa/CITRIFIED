@@ -2,6 +2,7 @@
 #pragma once
 
 #include "BaseDS.h"
+
 #include <dynamical_systems/Circular.hpp>
 
 namespace motiongenerator {

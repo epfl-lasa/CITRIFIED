@@ -1,10 +1,11 @@
 
 #pragma once
 
-#include "franka_lwi/franka_lwi_communication_protocol.h"
 #include <state_representation/Space/Cartesian/CartesianState.hpp>
 #include <state_representation/Space/Cartesian/CartesianPose.hpp>
 #include <state_representation/Space/Cartesian/CartesianTwist.hpp>
+
+#include <franka_lwi/franka_lwi_communication_protocol.h>
 
 namespace motiongenerator {
 

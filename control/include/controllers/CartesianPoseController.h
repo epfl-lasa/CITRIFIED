@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include "franka_lwi/franka_lwi_communication_protocol.h"
-#include "passive-ds-control/passive_ds_controller.h"
+#include <franka_lwi/franka_lwi_communication_protocol.h>
+#include <passive-ds-control/passive_ds_controller.h>
 
 namespace controller {
 

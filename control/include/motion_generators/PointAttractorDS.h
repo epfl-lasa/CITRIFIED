@@ -2,7 +2,8 @@
 #pragma once
 
 #include "BaseDS.h"
-#include "dynamical_systems/Linear.hpp"
+
+#include <dynamical_systems/Linear.hpp>
 
 namespace motiongenerator {
 

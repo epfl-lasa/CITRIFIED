@@ -1,2 +1,8 @@
 add_executable(example example.cpp)
 target_link_libraries(example lib_motion_gen lib_controllers)
+
+add_executable(circular_cut circular_cut.cpp)
+target_link_libraries(circular_cut lib_motion_gen lib_controllers)
+
+add_executable(simple_ds_controller simple_ds_controller.cpp)
+target_link_libraries(simple_ds_controller lib_motion_gen lib_controllers)

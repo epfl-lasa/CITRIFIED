@@ -1,8 +1,9 @@
-#include <franka_lwi/franka_lwi_communication_protocol.h>
-#include <motion_generators/PointAttractorDS.h>
-#include <controllers/CartesianPoseController.h>
-
 #include <vector>
+
+#include <franka_lwi/franka_lwi_communication_protocol.h>
+
+#include "motion_generators/PointAttractorDS.h"
+#include "controllers/CartesianPoseController.h"
 
 int main(int argc, char** argv) {
   frankalwi::proto::StateMessage<7> state{};

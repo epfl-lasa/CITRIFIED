@@ -28,12 +28,17 @@ Finally, create a new CMakeLists file in the source/[module] folder you created 
 add the relevant target sources, includes and libraries.
 
 ### Executables
-To add new executables, simply create a .cpp flie in the executables directory,
+To add new executables, simply create a .cpp file in the executables directory,
 and amend the CMakeLists with linking instructions.
 
-## Environments
-### Development
-Run the script [remote-dev.sh](scripts/remote-dev.sh) in the scripts directory
+## Usage
+
+### Setup
+After cloning this repository, run the script [setup.sh](scripts/setup.sh) from the scripts directory
+to complete any setup steps.
+
+### Development Environment
+Run the script [remote-dev.sh](scripts/remote-dev.sh) from the scripts directory
 to build and launch a Docker container as a background daemon process.
 This environment can be accessed over SSH as a remote host for building and debugging.
 
@@ -42,4 +47,5 @@ Remote host development may also be possible in other IDEs.
 
 ### Deployment
 TODO: Build a release image for all project executables so that they can easily be used for
-real data collection and other applications.
+real data collection and other applications. For now, you can use the debug build artefacts from
+within the development environment.

@@ -1,6 +1,6 @@
 # Controller implementation
 
-This subfolder contains all source code and build variables for robot control implementations.
+This directory contains all source code and build variables for robot control implementations.
 
 ## Structure
 
@@ -37,6 +37,21 @@ and amend the CMakeLists with linking instructions.
 After cloning this repository, run the script [setup.sh](scripts/setup.sh) from the scripts directory
 to complete any setup steps.
 
+## Interfacing with the robot
+
+This implementation is designed with the [Franka Lightweight Interface](https://github.com/epfl-lasa/franka_lightweight_interface) (LWI)
+in mind. The LWI is a real-time process with a 1kHz control loop that publishes robot state information
+and listens for commands. These messages are sent over ZMQ sockets, where one unique port has
+state information published by the LWI and another unique port has command information consumed by the LWI.
+
+The state and command message types are defined by a [franka_lwi_communication_protocol.h](https://github.com/epfl-lasa/franka_lightweight_interface/blob/main/include/franka_lightweight_interface/franka_lwi_communication_protocol.h)
+header in the LWI repository. For convenience, the ZMQ socket configurations expected by the 
+LWI are wrapped in network::configure function of [netutils.h](include/network/netutils.h).
+
+Finally, it is important that the port numbers for the state and command sockets are correctly
+mapped between the controller and the robot. If you change the default port numbers,
+make sure both sides of the interface (and any Docker port bindings) are updated accordingly. 
+
 ### Development Environment
 Run the script [remote-dev.sh](scripts/remote-dev.sh) from the scripts directory
 to build and launch a Docker container as a background daemon process.
@@ -44,6 +59,13 @@ This environment can be accessed over SSH as a remote host for building and debu
 
 See the instructions for CLion configuration [here](https://github.com/eeberhard/docker-clion-cpp-env).
 Remote host development may also be possible in other IDEs.
+
+By default, the container is launched with the host port 2222 remapped to the container SSH port.
+The host ports 5550 and 5551 are bound to the matching container ports for the state and command
+messages, respectively.
+
+If you need to configure different ports, change the shell variables for SSH,
+state message and command message port numbers in the remote-dev script.
 
 ### Deployment
 TODO: Build a release image for all project executables so that they can easily be used for

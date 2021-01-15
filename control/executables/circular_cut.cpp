@@ -10,6 +10,7 @@
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "motion_generators/CircularDS.h"
+#include "network/netutils.h"
 
 class BlendDS {
 public:
@@ -130,16 +131,10 @@ int main(int argc, char** argv) {
 
   std::cout << std::fixed << std::setprecision(3);
 
-
   // Set up ZMQ
-  zmq::context_t context(1);
-  zmq::socket_t publisher(context, ZMQ_PUB);
-  publisher.bind("tcp://*:5564");
-
-  zmq::socket_t subscriber(context, ZMQ_SUB);
-  subscriber.set(zmq::sockopt::conflate, 1);
-  subscriber.set(zmq::sockopt::subscribe, "");
-  subscriber.connect("tcp://localhost:5563");
+  zmq::context_t context;
+  zmq::socket_t publisher, subscriber;
+  network::configure(context, publisher, subscriber);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};

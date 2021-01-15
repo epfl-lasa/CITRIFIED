@@ -1,6 +1,6 @@
 ARG BASE=ghcr.io/eeberhard/cpp-remote-env
 ARG TAG=latest
-FROM $BASE:$TAG
+FROM $BASE:$TAG as debug
 
 # get base dependencies
 RUN sudo apt-get install -y libtool pkg-config autoconf automake git
@@ -64,3 +64,30 @@ RUN git clone https://github.com/epfl-lasa/passive-ds-control.git \
   && mv src /usr/local/src/passive-ds-control \
   && cd .. \
   && rm -rf passive-ds-control
+
+# tag a new build stage that compiles the sources
+FROM debug as runtime
+
+RUN sudo apt-get install -y curl
+
+WORKDIR /tmp/CITRIFIED/control
+COPY executables executables
+COPY include include
+COPY lib lib
+COPY scripts scripts
+COPY source source
+COPY CMakeLists.txt CMakeLists.txt
+
+WORKDIR /tmp/CITRIFIED/control/scripts
+RUN sh setup.sh
+
+WORKDIR /tmp/CITRIFIED/control/build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
+  && make \
+  && mkdir -p /executables \
+  && find executables -maxdepth 1 -type f -exec test -x {} \; -exec cp {} /executables \;
+
+WORKDIR /executables
+RUN rm -rf /tmp/CITRIFIED
+
+ENTRYPOINT ["/bin/bash"]

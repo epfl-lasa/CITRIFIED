@@ -1,12 +1,8 @@
-//
-// Created by Dominic Reber on 1/14/21.
-//
-#include <vector>
 #include <iostream>
 #include <cstdio>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
-#include <network/netutils.h>
+#include "network/netutils.h"
 
 void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip, double avg_freq) {
   static int count = 0;
@@ -120,6 +116,7 @@ int main(int argc, char** argv) {
       std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
       throttledPrintState(state, 500, iterations / elapsed_seconds.count());
 
+      // compute the desired command here
       command.jointTorque[0] = 1.0;
       command.jointTorque[1] = 2.0;
       command.jointTorque[2] = 3.0;

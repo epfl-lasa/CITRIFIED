@@ -50,23 +50,12 @@ frankalwi::proto::CommandMessage<7> CartesianLinearSpaceController::getJointTorq
 }
 
 frankalwi::proto::CommandMessage<7> CartesianLinearSpaceController::getJointTorque(frankalwi::proto::StateMessage<7> state,
-                                                                                   const Eigen::Matrix<double,
-                                                                                                       6,
-                                                                                                       1>& wrench) {
-  Eigen::Matrix<double, 6, 7> jacobian;
-  for (std::size_t dof = 0; dof < 6; ++dof) {
-    for (std::size_t joint = 0; joint < 7; ++joint) {
-      jacobian(dof, joint) = state.jacobian[dof][joint];
-    }
-  }
-
+                                                                                   const Eigen::Matrix<double, 6, 1>& wrench) {
+  Eigen::Map<Eigen::Matrix<double, 6, 7>> jacobian(state.jacobian.data());
   Eigen::Matrix<double, 7, 1> torques = jacobian.transpose() * wrench;
+
   frankalwi::proto::CommandMessage<7> command{};
-
-  for (std::size_t joint = 0; joint < 7; ++joint) {
-    command.jointTorque[joint] = torques[joint];
-  }
-
+  Eigen::MatrixXd::Map(command.jointTorque.data.data(), 7, 1) = torques.array();
   return command;
 }
 CartesianAngularSpaceController::CartesianAngularSpaceController(double k) : k_(k) {
@@ -124,22 +113,20 @@ frankalwi::proto::CommandMessage<7> CartesianPoseController::getJointTorque(fran
   auto linearCommand = linearController.getJointTorque(state, twist);
   auto angularCommand = angularController.getJointTorque(state, twist);
 
-  auto linearTorque = Eigen::Matrix<float, 7, 1>(linearCommand.jointTorque.data.data());
-  auto angularTorque = Eigen::Matrix<float, 7, 1>(angularCommand.jointTorque.data.data());
+  auto linearTorque = Eigen::Matrix<double, 7, 1>(linearCommand.jointTorque.data.data());
+  auto angularTorque = Eigen::Matrix<double, 7, 1>(angularCommand.jointTorque.data.data());
 
   // optional: arbitrate between linear and angular commands depending on priority
   auto commandTorque = linearTorque + angularTorque;
 
   // optional: treat wrench as desired acceleration, and convert to actual torque
-  //  auto massMatrix = Eigen::Map<const Eigen::Matrix<float, 7, 7> >(state.mass.data());
-  //  Eigen::Matrix<float, 7, 1> jointTorque = massMatrix * commandTorque;
+  //  auto massMatrix = Eigen::Map<const Eigen::Matrix<double, 7, 7> >(state.mass.data());
+  //  Eigen::Matrix<double, 7, 1> jointTorque = massMatrix * commandTorque;
 
-  Eigen::Matrix<float, 7, 1> jointTorque = commandTorque;
+  Eigen::Matrix<double, 7, 1> jointTorque = commandTorque;
 
   frankalwi::proto::CommandMessage<7> command{};
-  for (std::size_t joint = 0; joint < 7; ++joint) {
-    command.jointTorque[joint] = jointTorque(joint);
-  }
+  Eigen::MatrixXd::Map(command.jointTorque.data.data(), 7, 1) = jointTorque.array();
 
   return command;
 }

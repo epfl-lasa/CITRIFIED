@@ -73,17 +73,17 @@ void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip, doub
       std::string space = dof < 3 ? "linear " : "angular";
       printf("Jacobian %s %c: ", space.c_str(), map[dof % 3]);
       for (std::size_t joint = 0; joint < 6; ++joint) {
-        printf("% 5.2f, ", state.jacobian[dof][joint]);
+        printf("% 5.2f, ", state.jacobian[dof + joint*6]);
       }
-      printf("% 5.2f\n", state.jacobian[dof][6]);
+      printf("% 5.2f\n", state.jacobian[dof + 6*6]);
     }
 
     for (std::size_t row = 0; row < 7; ++row) {
       printf("Inertial: ");
-      for (std::size_t column = 0; column < 6; ++column) {
-        printf("% 5.2f, ", state.mass[row][column]);
+      for (std::size_t column = 0; column < 5; ++column) {
+        printf("% 5.2f, ", state.mass[row + column*6]);
       }
-      printf("% 5.2f\n", state.mass[row][6]);
+      printf("% 5.2f\n", state.mass[row + 5*6]);
     }
     count = 0;
   }
@@ -117,13 +117,13 @@ int main(int argc, char** argv) {
       throttledPrintState(state, 500, iterations / elapsed_seconds.count());
 
       // compute the desired command here
-      command.jointTorque[0] = 1.0;
-      command.jointTorque[1] = 2.0;
-      command.jointTorque[2] = 3.0;
-      command.jointTorque[3] = 4.0;
-      command.jointTorque[4] = 5.0;
-      command.jointTorque[5] = 6.0;
-      command.jointTorque[6] = 7.0;
+      command.jointTorque[0] = 0.01;
+      command.jointTorque[1] = 0.02;
+      command.jointTorque[2] = 0.03;
+      command.jointTorque[3] = 0.04;
+      command.jointTorque[4] = 0.05;
+      command.jointTorque[5] = 0.06;
+      command.jointTorque[6] = 0.07;
       frankalwi::proto::send(publisher, command);
       ++iterations;
     }

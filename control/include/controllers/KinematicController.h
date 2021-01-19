@@ -15,6 +15,9 @@ namespace controller {
 class KinematicController {
 public:
   KinematicController();
+  frankalwi::proto::CommandMessage<7> getJointTorque(frankalwi::proto::StateMessage<7> state,
+                                                     const std::vector<double>& twist);
+  double gain = 1.0f;
 private:
   KDLRobot robot_;
 };

@@ -17,7 +17,7 @@ void PointAttractor::setTargetPose(const StateRepresentation::CartesianPose& pos
 
 void PointAttractor::setTargetPose(frankalwi::proto::StateMessage<7> state) {
   StateRepresentation::CartesianPose pose;
-  poseFromState(pose, state);
+  poseFromState(state, pose);
   setTargetPose(pose);
 }
 
@@ -27,7 +27,7 @@ void PointAttractor::setTargetPosition(StateRepresentation::CartesianPose pose) 
 }
 void PointAttractor::setTargetPosition(frankalwi::proto::StateMessage<7> state) {
   StateRepresentation::CartesianPose pose;
-  poseFromState(pose, state);
+  poseFromState(state, pose);
   setTargetPosition(pose);
 }
 
@@ -37,7 +37,7 @@ void PointAttractor::setTargetOrientation(StateRepresentation::CartesianPose pos
 }
 void PointAttractor::setTargetOrientation(frankalwi::proto::StateMessage<7> state) {
   StateRepresentation::CartesianPose pose;
-  poseFromState(pose, state);
+  poseFromState(state, pose);
   setTargetOrientation(pose);
 }
 

@@ -12,8 +12,8 @@ namespace motiongenerator {
 class BaseDS {
 public:
   BaseDS();
-  static void poseFromState(StateRepresentation::CartesianPose& pose, frankalwi::proto::StateMessage<7> state);
-  void updateCurrentPose(frankalwi::proto::StateMessage<7> state);
+  static void poseFromState(const frankalwi::proto::StateMessage<7>& state, StateRepresentation::CartesianPose& pose);
+  void updateCurrentPose(const frankalwi::proto::StateMessage<7>& state);
 
   virtual std::vector<double> getTwist(frankalwi::proto::StateMessage<7> state) = 0;
 

@@ -52,9 +52,9 @@ void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip) {
       std::string space = dof < 3 ? "linear " : "angular";
       printf("Jacobian %s %c: ", space.c_str(), map[dof % 3]);
       for (std::size_t joint = 0; joint < 6; ++joint) {
-        printf("% 5.2f, ", state.jacobian[dof][joint]);
+        printf("% 5.2f, ", state.jacobian[dof + joint*6]);
       }
-      printf("% 5.2f\n", state.jacobian[dof][6]);
+      printf("% 5.2f\n", state.jacobian[dof + 6*6]);
     }
     count = 0;
   }

@@ -7,12 +7,13 @@ BaseDS::BaseDS() :
 
 }
 
-void BaseDS::poseFromState(StateRepresentation::CartesianPose& pose, frankalwi::proto::StateMessage<7> state) {
-  pose.set_position(state.eePose.position.x, state.eePose.position.y, state.eePose.position.z);
-  pose.set_orientation(std::vector<double>{1, 0, 0, 0});
-  pose.set_orientation(std::vector<double>{
-      state.eePose.orientation.w, state.eePose.orientation.x, state.eePose.orientation.y, state.eePose.orientation.z
-  });
+void BaseDS::poseFromState(const frankalwi::proto::StateMessage<7>& state, StateRepresentation::CartesianPose& pose) {
+  Eigen::Vector3d position
+      (state.eePose.position.x, state.eePose.position.y, state.eePose.position.z);
+  Eigen::Quaterniond orientation
+      (state.eePose.orientation.w, state.eePose.orientation.x, state.eePose.orientation.y, state.eePose.orientation.z);
+  StateRepresentation::CartesianPose newPose(pose.get_reference_frame(), position, orientation);
+  pose = newPose;
 }
 
 std::vector<double> BaseDS::clampTwist(StateRepresentation::CartesianTwist twist) const {
@@ -29,8 +30,8 @@ std::vector<double> BaseDS::clampTwist(StateRepresentation::CartesianTwist twist
   return desiredVelocity;
 }
 
-void BaseDS::updateCurrentPose(frankalwi::proto::StateMessage<7> state) {
-  poseFromState(currentPose, state);
+void BaseDS::updateCurrentPose(const frankalwi::proto::StateMessage<7>& state) {
+  poseFromState(state, currentPose);
 }
 
 }

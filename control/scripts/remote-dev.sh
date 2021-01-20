@@ -10,8 +10,8 @@ if [ "$path" != "CITRIFIED/control/scripts" ]; then
   exit 1
 fi
 
-IMAGE_NAME=clion/cpp-remote-dev/citrified
-CONTAINER_NAME=citrified-remote-dev
+IMAGE_NAME=citrified/control/remote-dev
+CONTAINER_NAME=citrified-control-remote-dev
 PORT_SSH=2222
 PORT_STATE=5550
 PORT_COMMAND=5551

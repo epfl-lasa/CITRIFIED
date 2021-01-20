@@ -8,6 +8,6 @@ if [ "$path" != "CITRIFIED/control/scripts" ]; then
   exit 1
 fi
 
-IMAGE_NAME=citrified_runtime_image
+IMAGE_NAME=citrified/control/runtime
 
 docker build --target runtime -f ../Dockerfile --tag $IMAGE_NAME ..

@@ -8,9 +8,8 @@ if [ "$path" != "CITRIFIED/control/scripts" ]; then
   exit 1
 fi
 
-IMAGE_NAME=citrified_runtime_image
-CONTAINER_NAME=citrified_runtime_container
+IMAGE_NAME=citrified/control/runtime
 PORT_STATE=5550
 PORT_COMMAND=5551
 
-docker run -it --rm -p"$PORT_STATE":"$PORT_STATE" -p"$PORT_COMMAND":"$PORT_COMMAND" --name $CONTAINER_NAME $IMAGE_NAME
+docker run -it --rm -p"$PORT_STATE":"$PORT_STATE" -p"$PORT_COMMAND":"$PORT_COMMAND" $IMAGE_NAME

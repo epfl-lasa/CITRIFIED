@@ -68,6 +68,8 @@ RUN git clone https://github.com/epfl-lasa/passive-ds-control.git \
 # tag a new build stage that compiles the sources
 FROM debug as runtime
 
+RUN useradd -ms /bin/bash citrified
+
 RUN sudo apt-get install -y curl
 
 WORKDIR /tmp/CITRIFIED/control
@@ -84,10 +86,12 @@ RUN sh setup.sh
 WORKDIR /tmp/CITRIFIED/control/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
   && make \
-  && mkdir -p /executables \
-  && find executables -maxdepth 1 -type f -exec test -x {} \; -exec cp {} /executables \;
+  && mkdir -p /home/citrified/executables \
+  && find executables -maxdepth 1 -type f -exec test -x {} \; -exec cp {} /home/citrified/executables \;
 
-WORKDIR /executables
+WORKDIR /home/citrified/executables
 RUN rm -rf /tmp/CITRIFIED
+
+USER citrified
 
 ENTRYPOINT ["/bin/bash"]

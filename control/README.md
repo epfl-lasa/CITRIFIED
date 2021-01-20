@@ -68,6 +68,8 @@ If you need to configure different ports, change the shell variables for SSH,
 state message and command message port numbers in the remote-dev script.
 
 ### Deployment
-TODO: Build a release image for all project executables so that they can easily be used for
-real data collection and other applications. For now, you can use the debug build artefacts from
-within the development environment.
+Run the script [build.sh](scripts/build.sh) from the scripts directory
+to compile the project into a Docker image.
+
+Then run [run.sh](scripts/run.sh) from the scripts directory to spin up
+an interactive container shell with the compiled executables ready to go.

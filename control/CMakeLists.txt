@@ -9,6 +9,5 @@ find_package(cppzmq REQUIRED)
 include_directories(include)
 
 add_subdirectory(lib)
-add_subdirectory(include)
 add_subdirectory(source)
 add_subdirectory(executables)

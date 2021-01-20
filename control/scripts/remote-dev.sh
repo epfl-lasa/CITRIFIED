@@ -10,13 +10,13 @@ if [ "$path" != "CITRIFIED/control/scripts" ]; then
   exit 1
 fi
 
-IMAGE_NAME=clion/cpp-remote-dev/citrified
-CONTAINER_NAME=citrified-remote-dev
+IMAGE_NAME=citrified/control/remote-dev
+CONTAINER_NAME=citrified-control-remote-dev
 PORT_SSH=2222
 PORT_STATE=5550
 PORT_COMMAND=5551
 
-docker build -f ../Dockerfile.remote-dev -t $IMAGE_NAME .
+docker build --target debug -f ../Dockerfile --tag $IMAGE_NAME .
 
 docker container stop "$CONTAINER_NAME" >/dev/null 2>&1
 docker rm --force "$CONTAINER_NAME" >/dev/null 2>&1

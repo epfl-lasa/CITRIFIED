@@ -80,10 +80,10 @@ void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip, doub
 
     for (std::size_t row = 0; row < 7; ++row) {
       printf("Inertial: ");
-      for (std::size_t column = 0; column < 5; ++column) {
-        printf("% 5.2f, ", state.mass[row + column*6]);
+      for (std::size_t column = 0; column < 6; ++column) {
+        printf("% 5.2f, ", state.mass[row + column*7]);
       }
-      printf("% 5.2f\n", state.mass[row + 5*6]);
+      printf("% 5.2f\n", state.mass[row + 6*7]);
     }
     count = 0;
   }

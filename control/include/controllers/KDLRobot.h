@@ -28,10 +28,10 @@ public:
 
 private:
   KDL::Chain chain_;
-  KDL::JntArray qLimMin_;
-  KDL::JntArray qLimMax_;
-  KDL::JntArray qOpt_;
-  KDL::JntArray qWeights_;
+  KDL::JntArray qLimMin_;   // Lower joint limits [rad]
+  KDL::JntArray qLimMax_;   // Upper joint limits [rad]
+  KDL::JntArray qOpt_;      // Optimal (preferred) joint configuration [rad]
+  KDL::JntArray qWeights_;  // Relative preference joint weighting for optimal configuration
   std::unique_ptr<KDL::ChainFkSolverPos> fkSolverPos_;
   std::unique_ptr<KDL::ChainIkSolverPos> ikSolverPos_;
   std::unique_ptr<KDL::ChainIkSolverVel> ikSolverVel_;

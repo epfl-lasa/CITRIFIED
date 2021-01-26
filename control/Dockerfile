@@ -80,9 +80,6 @@ COPY scripts scripts
 COPY source source
 COPY CMakeLists.txt CMakeLists.txt
 
-WORKDIR /tmp/CITRIFIED/control/scripts
-RUN sh setup.sh
-
 WORKDIR /tmp/CITRIFIED/control/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
   && make \

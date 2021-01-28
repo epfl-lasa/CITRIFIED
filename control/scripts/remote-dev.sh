@@ -21,6 +21,7 @@ docker build --target debug -f ../Dockerfile --tag $IMAGE_NAME .
 docker container stop "$CONTAINER_NAME" >/dev/null 2>&1
 docker rm --force "$CONTAINER_NAME" >/dev/null 2>&1
 
-docker run -d --cap-add sys_ptrace \
+
+docker run -d --cap-add sys_ptrace -v $PWD/../data:/home/remote \
   -p127.0.0.1:"$PORT_SSH":22 -p"$PORT_STATE":"$PORT_STATE" -p"$PORT_COMMAND":"$PORT_COMMAND" \
   --name $CONTAINER_NAME $IMAGE_NAME

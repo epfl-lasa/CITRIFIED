@@ -3,9 +3,13 @@
 #include "controllers/KinematicController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "network/netutils.h"
+#include "franka_lwi/franka_lwi_logger.h"
 
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
+
+  // logger
+  frankalwi::logger::FrankaLWILogger logger("/home/remote/data.csv");
 
   // motion generator
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
@@ -35,6 +39,7 @@ int main(int argc, char** argv) {
   bool stateReceived = false;
   while (subscriber.connected()) {
     if (frankalwi::proto::receive(subscriber, state)) {
+      logger.writeLine(state);
 
       command = ctrl.getJointTorque(state, DS.getTwist(state));
       frankalwi::proto::send(publisher, command);

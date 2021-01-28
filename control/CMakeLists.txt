@@ -3,6 +3,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 project(CITRIFIED VERSION 0.1)
 
+enable_testing()
+
 find_package(Eigen3 REQUIRED)
 find_package(cppzmq REQUIRED)
 

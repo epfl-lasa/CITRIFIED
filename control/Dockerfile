@@ -65,6 +65,17 @@ RUN git clone https://github.com/epfl-lasa/passive-ds-control.git \
   && cd .. \
   && rm -rf passive-ds-control
 
+# install KDL
+RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
+  && cd orocos_kinematics_dynamics/orocos_kdl \
+  && mkdir build \
+  && cd build \
+  && cmake .. \
+  && make \
+  && make install \
+  && cd ../../.. \
+  && rm -rf orocos_kinematics_dynamics
+
 # tag a new build stage that compiles the sources
 FROM debug as runtime
 

@@ -1,3 +1,4 @@
 .idea
 cmake-build*
 include/franka_lwi/franka_lwi_communication_protocol.h
+data/

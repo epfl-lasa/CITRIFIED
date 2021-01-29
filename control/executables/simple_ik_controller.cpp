@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // logger
-  frankalwi::logger::FrankaLWILogger logger("/home/remote/data.csv");
+  frankalwi::proto::Logger logger;
 
   // motion generator
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};

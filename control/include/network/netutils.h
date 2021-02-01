@@ -23,7 +23,8 @@ void configure(zmq::context_t& context, zmq::socket_t& publisher, zmq::socket_t&
 
 void poseFromState(frankalwi::proto::StateMessage<7>& state, StateRepresentation::CartesianPose& pose) {
   Eigen::Vector3d position(frankalwi::proto::vec3DToArray(state.eePose.position).data());
-  Eigen::Quaterniond orientation(frankalwi::proto::quaternionToArray(state.eePose.orientation).data());
+  Eigen::Quaterniond orientation
+      (state.eePose.orientation.w, state.eePose.orientation.x, state.eePose.orientation.y, state.eePose.orientation.z);
   StateRepresentation::CartesianPose newPose(pose.get_reference_frame(), position, orientation);
   pose = newPose;
 }

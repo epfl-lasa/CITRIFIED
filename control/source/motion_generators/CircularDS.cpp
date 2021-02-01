@@ -18,13 +18,14 @@ CircleDS::CircleDS(const StateRepresentation::CartesianPose& pose, double radius
   circularDS.set_radius(radius);
 }
 
-StateRepresentation::CartesianTwist CircleDS::getTwist(StateRepresentation::CartesianPose& pose) {
+StateRepresentation::CartesianTwist CircleDS::getTwist(const StateRepresentation::CartesianPose& pose) {
   updateCurrentPose(pose);
   return getTwist();
 }
 StateRepresentation::CartesianTwist CircleDS::getTwist() {
   StateRepresentation::CartesianTwist twist = circularDS.evaluate(currentPose);
-  return clampTwist(twist);
+  clampTwist(twist);
+  return twist;
 }
 
 }

@@ -16,7 +16,7 @@ public:
   void setTargetPosition(StateRepresentation::CartesianPose pose);
   void setTargetOrientation(StateRepresentation::CartesianPose pose);
 
-  StateRepresentation::CartesianTwist getTwist(StateRepresentation::CartesianPose& pose) override;
+  StateRepresentation::CartesianTwist getTwist(const StateRepresentation::CartesianPose& pose) override;
   StateRepresentation::CartesianTwist getTwist();
 
   StateRepresentation::CartesianPose targetPose;

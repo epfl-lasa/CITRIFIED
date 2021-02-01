@@ -13,7 +13,7 @@ public:
   BaseDS();
   void updateCurrentPose(const StateRepresentation::CartesianPose& pose);
 
-  virtual StateRepresentation::CartesianTwist getTwist(StateRepresentation::CartesianPose& pose) = 0;
+  virtual StateRepresentation::CartesianTwist getTwist(const StateRepresentation::CartesianPose& pose) = 0;
 
   StateRepresentation::CartesianPose currentPose;
   // TODO find a solution for these hardcoded limits
@@ -23,7 +23,7 @@ public:
   double minAngularSpeed = 1e-3;
 
 protected:
-  StateRepresentation::CartesianTwist clampTwist(StateRepresentation::CartesianTwist& twist) const;
+  void clampTwist(StateRepresentation::CartesianTwist& twist) const;
 };
 
 }

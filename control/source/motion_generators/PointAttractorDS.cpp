@@ -25,14 +25,15 @@ void PointAttractor::setTargetOrientation(StateRepresentation::CartesianPose pos
   setTargetPose(pose);
 }
 
-StateRepresentation::CartesianTwist PointAttractor::getTwist(StateRepresentation::CartesianPose& pose) {
+StateRepresentation::CartesianTwist PointAttractor::getTwist(const StateRepresentation::CartesianPose& pose) {
   updateCurrentPose(pose);
   return getTwist();
 }
 
 StateRepresentation::CartesianTwist PointAttractor::getTwist() {
   StateRepresentation::CartesianTwist twist = linearDS.evaluate(currentPose);
-  return clampTwist(twist);
+  clampTwist(twist);
+  return twist;
 }
 
 }

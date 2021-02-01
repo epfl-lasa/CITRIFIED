@@ -13,7 +13,7 @@ public:
   explicit CircleDS(const StateRepresentation::CartesianPose& pose);
   CircleDS(const StateRepresentation::CartesianPose& pose, double radius);
 
-  StateRepresentation::CartesianTwist getTwist(StateRepresentation::CartesianPose& pose) override;
+  StateRepresentation::CartesianTwist getTwist(const StateRepresentation::CartesianPose& pose) override;
   StateRepresentation::CartesianTwist getTwist();
 
   StateRepresentation::CartesianPose center;

@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
 
   StateRepresentation::CartesianPose defaultPose("world", center, defaultOrientation);
 
-  motiongenerator::PointAttractor DS;
+  motion_generator::PointAttractor DS;
   DS.currentPose = defaultPose;
   DS.setTargetPose(DS.currentPose);
   DS.linearDS.set_gain(gains);
@@ -42,6 +42,15 @@ int main(int argc, char** argv) {
       logger.writeLine(state);
 
       command = ctrl.getJointTorque(state, DS.getTwist(state));
+      StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+      network::poseFromState(state, pose);
+      StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+      // TODO this is just an intermediate solution
+      std::vector<double> desiredVelocity = {
+          twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
+          twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
+      };
+      command = ctrl.getJointTorque(state, desiredVelocity);
       frankalwi::proto::send(publisher, command);
     }
   }

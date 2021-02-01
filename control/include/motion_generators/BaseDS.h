@@ -1,30 +1,29 @@
 
 #pragma once
 
-#include <state_representation/Space/Cartesian/CartesianState.hpp>
 #include <state_representation/Space/Cartesian/CartesianPose.hpp>
 #include <state_representation/Space/Cartesian/CartesianTwist.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
-namespace motiongenerator {
+namespace motion_generator {
 
 class BaseDS {
 public:
   BaseDS();
-  static void poseFromState(const frankalwi::proto::StateMessage<7>& state, StateRepresentation::CartesianPose& pose);
-  void updateCurrentPose(const frankalwi::proto::StateMessage<7>& state);
+  void updateCurrentPose(const StateRepresentation::CartesianPose& pose);
 
-  virtual std::vector<double> getTwist(frankalwi::proto::StateMessage<7> state) = 0;
+  virtual StateRepresentation::CartesianTwist getTwist(StateRepresentation::CartesianPose& pose) = 0;
 
   StateRepresentation::CartesianPose currentPose;
+  // TODO find a solution for these hardcoded limits
   double maxLinearSpeed = 0.25;
   double maxAngularSpeed = 0.75;
   double minLinearSpeed = 1e-3;
   double minAngularSpeed = 1e-3;
 
 protected:
-  std::vector<double> clampTwist(StateRepresentation::CartesianTwist twist) const;
+  StateRepresentation::CartesianTwist clampTwist(StateRepresentation::CartesianTwist& twist) const;
 };
 
 }

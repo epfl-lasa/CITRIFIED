@@ -1,6 +1,6 @@
 #include "motion_generators/CircularDS.h"
 
-namespace motiongenerator {
+namespace motion_generator {
 
 CircleDS::CircleDS() :
     center(StateRepresentation::CartesianPose::Identity("world")),
@@ -18,13 +18,12 @@ CircleDS::CircleDS(const StateRepresentation::CartesianPose& pose, double radius
   circularDS.set_radius(radius);
 }
 
-std::vector<double> CircleDS::getTwist(frankalwi::proto::StateMessage<7> state) {
-  updateCurrentPose(state);
+StateRepresentation::CartesianTwist CircleDS::getTwist(StateRepresentation::CartesianPose& pose) {
+  updateCurrentPose(pose);
   return getTwist();
 }
-std::vector<double> CircleDS::getTwist() {
+StateRepresentation::CartesianTwist CircleDS::getTwist() {
   StateRepresentation::CartesianTwist twist = circularDS.evaluate(currentPose);
-
   return clampTwist(twist);
 }
 

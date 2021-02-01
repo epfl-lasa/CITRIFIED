@@ -5,7 +5,7 @@
 
 #include <dynamical_systems/Linear.hpp>
 
-namespace motiongenerator {
+namespace motion_generator {
 
 class PointAttractor : public BaseDS {
 public:
@@ -16,12 +16,8 @@ public:
   void setTargetPosition(StateRepresentation::CartesianPose pose);
   void setTargetOrientation(StateRepresentation::CartesianPose pose);
 
-  void setTargetPose(frankalwi::proto::StateMessage<7> state);
-  void setTargetPosition(frankalwi::proto::StateMessage<7> state);
-  void setTargetOrientation(frankalwi::proto::StateMessage<7> state);
-
-  std::vector<double> getTwist(frankalwi::proto::StateMessage<7> state) override;
-  std::vector<double> getTwist();
+  StateRepresentation::CartesianTwist getTwist(StateRepresentation::CartesianPose& pose) override;
+  StateRepresentation::CartesianTwist getTwist();
 
   StateRepresentation::CartesianPose targetPose;
   DynamicalSystems::Linear<StateRepresentation::CartesianState> linearDS;

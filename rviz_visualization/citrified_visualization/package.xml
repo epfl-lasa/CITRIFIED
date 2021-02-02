@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package format="2">
+  <name>citrified_visualization</name>
+  <version>0.0.0</version>
+  <description>The citrified_visualization package</description>
+  <maintainer email="dominic.reber@epfl.ch">Dominic Reber</maintainer>
+  <license>Proprietary</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>tf2_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
+</package>

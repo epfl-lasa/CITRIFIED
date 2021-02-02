@@ -1,6 +1,6 @@
 #include "motion_generators/PointAttractorDS.h"
 
-namespace motiongenerator {
+namespace motion_generator {
 
 PointAttractor::PointAttractor() :
     targetPose(StateRepresentation::CartesianPose::Identity("world")),
@@ -15,40 +15,25 @@ void PointAttractor::setTargetPose(const StateRepresentation::CartesianPose& pos
   linearDS.set_attractor(targetPose);
 }
 
-void PointAttractor::setTargetPose(frankalwi::proto::StateMessage<7> state) {
-  StateRepresentation::CartesianPose pose;
-  poseFromState(state, pose);
-  setTargetPose(pose);
-}
-
 void PointAttractor::setTargetPosition(StateRepresentation::CartesianPose pose) {
   pose.set_orientation(targetPose.get_orientation());
   setTargetPose(pose);
-}
-void PointAttractor::setTargetPosition(frankalwi::proto::StateMessage<7> state) {
-  StateRepresentation::CartesianPose pose;
-  poseFromState(state, pose);
-  setTargetPosition(pose);
 }
 
 void PointAttractor::setTargetOrientation(StateRepresentation::CartesianPose pose) {
   pose.set_position(targetPose.get_position());
   setTargetPose(pose);
 }
-void PointAttractor::setTargetOrientation(frankalwi::proto::StateMessage<7> state) {
-  StateRepresentation::CartesianPose pose;
-  poseFromState(state, pose);
-  setTargetOrientation(pose);
-}
 
-std::vector<double> PointAttractor::getTwist(frankalwi::proto::StateMessage<7> state) {
-  updateCurrentPose(state);
+StateRepresentation::CartesianTwist PointAttractor::getTwist(const StateRepresentation::CartesianPose& pose) {
+  updateCurrentPose(pose);
   return getTwist();
 }
 
-std::vector<double> PointAttractor::getTwist() {
+StateRepresentation::CartesianTwist PointAttractor::getTwist() {
   StateRepresentation::CartesianTwist twist = linearDS.evaluate(currentPose);
-  return clampTwist(twist);
+  clampTwist(twist);
+  return twist;
 }
 
 }

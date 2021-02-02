@@ -11,7 +11,7 @@
 #include "motion_generators/PointAttractorDS.h"
 #include "network/netutils.h"
 
-void throttledPrintCommand(const motiongenerator::PointAttractor& DS,
+void throttledPrintCommand(const motion_generator::PointAttractor& DS,
                            std::vector<double> velocity,
                            frankalwi::proto::CommandMessage<7> command,
                            int skip) {
@@ -52,9 +52,9 @@ void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip) {
       std::string space = dof < 3 ? "linear " : "angular";
       printf("Jacobian %s %c: ", space.c_str(), map[dof % 3]);
       for (std::size_t joint = 0; joint < 6; ++joint) {
-        printf("% 5.2f, ", state.jacobian[dof + joint*6]);
+        printf("% 5.2f, ", state.jacobian[dof + joint * 6]);
       }
-      printf("% 5.2f\n", state.jacobian[dof + 6*6]);
+      printf("% 5.2f\n", state.jacobian[dof + 6 * 6]);
     }
     count = 0;
   }
@@ -62,7 +62,7 @@ void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip) {
 }
 
 int main(int argc, char** argv) {
-  motiongenerator::PointAttractor DS;
+  motion_generator::PointAttractor DS;
   DS.currentPose = StateRepresentation::CartesianPose::Identity("robot");
   DS.setTargetPose(DS.currentPose);
 
@@ -108,21 +108,28 @@ int main(int argc, char** argv) {
   while (subscriber.connected()) {
     // blocking receive until we get a state from the robot
     if (frankalwi::proto::receive(subscriber, state)) {
+      StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+      network::poseFromState(state, pose);
       if (!positionSet || !orientationSet) {
         if (!positionSet) {
           std::cout << "Updating target position from current state" << std::endl;
-          DS.setTargetPosition(state);
+          DS.setTargetPosition(pose);
           positionSet = true;
         }
         if (!orientationSet) {
           std::cout << "Updating target orientation from current state" << std::endl;
-          DS.setTargetOrientation(state);
+          DS.setTargetOrientation(pose);
           orientationSet = true;
         }
         std::cout << DS.targetPose << std::endl;
       }
 
-      std::vector<double> desiredVelocity = DS.getTwist(state);
+      StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+      // TODO this is just an intermediate solution
+      std::vector<double> desiredVelocity = {
+          twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
+          twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
+      };
       command = ctrl.getJointTorque(state, desiredVelocity);
 
       throttledPrintCommand(DS, desiredVelocity, command, 500);

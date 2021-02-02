@@ -18,15 +18,15 @@ public:
     orientationDS.setTargetPose(StateRepresentation::CartesianPose("world", center, defaultOrientation));
     orientationDS.linearDS.set_gain(pointGains);
 
-    flatCircleDS = motiongenerator::CircleDS(StateRepresentation::CartesianPose("world", center, defaultOrientation));
+    flatCircleDS = motion_generator::CircleDS(StateRepresentation::CartesianPose("world", center, defaultOrientation));
     flatCircleDS.circularDS.set_radius(radius);
     flatCircleDS.circularDS.set_circular_velocity(radialVelocity);
     flatCircleDS.circularDS.set_planar_gain(circGains[0]);
     flatCircleDS.circularDS.set_normal_gain(circGains[1]);
 
-    inclinedCircleDS = motiongenerator::CircleDS(StateRepresentation::CartesianPose("world",
-                                                                                    center,
-                                                                                    inclination * defaultOrientation));
+    inclinedCircleDS = motion_generator::CircleDS(StateRepresentation::CartesianPose("world",
+                                                                                     center,
+                                                                                     inclination * defaultOrientation));
     inclinedCircleDS.circularDS.set_radius(radius);
     inclinedCircleDS.circularDS.set_circular_velocity(radialVelocity);
     inclinedCircleDS.circularDS.set_planar_gain(circGains[0]);
@@ -41,13 +41,20 @@ public:
   double circGains[2] = {1000.0f, 5.0f};
   std::vector<double> pointGains = {0.0, 0.0, 0.0, 10.0, 10.0, 10.0};
 
-  motiongenerator::PointAttractor orientationDS;
-  motiongenerator::CircleDS flatCircleDS;
-  motiongenerator::CircleDS inclinedCircleDS;
+  motion_generator::PointAttractor orientationDS;
+  motion_generator::CircleDS flatCircleDS;
+  motion_generator::CircleDS inclinedCircleDS;
 
   std::vector<double> blend(frankalwi::proto::StateMessage<7> state) {
 //    updateOrientationTarget(state);
-    auto v1 = orientationDS.getTwist(state);
+    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+    network::poseFromState(state, pose);
+    StateRepresentation::CartesianTwist twist = orientationDS.getTwist(pose);
+    // TODO this is just an intermediate solution
+    std::vector<double> v1 = {
+        twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
+        twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
+    };
     auto v2 = blendCircles(state);
 
     std::vector<double> velocity(6, 0);
@@ -91,20 +98,20 @@ private:
 
     double zVel = 0;
 
-    auto v0 = flatCircleDS.getTwist(state);
-    Eigen::Vector3d l0(v0[0], v0[1], v0[2]);
-    auto v1 = inclinedCircleDS.getTwist(state);
-    Eigen::Vector3d l1(v1[0], v1[1], v1[2]);
+    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+    network::poseFromState(state, pose);
+    StateRepresentation::CartesianTwist flatCircleTwist = flatCircleDS.getTwist(pose);
+    StateRepresentation::CartesianTwist inclinedCircleTwist = inclinedCircleDS.getTwist(pose);
 
     Eigen::Vector3d l;
     if (state.eePose.position.x - center.x() > xBlendWidth) {
-      l = l0;
+      l = flatCircleTwist.get_linear_velocity();
       zVel = -0.05;
     } else if (state.eePose.position.x - center.x() < -xBlendWidth) {
-      l = l1;
+      l = inclinedCircleTwist.get_linear_velocity();
     } else {
       double scale = (state.eePose.position.x - center.x() + xBlendWidth) / (2 * xBlendWidth);
-      l = l0 * scale + l1 * (1 - scale);
+      l = flatCircleTwist.get_linear_velocity() * scale + inclinedCircleTwist.get_linear_velocity() * (1 - scale);
     }
 
     /*

@@ -5,6 +5,15 @@
 
 namespace controller {
 
+static inline Eigen::MatrixXd mapE(const Eigen::Quaterniond& q) {
+  Eigen::Matrix<double, 3, 3> skewSymmetric;
+  skewSymmetric << 0, -q.z(), q.y(),
+      q.z(), 0, -q.x(),
+      -q.y(), q.x(), 0;
+
+  return q.w() * Eigen::MatrixXd::Identity(3, 3) + skewSymmetric;
+}
+
 CartesianLinearSpaceController::CartesianLinearSpaceController() {
   controller_ = new PassiveDSController(3, d0_, d1_, maxTankLevel_, dz_);
 }
@@ -90,7 +99,19 @@ Eigen::Matrix<double, 6, 1> CartesianAngularSpaceController::getWrenchCommand(fr
     desiredVelocity[2] = twist.at(2);
   }
 
-  Eigen::Vector3d torque = k_ * desiredVelocity - d_ * (velocity - desiredVelocity);
+  // Find angular displacement from current orientation and desired velocity
+  Eigen::Quaterniond angularDisplacement = Eigen::Quaterniond::Identity();
+  Eigen::Vector3d halfAngle = 0.5 * desiredVelocity;
+  double magnitude = halfAngle.norm();
+  if (magnitude > 1e-9) {
+    halfAngle *= sin(magnitude) / magnitude;
+    angularDisplacement = Eigen::Quaterniond(cos(magnitude), halfAngle.x(), halfAngle.y(), halfAngle.z()).normalized();
+  }
+
+  // This turns out not to be necessary
+  // Eigen::Matrix<double, 3, 3> kPrime = 2 * mapE(angularDisplacement) * (k_ * Eigen::MatrixXd::Identity(3, 3));
+
+  Eigen::Vector3d torque = k_ * angularDisplacement.vec() - d_ * (velocity - desiredVelocity);
 
   if (torque.norm() > maxTorque) {
     torque = torque.normalized() * maxTorque;

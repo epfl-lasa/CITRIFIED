@@ -1,5 +1,5 @@
 NAME=$(echo "${PWD##*/}" | tr _ -)
-TAG=melodic-desktop-full
+TAG=melodic-desktop
 
 # create a shared volume to store the ros_ws
 docker volume create --driver local \

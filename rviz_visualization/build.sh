@@ -12,7 +12,7 @@ done
 shift "$((OPTIND - 1))"
 
 BASE_IMAGE=osrf/ros
-BASE_TAG=melodic-desktop-full
+BASE_TAG=melodic-desktop
 
 docker pull ${BASE_IMAGE}:${BASE_TAG}
 

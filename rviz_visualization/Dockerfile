@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=osrf/ros
-ARG BASE_TAG=melodic-desktop-full
+ARG BASE_TAG=melodic-desktop
 
 FROM ${BASE_IMAGE}:${BASE_TAG}
 ENV DEBIAN_FRONTEND=noninteractive
@@ -28,8 +28,10 @@ ENV HOME /home/ros
 # workspace setup
 RUN mkdir -p ~/ros_ws/src/
 
-RUN cd ~/ros_ws/src && /bin/bash -c "source /ros_entrypoint.sh; catkin_init_workspace"
-RUN cd ~/ros_ws && /bin/bash -c "source /ros_entrypoint.sh; catkin_make"
+WORKDIR ${HOME}/ros_ws/src
+RUN /bin/bash -c "source /ros_entrypoint.sh; catkin_init_workspace"
+WORKDIR ${HOME}/ros_ws
+RUN /bin/bash -c "source /ros_entrypoint.sh; catkin_make"
 
 # Change .bashrc
 COPY config/update_bashrc /sbin/update_bashrc

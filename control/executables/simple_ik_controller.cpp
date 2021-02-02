@@ -41,7 +41,6 @@ int main(int argc, char** argv) {
     if (frankalwi::proto::receive(subscriber, state)) {
       logger.writeLine(state);
 
-      command = ctrl.getJointTorque(state, DS.getTwist(state));
       StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
       network::poseFromState(state, pose);
       StateRepresentation::CartesianTwist twist = DS.getTwist(pose);

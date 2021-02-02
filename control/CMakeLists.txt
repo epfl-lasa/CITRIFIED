@@ -8,6 +8,9 @@ enable_testing()
 find_package(Eigen3 REQUIRED)
 find_package(cppzmq REQUIRED)
 
+find_library(state_representation REQUIRED)
+find_library(dynamical_systems REQUIRED)
+
 include_directories(include)
 
 add_subdirectory(lib)

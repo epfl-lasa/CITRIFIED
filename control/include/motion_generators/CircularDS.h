@@ -5,7 +5,7 @@
 
 #include <dynamical_systems/Circular.hpp>
 
-namespace motiongenerator {
+namespace motion_generator {
 
 class CircleDS : public BaseDS {
 public:
@@ -13,8 +13,8 @@ public:
   explicit CircleDS(const StateRepresentation::CartesianPose& pose);
   CircleDS(const StateRepresentation::CartesianPose& pose, double radius);
 
-  std::vector<double> getTwist(frankalwi::proto::StateMessage<7> state) override;
-  std::vector<double> getTwist();
+  StateRepresentation::CartesianTwist getTwist(const StateRepresentation::CartesianPose& pose) override;
+  StateRepresentation::CartesianTwist getTwist();
 
   StateRepresentation::CartesianPose center;
   DynamicalSystems::Circular circularDS;

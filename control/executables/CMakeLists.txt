@@ -8,4 +8,4 @@ add_executable(simple_ds_controller simple_ds_controller.cpp)
 target_link_libraries(simple_ds_controller lib_motion_gen lib_controllers)
 
 add_executable(test_interface test_interface.cpp)
-target_link_libraries(test_interface cppzmq)
+target_link_libraries(test_interface cppzmq state_representation)

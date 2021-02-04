@@ -32,7 +32,6 @@ if [ "$REBUILD" -eq 1 ]; then
 else
   docker build --target debug -f ../Dockerfile --tag $IMAGE_NAME .
 fi
-docker build --target debug -f ../Dockerfile --tag $IMAGE_NAME .
 
 docker container stop "$CONTAINER_NAME" >/dev/null 2>&1
 docker rm --force "$CONTAINER_NAME" >/dev/null 2>&1

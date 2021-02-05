@@ -21,16 +21,13 @@ ForceTorqueSensor::ForceTorqueSensor(const std::string& sensorName,
 
 bool ForceTorqueSensor::computeBias(const Eigen::Matrix3d& worldToFTRotation, std::size_t numPoints) {
   if (!biasOk_) {
-    netft_rdt_driver::RawWrenchMessage rawMessage;
-    if (!simulation_) {
-      if (netftRDTDriver_->waitForNewData()) { netftRDTDriver_->getData(rawMessage); }
-      else { return biasOk_; }
+    StateRepresentation::CartesianWrench tmp(sensorName_, sensorName_);
+    if (!readRawData(tmp)) {
+      return false;
     }
     Eigen::Vector3d loadForceFTFrame = worldToFTRotation.transpose() * gravity_ * tool_.mass;
-    StateRepresentation::CartesianWrench tmp(sensorName_, sensorName_);
-    tmp.set_force(Eigen::Vector3d(rawMessage.force.x, rawMessage.force.y, rawMessage.force.z) - loadForceFTFrame);
-    tmp.set_torque(Eigen::Vector3d(rawMessage.torque.x, rawMessage.torque.y, rawMessage.torque.z)
-                       - loadForceFTFrame.cross(tool_.centerOfMass));
+    tmp.set_force(tmp.get_force() - loadForceFTFrame);
+    tmp.set_torque(tmp.get_torque() - loadForceFTFrame.cross(tool_.centerOfMass));
     bias_.set_wrench(bias_.get_wrench() + tmp.get_wrench());
     ++biasCount_;
     if (biasCount_ >= numPoints) {
@@ -46,13 +43,12 @@ bool ForceTorqueSensor::readContactWrench(StateRepresentation::CartesianWrench& 
   StateRepresentation::CartesianWrench tmp(sensorName_, sensorName_);
   if (!readRawData(tmp)) {
     return false;
-  } else {
-    Eigen::Vector3d loadForceFTFrame = worldToFTRotation.transpose() * gravity_ * tool_.mass;
-    tmp.set_force(tmp.get_force() - loadForceFTFrame);
-    tmp.set_torque(tmp.get_torque() - loadForceFTFrame.cross(tool_.centerOfMass));
-    wrench.set_wrench(tmp.get_wrench() - bias_.get_wrench());
-    return true;
   }
+  Eigen::Vector3d loadForceFTFrame = worldToFTRotation.transpose() * gravity_ * tool_.mass;
+  tmp.set_force(tmp.get_force() - loadForceFTFrame);
+  tmp.set_torque(tmp.get_torque() - loadForceFTFrame.cross(tool_.centerOfMass));
+  wrench.set_wrench(tmp.get_wrench() - bias_.get_wrench());
+  return true;
 }
 
 bool ForceTorqueSensor::readRawData(StateRepresentation::CartesianWrench& wrench) {

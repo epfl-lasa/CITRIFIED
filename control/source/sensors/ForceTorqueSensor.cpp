@@ -7,9 +7,9 @@ namespace sensors {
 
 ForceTorqueSensor::ForceTorqueSensor(const std::string& sensorName,
                                      const std::string& address,
-                                     std::size_t sensorTimeout,
                                      ToolSpec tool,
-                                     bool simulation) :
+                                     bool simulation,
+                                     std::size_t sensorTimeout) :
     simulation_(simulation),
     sensorName_(sensorName),
     tool_(std::move(tool)),

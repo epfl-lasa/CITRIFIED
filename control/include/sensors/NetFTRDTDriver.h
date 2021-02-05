@@ -30,7 +30,7 @@ struct RawWrenchMessage {
 class NetFTRDTDriver {
 public:
   // Start receiving data from NetFT device
-  explicit NetFTRDTDriver(const std::string& address, std::size_t timeout);
+  explicit NetFTRDTDriver(const std::string& address, std::size_t msTimeout);
 
   ~NetFTRDTDriver();
 

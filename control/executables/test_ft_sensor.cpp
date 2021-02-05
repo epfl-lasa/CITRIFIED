@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   sensors::ToolSpec tool;
   tool.mass = 0.08;
   tool.centerOfMass = Eigen::Vector3d(0, 0, 0.025);
-  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "192.168.1.1", 100, tool, false);
+  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "192.168.1.1", tool, false, 100);
   StateRepresentation::CartesianWrench rawWrench("ft_sensor_raw", "ft_sensor");
   StateRepresentation::CartesianWrench wrench("ft_sensor", "ft_sensor");
   StateRepresentation::CartesianWrench bias("ft_sensor", "ft_sensor");

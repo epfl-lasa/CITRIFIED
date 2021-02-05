@@ -11,9 +11,9 @@ using boost::asio::ip::udp;
 
 namespace netft_rdt_driver {
 
-NetFTRDTDriver::NetFTRDTDriver(const std::string& address, std::size_t timeout) :
+NetFTRDTDriver::NetFTRDTDriver(const std::string& address, std::size_t msTimeout) :
     address_(address),
-    timeout_(timeout),
+    timeout_(msTimeout),
     socket_(ioService_),
     stopRecvThread_(false),
     recvThreadRunning_(false),

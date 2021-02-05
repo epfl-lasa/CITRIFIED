@@ -5,7 +5,10 @@
 #include "sensors/ForceTorqueSensor.h"
 #include "network/netutils.h"
 
-void throttledPrintWrench(const StateRepresentation::CartesianWrench& wrench, const StateRepresentation::CartesianWrench& bias, int skip, double avg_freq) {
+void throttledPrintWrench(const StateRepresentation::CartesianWrench& wrench,
+                          const StateRepresentation::CartesianWrench& bias,
+                          int skip,
+                          double avg_freq) {
   static int count = 0;
   if (count > skip) {
     printf("Average frequency of wrench messages: % 3.3f\n", avg_freq);
@@ -26,7 +29,7 @@ int main(int argc, char** argv) {
   sensors::ToolSpec tool;
   tool.mass = 0.08;
   tool.centerOfMass = Eigen::Vector3d(0, 0, 0.025);
-  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "192.168.1.1", tool, false);
+  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "192.168.1.1", 100, tool, false);
   StateRepresentation::CartesianWrench rawWrench("ft_sensor_raw", "ft_sensor");
   StateRepresentation::CartesianWrench wrench("ft_sensor", "ft_sensor");
   StateRepresentation::CartesianWrench bias("ft_sensor", "ft_sensor");
@@ -43,16 +46,16 @@ int main(int argc, char** argv) {
   while (subscriber.connected()) {
     if (frankalwi::proto::receive(subscriber, state)) {
       StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-      Eigen::Matrix3d worldToEERotation(Eigen::Affine3d(pose.get_orientation()).matrix().topLeftCorner<3, 3>());
+      Eigen::Matrix3d worldToEERotation(pose.get_orientation().toRotationMatrix());
       network::poseFromState(state, pose);
       // just for test purposes
-      if (!ft_sensor.getRawData(rawWrench)) {
+      if (!ft_sensor.readRawData(rawWrench)) {
         std::cout << "getting raw data failed" << std::endl;
         break;
       }
       if (ft_sensor.computeBias(worldToEERotation, 200)) {
-        ft_sensor.getBias(bias);
-        ft_sensor.updateContactWrench(wrench, worldToEERotation);
+        ft_sensor.readBias(bias);
+        ft_sensor.readContactWrench(wrench, worldToEERotation);
         // compute and send command here
       }
       std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;

@@ -14,17 +14,21 @@ struct ToolSpec {
 
 class ForceTorqueSensor {
 public:
-  explicit ForceTorqueSensor(const std::string& sensorName, const std::string& address, ToolSpec tool, bool simulation);
-
-  ~ForceTorqueSensor() = default;
+  explicit ForceTorqueSensor(const std::string& sensorName,
+                             const std::string& address,
+                             std::size_t sensorTimeout,
+                             ToolSpec tool,
+                             bool simulation);
 
   bool computeBias(const Eigen::Matrix3d& worldToEERotation, std::size_t numPoints);
 
-  bool updateContactWrench(StateRepresentation::CartesianWrench& wrench, const Eigen::Matrix3d& worldToFTRotation);
+  bool readContactWrench(StateRepresentation::CartesianWrench& wrench, const Eigen::Matrix3d& worldToFTRotation);
 
-  bool getRawData(StateRepresentation::CartesianWrench& wrench);
+  bool readRawData(StateRepresentation::CartesianWrench& wrench);
 
-  bool getBias(StateRepresentation::CartesianWrench& bias);
+  bool readBias(StateRepresentation::CartesianWrench& bias);
+
+  void resetBias();
 
 private:
   bool simulation_;

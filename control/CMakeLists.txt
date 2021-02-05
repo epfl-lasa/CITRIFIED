@@ -5,6 +5,7 @@ project(CITRIFIED VERSION 0.1)
 
 enable_testing()
 
+find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 find_package(Eigen3 REQUIRED)
 find_package(cppzmq REQUIRED)
 

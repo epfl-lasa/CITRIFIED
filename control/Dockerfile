@@ -41,6 +41,8 @@ RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
   && cd ../../.. \
   && rm -rf orocos_kinematics_dynamics
 
+RUN sudo apt-get install -y libboost-all-dev
+
 # tag a new build stage that compiles the sources
 FROM debug as runtime
 

@@ -11,8 +11,9 @@ using boost::asio::ip::udp;
 
 namespace netft_rdt_driver {
 
-NetFTRDTDriver::NetFTRDTDriver(const std::string& address) :
+NetFTRDTDriver::NetFTRDTDriver(const std::string& address, std::size_t timeout) :
     address_(address),
+    timeout_(timeout),
     socket_(ioService_),
     stopRecvThread_(false),
     recvThreadRunning_(false),
@@ -79,7 +80,7 @@ bool NetFTRDTDriver::waitForNewData() {
   {
     boost::mutex::scoped_lock lock(mutex_);
     unsigned currentPacketCount = packetCount_;
-    condition_.timed_wait(lock, boost::posix_time::milliseconds(100));
+    condition_.timed_wait(lock, boost::posix_time::milliseconds(timeout_));
     gotNewData = packetCount_ != currentPacketCount;
   }
 

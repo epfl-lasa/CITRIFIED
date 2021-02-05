@@ -30,7 +30,7 @@ struct RawWrenchMessage {
 class NetFTRDTDriver {
 public:
   // Start receiving data from NetFT device
-  explicit NetFTRDTDriver(const std::string& address);
+  explicit NetFTRDTDriver(const std::string& address, std::size_t timeout);
 
   ~NetFTRDTDriver();
 
@@ -54,6 +54,7 @@ protected:
     RDT_PORT = 49152
   };
   std::string address_;
+  std::size_t timeout_;
 
   boost::asio::io_service ioService_;
   boost::asio::ip::udp::socket socket_;

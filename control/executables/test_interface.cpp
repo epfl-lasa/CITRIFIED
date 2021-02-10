@@ -2,7 +2,7 @@
 #include <cstdio>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
-#include "network/netutils.h"
+#include "franka_lwi/franka_lwi_utils.h"
 
 void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip, double avg_freq) {
   static int count = 0;
@@ -97,7 +97,7 @@ int main(int argc, char** argv) {
   // Set up ZMQ
   zmq::context_t context;
   zmq::socket_t publisher, subscriber;
-  network::configure(context, publisher, subscriber);
+  frankalwi::utils::configureSockets(context, publisher, subscriber);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};

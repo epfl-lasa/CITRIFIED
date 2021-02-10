@@ -19,12 +19,15 @@ public:
   double fieldStrength;           // - scale factor for desired speed outside of radius + width
   double normalGain;              // - scale factor for the speed normal to the circular plane
   double angularGain;             // - scale factor for angular velocity restitution
-private:
-  void calculateLinearVelocity(const Eigen::Vector3d& position, Eigen::Vector3d& velocity);
-  void calculateAngularVelocity(const Eigen::Quaterniond& orientation, Eigen::Vector3d& velocity);
 
-  Eigen::Vector2d position2d_;
-  Eigen::Vector2d velocity2d_;
+private:
+  void updateLocalPose(const StateRepresentation::CartesianPose& pose);
+  Eigen::Vector3d calculateLocalLinearVelocity();
+  Eigen::Vector3d calculateLocalAngularVelocity();
+
+  Eigen::Vector3d localPosition_;
+  Eigen::Quaterniond localOrientation_;
+  Eigen::Vector3d localLinearVelocity_;
   double localFieldStrength_;
 };
 }

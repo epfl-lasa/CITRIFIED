@@ -28,9 +28,9 @@ PORT_STATE=5550
 PORT_COMMAND=5551
 
 if [ "$REBUILD" -eq 1 ]; then
-  docker build --no-cache --target debug -f ../Dockerfile --tag $IMAGE_NAME .
+  docker build --no-cache --target project-dependencies -f ../Dockerfile --tag $IMAGE_NAME .
 else
-  docker build --target debug -f ../Dockerfile --tag $IMAGE_NAME .
+  docker build --target project-dependencies -f ../Dockerfile --tag $IMAGE_NAME .
 fi
 
 docker container stop "$CONTAINER_NAME" >/dev/null 2>&1

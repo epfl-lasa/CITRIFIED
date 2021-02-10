@@ -1,9 +1,10 @@
 ARG BASE=ghcr.io/eeberhard/cpp-remote-env
 ARG TAG=latest
-FROM $BASE:$TAG as debug
+FROM $BASE:$TAG as project-dependencies
 
 # get base dependencies
-RUN sudo apt-get install -y libtool pkg-config autoconf automake git libsodium-dev libzmq3-dev
+RUN sudo apt-get install -y libtool pkg-config autoconf automake git \
+  libsodium-dev libzmq3-dev libgtest-dev libboost-all-dev
 
 # get cppzmq bindings
 RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.tar.gz \
@@ -41,31 +42,45 @@ RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
   && cd ../../.. \
   && rm -rf orocos_kinematics_dynamics
 
-RUN sudo apt-get install -y libboost-all-dev
+# install gtest
+WORKDIR /tmp/gtest_build
+RUN cmake /usr/src/gtest \
+  && sudo make \
+  && cp lib/* /usr/local/lib
 
-# tag a new build stage that compiles the sources
-FROM debug as runtime
 
-RUN useradd -ms /bin/bash citrified
+# tag a new build stage that copies the project source files
+FROM project-dependencies as project-sources
 
-RUN sudo apt-get install -y curl
-
-WORKDIR /tmp/CITRIFIED/control
+WORKDIR /usr/src/CITRIFIED/control
 COPY executables executables
 COPY include include
 COPY lib lib
-COPY scripts scripts
 COPY source source
 COPY CMakeLists.txt CMakeLists.txt
 
-WORKDIR /tmp/CITRIFIED/control/build
+
+# tag a new build stage that compiles and runs the test targets
+FROM project-sources as tester
+
+WORKDIR /usr/src/CITRIFIED/control/build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=True \
+  && make
+RUN make test
+
+
+# tag a new build stage that compiles the sources
+FROM project-sources as runtime
+
+RUN useradd -ms /bin/bash citrified
+
+WORKDIR /usr/src/CITRIFIED/control/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
   && make \
   && mkdir -p /home/citrified/executables \
   && find executables -maxdepth 1 -type f -exec test -x {} \; -exec cp {} /home/citrified/executables \;
 
 WORKDIR /home/citrified/executables
-RUN rm -rf /tmp/CITRIFIED
 
 USER citrified
 

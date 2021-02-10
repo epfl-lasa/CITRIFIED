@@ -9,8 +9,6 @@
 
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
-#include "motion_generators/RingDS.h"
-
 #include "network/netutils.h"
 
 void throttledPrintCommand(const motion_generator::PointAttractor& DS,
@@ -68,25 +66,10 @@ int main(int argc, char** argv) {
   DS.currentPose = StateRepresentation::CartesianPose::Identity("robot");
   DS.setTargetPose(DS.currentPose);
 
-  motion_generator::RingDS DS2;
-  DS2.center = {0.35, 0, 0.46};
-  DS2.inclination = Eigen::Quaterniond(1, 0, 0, 0);
-  DS2.radius = 0.04;
-  DS2.width = 0.005;
-  DS2.speed = 0.045;
-  DS2.normalGain = 10;
-  DS2.fieldStrength = 2;
-  DS2.angularGain = 10;
-
-  DS2.maxAngularSpeed = 1.5;
-
-  DS2.defaultPose = Eigen::Quaterniond(0.0, -0.393, 0.919, 0.0).normalized();
-
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   DS.linearDS.set_gain(gains);
 
-  controller::CartesianPoseController ctrl(230, 150, 5);
-  ctrl.angularController.setDamping(5);
+  controller::CartesianPoseController ctrl(20, 10, 10);
 
   std::cout << std::fixed << std::setprecision(3);
 
@@ -141,7 +124,7 @@ int main(int argc, char** argv) {
         std::cout << DS.targetPose << std::endl;
       }
 
-      StateRepresentation::CartesianTwist twist = DS2.getTwist(pose);
+      StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
       // TODO this is just an intermediate solution
       std::vector<double> desiredVelocity = {
           twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
@@ -149,8 +132,8 @@ int main(int argc, char** argv) {
       };
       command = ctrl.getJointTorque(state, desiredVelocity);
 
-//      throttledPrintCommand(DS, desiredVelocity, command, 500);
-//      throttledPrintState(state, 500);
+      throttledPrintCommand(DS, desiredVelocity, command, 500);
+      throttledPrintState(state, 500);
 
       frankalwi::proto::send(publisher, command);
     }

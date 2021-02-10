@@ -46,7 +46,7 @@ state information published by the LWI and another unique port has command infor
 
 The state and command message types are defined by a [franka_lwi_communication_protocol.h](https://github.com/epfl-lasa/franka_lightweight_interface/blob/main/include/franka_lightweight_interface/franka_lwi_communication_protocol.h)
 header in the LWI repository. For convenience, the ZMQ socket configurations expected by the 
-LWI are wrapped in network::configure function of [netutils.h](include/network/netutils.h).
+LWI are wrapped in network::configureSockets function of [netutils.h](include/franka_lwi/franka_lwi_utils.h).
 
 Finally, it is important that the port numbers for the state and command sockets are correctly
 mapped between the controller and the robot. If you change the default port numbers,

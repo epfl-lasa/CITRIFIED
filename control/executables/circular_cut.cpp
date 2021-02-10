@@ -10,8 +10,7 @@
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "motion_generators/CircularDS.h"
-#include "motion_generators/RingDS.h"
-#include "network/netutils.h"
+#include "franka_lwi/franka_lwi_utils.h"
 
 class BlendDS {
 public:
@@ -49,7 +48,7 @@ public:
   std::vector<double> blend(frankalwi::proto::StateMessage<7> state) {
 //    updateOrientationTarget(state);
     StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    network::poseFromState(state, pose);
+    frankalwi::utils::poseFromState(state, pose);
     StateRepresentation::CartesianTwist twist = orientationDS.getTwist(pose);
     // TODO this is just an intermediate solution
     std::vector<double> v1 = {
@@ -100,7 +99,7 @@ private:
     double zVel = 0;
 
     StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    network::poseFromState(state, pose);
+    frankalwi::utils::poseFromState(state, pose);
     StateRepresentation::CartesianTwist flatCircleTwist = flatCircleDS.getTwist(pose);
     StateRepresentation::CartesianTwist inclinedCircleTwist = inclinedCircleDS.getTwist(pose);
 
@@ -155,7 +154,7 @@ int main(int argc, char** argv) {
   // Set up ZMQ
   zmq::context_t context;
   zmq::socket_t publisher, subscriber;
-  network::configure(context, publisher, subscriber);
+  frankalwi::utils::configureSockets(context, publisher, subscriber);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};

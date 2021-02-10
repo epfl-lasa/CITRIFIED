@@ -2,7 +2,7 @@
 
 #include "controllers/KinematicController.h"
 #include "motion_generators/PointAttractorDS.h"
-#include "network/netutils.h"
+#include "franka_lwi/franka_lwi_utils.h"
 #include "franka_lwi/franka_lwi_logger.h"
 
 int main(int argc, char** argv) {
@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   // communication
   zmq::context_t context;
   zmq::socket_t publisher, subscriber;
-  network::configure(context, publisher, subscriber);
+  frankalwi::utils::configureSockets(context, publisher, subscriber);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
       logger.writeLine(state);
 
       StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-      network::poseFromState(state, pose);
+      frankalwi::utils::poseFromState(state, pose);
       StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
       // TODO this is just an intermediate solution
       std::vector<double> desiredVelocity = {

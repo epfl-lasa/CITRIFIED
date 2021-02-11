@@ -19,6 +19,7 @@ find_library(state_representation REQUIRED)
 find_library(dynamical_systems REQUIRED)
 
 include_directories(include)
+link_directories(/usr/local/lib)
 
 add_subdirectory(lib)
 add_subdirectory(source)

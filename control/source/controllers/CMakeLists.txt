@@ -2,7 +2,8 @@ target_sources(controllers
         PUBLIC
             CartesianPoseController.cpp
             KDLRobot.cpp
-            KinematicController.cpp)
+            KinematicController.cpp
+            AdaptiveForceFollower.cpp)
 
 target_include_directories(controllers PUBLIC ${Eigen3_INCLUDE_DIRS})
 target_link_libraries(controllers Eigen3::Eigen cppzmq state_representation dynamical_systems passive-ds-control orocos-kdl)

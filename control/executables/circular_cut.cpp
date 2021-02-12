@@ -10,6 +10,7 @@
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "motion_generators/CircularDS.h"
+#include "motion_generators/RingDS.h"
 #include "network/netutils.h"
 
 class BlendDS {
@@ -131,10 +132,23 @@ private:
 };
 
 int main(int argc, char** argv) {
-  BlendDS DS;
+//  BlendDS DS;
 
-  controller::CartesianPoseController ctrl(200, 160, 5);
-  ctrl.angularController.setDamping(0);
+  motion_generator::RingDS DS;
+  DS.center = {0.35, 0, 0.46};
+  DS.inclination = Eigen::Quaterniond(1, 0, 0, 0);
+  DS.radius = 0.04;
+  DS.width = 0.005;
+  DS.speed = 0.045;
+  DS.normalGain = 10;
+  DS.fieldStrength = 2;
+  DS.angularGain = 10;
+  DS.maxAngularSpeed = 1.5;
+
+  DS.defaultPose = Eigen::Quaterniond(0.0, -0.393, 0.919, 0.0).normalized();
+
+  controller::CartesianPoseController ctrl(230, 150, 5);
+  ctrl.angularController.setDamping(5);
 
   std::cout << std::fixed << std::setprecision(3);
 
@@ -145,10 +159,18 @@ int main(int argc, char** argv) {
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
 
   while (subscriber.connected()) {
     if (frankalwi::proto::receive(subscriber, state)) {
-      std::vector<double> desiredVelocity = DS.blend(state);
+//      std::vector<double> desiredVelocity = DS.blend(state);
+
+      network::poseFromState(state, pose);
+      StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+      std::vector<double> desiredVelocity = {
+          twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
+          twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
+      };
 
       command = ctrl.getJointTorque(state, desiredVelocity);
       frankalwi::proto::send(publisher, command);

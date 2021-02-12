@@ -23,11 +23,11 @@ void throttledPrintWrench(const StateRepresentation::CartesianWrench& wrench,
 
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
-
+  
   sensors::ToolSpec tool;
   tool.mass = 0.08;
   tool.centerOfMass = Eigen::Vector3d(0, 0, 0.025);
-  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "192.168.1.1", 100, tool, true);
+  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.89", 100, tool);
   StateRepresentation::CartesianWrench rawWrench("ft_sensor_raw", "ft_sensor");
   StateRepresentation::CartesianWrench wrench("ft_sensor", "ft_sensor");
   StateRepresentation::CartesianWrench bias("ft_sensor", "ft_sensor");

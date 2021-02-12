@@ -69,7 +69,8 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   DS.linearDS.set_gain(gains);
 
-  controller::CartesianPoseController ctrl(20, 10, 10);
+  controller::CartesianPoseController ctrl(50, 50, 5);
+  ctrl.angularController.setDamping(5);
 
   std::cout << std::fixed << std::setprecision(3);
 
@@ -105,10 +106,16 @@ int main(int argc, char** argv) {
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
+  int wait_cycles = 2;
+
+  StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
   while (subscriber.connected()) {
     // blocking receive until we get a state from the robot
     if (frankalwi::proto::receive(subscriber, state)) {
-      StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+      if (wait_cycles > 0) {
+        --wait_cycles;
+        continue;
+      }
       frankalwi::utils::poseFromState(state, pose);
       if (!positionSet || !orientationSet) {
         if (!positionSet) {

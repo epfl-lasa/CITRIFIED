@@ -28,23 +28,7 @@ private:
     outputFile_ << data.at(T - 1) << std::endl;
   }
 
-public:
-  Logger(const std::string& filename = "") {
-    std::string path = "/tmp/";
-    if (filename.empty()) {
-      auto t = std::time(nullptr);
-      auto tm = *std::localtime(&t);
-      std::ostringstream oss;
-      oss << std::put_time(&tm, "%Y-%m-%d-%H-%M-%S");
-      auto default_name = oss.str() + ".csv";
-      outputFile_.open(path + default_name, std::ofstream::out | std::ofstream::trunc);
-    } else {
-      outputFile_.open(path + filename, std::ofstream::out | std::ofstream::trunc);
-    }
-
-    if (!outputFile_.is_open()) {
-      std::cerr << "Cannot open output data file, the location might be invalid." << std::endl;
-    }
+  void writeHeader() {
     if (outputFile_.is_open()) {
       outputFile_ << "joint0_pos,joint1_pos,joint2_pos,joint3_pos,joint4_pos,joint5_pos,joint6_pos,";
       outputFile_ << "joint0_vel,joint1_vel,joint2_vel,joint3_vel,joint4_vel,joint5_vel,joint6_vel,";
@@ -64,6 +48,38 @@ public:
     }
   }
 
+  void writeCustomHeader() {
+    outputFile_ << "timestamp,";
+    outputFile_ << "ee_pos_x,ee_pos_y,ee_pos_z,ee_ori_w,ee_ori_x,ee_ori_y,ee_ori_z,";
+    outputFile_ << "ee_twist_lin_x,ee_twist_lin_y,ee_twist_lin_z,ee_twist_ang_x,ee_twist_ang_y,ee_twist_ang_z,";
+    outputFile_ << "ee_force_x,ee_force_y,ee_force_z,ee_torque_x,ee_torque_y,ee_torque_z,";
+    outputFile_ << "des_twist_lin_x,des_twist_lin_y,des_twist_lin_z,des_twist_ang_x,des_twist_ang_y,des_twist_ang_z,";
+    outputFile_ << "des_force_x,des_force_y,des_force_z,";
+    outputFile_ << "adapted_twist_lin_x,adapted_twist_lin_y,adapted_twist_lin_z,";
+    outputFile_ << "damping_value" << std::endl;
+  }
+
+public:
+  Logger(const std::string& filename = "") {
+    std::string path = "/tmp/";
+    if (filename.empty()) {
+      auto t = std::time(nullptr);
+      auto tm = *std::localtime(&t);
+      std::ostringstream oss;
+      oss << std::put_time(&tm, "%Y-%m-%d-%H-%M-%S");
+      auto default_name = oss.str() + ".csv";
+      outputFile_.open(path + default_name, std::ofstream::out | std::ofstream::trunc);
+    } else {
+      outputFile_.open(path + filename, std::ofstream::out | std::ofstream::trunc);
+    }
+
+    if (!outputFile_.is_open()) {
+      std::cerr << "Cannot open output data file, the location might be invalid." << std::endl;
+    }
+//    writeHeader();
+    writeCustomHeader();
+  }
+
   void writeLine(const frankalwi::proto::StateMessage<7>& state) {
     if (outputFile_.is_open() && size_ < maxSize_) {
       writeColumns(state.jointPosition.data);
@@ -76,6 +92,36 @@ public:
       writeColumns(frankalwi::proto::vec3DToArray(state.eeWrench.linear));
       writeColumns(frankalwi::proto::vec3DToArray(state.eeWrench.angular));
       writeLast(state.jacobian);
+      ++size_;
+    }
+  }
+
+  void writeCustomLine(double timestamp,
+                       const frankalwi::proto::StateMessage<7>& state,
+                       const std::vector<double>& desiredTwist,
+                       const std::vector<double>& desiredForce,
+                       const std::vector<double>& adaptedLinearVelocity,
+                       double damping) {
+    if (outputFile_.is_open() && size_ < maxSize_) {
+      std::array<double, 6> arr6{};
+      std::array<double, 3> arr3{};
+      std::array<double, 1> arr1{};
+      arr1[0] = timestamp;
+      writeColumns(arr1);
+      writeColumns(frankalwi::proto::vec3DToArray(state.eePose.position));
+      writeColumns(frankalwi::proto::quaternionToArray(state.eePose.orientation));
+      writeColumns(frankalwi::proto::vec3DToArray(state.eeTwist.linear));
+      writeColumns(frankalwi::proto::vec3DToArray(state.eeTwist.angular));
+      writeColumns(frankalwi::proto::vec3DToArray(state.eeWrench.linear));
+      writeColumns(frankalwi::proto::vec3DToArray(state.eeWrench.angular));
+      std::copy_n(desiredTwist.begin(), 6, arr6.begin());
+      writeColumns(arr6);
+      std::copy_n(desiredForce.begin(), 3, arr3.begin());
+      writeColumns(arr3);
+      std::copy_n(adaptedLinearVelocity.begin(), 3, arr3.begin());
+      writeColumns(arr3);
+      arr1[0] = damping;
+      writeLast(arr1);
       ++size_;
     }
   }

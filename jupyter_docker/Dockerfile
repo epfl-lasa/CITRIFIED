@@ -20,11 +20,11 @@ ARG GID=1000
 RUN addgroup --gid ${GID} ${USER}
 RUN adduser --gecos "Anaconda User" --disabled-password --uid ${UID} --gid ${GID} ${USER}
 RUN usermod -a -G dialout ${USER}
-ADD config/99_aptget /etc/sudoers.d/99_aptget
+RUN echo "anaconda ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99_aptget
 RUN chmod 0440 /etc/sudoers.d/99_aptget && chown root:root /etc/sudoers.d/99_aptget
 
 # workspace setup
-WORKDIR /home
+WORKDIR /home/anaconda
 RUN git clone https://github.com/epfl-lasa/surgeon_recording.git
 COPY environment.yml ./
 

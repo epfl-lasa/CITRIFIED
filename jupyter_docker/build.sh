@@ -2,11 +2,9 @@ REBUILD=0
 
 while getopts 'r' opt; do
   case $opt in
-  r) REBUILD=1 ;;
-  *)
-    echo 'Error in command line parsing' >&2
-    exit 1
-    ;;
+    r) REBUILD=1 ;;
+    *) echo 'Error in command line parsing' >&2
+       exit 1
   esac
 done
 shift "$((OPTIND - 1))"

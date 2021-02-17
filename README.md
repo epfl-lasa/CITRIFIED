@@ -9,7 +9,7 @@ for the fruit cutting task.
 First, you need to create the python environment with `conda`:
 
 ```bash
-conda env create -f environment.yml
+conda env create -f jupyter_docker/environment.yml
 ```
 
 This package requires the library from [surgeon_recording](https://github.com/epfl-lasa/surgeon_recording/tree/master/source/surgeon_recording). To install it, after the environment creation:
@@ -35,7 +35,7 @@ other long-term storage locations.
 ### Analysis
 
 Data pipelines for machine learning models and other statistics to operate
-on the cleaned dataset. Also can contains visualsations.
+on the cleaned dataset. Also contains visualizations.
 
 ### Preprocessing
 

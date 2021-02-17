@@ -48,6 +48,15 @@ RUN cmake /usr/src/gtest \
   && sudo make \
   && cp lib/* /usr/local/lib
 
+# install yaml-cpp
+WORKDIR /tmp
+RUN git clone https://github.com/jbeder/yaml-cpp.git \
+  && cd yaml-cpp \
+  && mkdir build \
+  && cd build \
+  && cmake .. \
+  && make \
+  && make install
 
 # tag a new build stage that copies the project source files
 FROM project-dependencies as project-sources

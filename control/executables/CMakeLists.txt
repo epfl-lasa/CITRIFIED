@@ -15,3 +15,6 @@ target_link_libraries(test_interface cppzmq state_representation)
 
 add_executable(test_ft_sensor test_ft_sensor.cpp)
 target_link_libraries(test_ft_sensor sensors cppzmq)
+
+add_executable(incision_trials incision_trials.cpp)
+target_link_libraries(incision_trials motion_generators controllers sensors cppzmq yaml-cpp)

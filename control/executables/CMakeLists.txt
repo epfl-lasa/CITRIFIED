@@ -18,3 +18,6 @@ target_link_libraries(example_ft_sensor sensors cppzmq)
 
 add_executable(mocap_point_attractor mocap_point_attractor.cpp)
 target_link_libraries(mocap_point_attractor sensors motion_generators controllers state_representation)
+
+add_executable(incision_trials incision_trials.cpp)
+target_link_libraries(incision_trials motion_generators controllers sensors cppzmq yaml-cpp)

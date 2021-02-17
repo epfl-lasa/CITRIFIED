@@ -8,6 +8,7 @@ enable_testing()
 find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 find_package(Eigen3 REQUIRED)
 find_package(cppzmq REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)

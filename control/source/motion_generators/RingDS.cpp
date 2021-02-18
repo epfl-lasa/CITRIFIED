@@ -107,11 +107,11 @@ Eigen::Vector3d RingDS::calculateLocalLinearVelocity() {
 Eigen::Vector3d RingDS::calculateLocalAngularVelocity() {
   Eigen::Vector3d localAngularVelocity = Eigen::Vector3d::Zero();
 
-  double theta = -atan2(localPosition_.y(), localPosition_.x());
+  double theta = atan2(localPosition_.y(), localPosition_.x());
 
   Eigen::Quaterniond qd = Eigen::Quaterniond::Identity();
-  qd.w() = sin(theta / 2);
-  qd.z() = cos(theta / 2);
+  qd.w() = cos(theta / 2);
+  qd.z() = sin(theta / 2);
 
   //FIXME: defaultPose does work for a null inclination, but not for an arbitrary inclination.
   // This could be more of a problem of the inclination than anything else.

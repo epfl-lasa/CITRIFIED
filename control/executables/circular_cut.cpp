@@ -137,18 +137,18 @@ int main(int argc, char** argv) {
   motion_generator::RingDS DS;
   DS.center = {0.35, 0, 0.46};
   DS.inclination = Eigen::Quaterniond(1, 0, 0, 0);
-  DS.radius = 0.04;
-  DS.width = 0.005;
+  DS.radius = 0.075;
+  DS.width = 0.02;
   DS.speed = 0.045;
   DS.normalGain = 10;
   DS.fieldStrength = 2;
   DS.angularGain = 10;
   DS.maxAngularSpeed = 1.5;
 
-  DS.defaultPose = Eigen::Quaterniond(0.0, -0.393, 0.919, 0.0).normalized();
+  DS.defaultPose = Eigen::Quaterniond(0.0, 0.707, 0.707, 0.0).normalized();
 
-  controller::CartesianPoseController ctrl(230, 150, 5);
-  ctrl.angularController.setDamping(5);
+  controller::CartesianPoseController ctrl(100, 100, 3);
+  ctrl.angularController.setDamping(3);
 
   std::cout << std::fixed << std::setprecision(3);
 

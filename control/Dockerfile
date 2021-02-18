@@ -4,7 +4,7 @@ FROM $BASE:$TAG as project-dependencies
 
 # get base dependencies
 RUN sudo apt-get install -y libtool pkg-config autoconf automake git \
-  libsodium-dev libzmq3-dev libgtest-dev libboost-all-dev
+  libeigen3-dev libsodium-dev libzmq3-dev libgtest-dev libboost-all-dev
 
 # get cppzmq bindings
 RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.tar.gz \
@@ -19,9 +19,12 @@ RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.
 
 # install control libraries
 RUN git clone -b develop --single-branch https://github.com/epfl-lasa/control_libraries.git
-WORKDIR control_libraries/source
-RUN /bin/bash -c "source ./install.sh"
-RUN rm -rf control_libraries*
+WORKDIR control_libraries/source/build
+RUN cmake -DBUILD_TESTING="OFF" -DBUILD_CONTROLLERS="OFF" -DBUILD_ROBOT_MODEL="OFF" .. \
+  && make -j \
+  && make install
+# RUN /bin/bash -c "source ./install.sh"
+# RUN rm -rf control_libraries*
 
 # "install" passive-ds-control repo (we will build it in our own makefile)
 RUN git clone https://github.com/epfl-lasa/passive-ds-control.git \
@@ -46,7 +49,8 @@ RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
 WORKDIR /tmp/gtest_build
 RUN cmake /usr/src/gtest \
   && sudo make \
-  && cp lib/* /usr/local/lib
+  && ls \
+  && cp lib*.a /usr/local/lib
 
 # install yaml-cpp
 WORKDIR /tmp

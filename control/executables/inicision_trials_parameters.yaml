@@ -35,5 +35,9 @@ circle:
   ak: 5     # angular stiffness
   ad: 5     # angular damping
   radius: 0.04
-  arc_angle: 120  # cut distance in degrees
+  width: 0.005
   speed: 0.05
+  field_strength: 2
+  normal_gain: 10
+  angular_gain: 10
+  arc_angle: 120  # cut distance in degrees

@@ -3,6 +3,7 @@
 
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
+#include "motion_generators/RingDS.h"
 #include "sensors/ForceTorqueSensor.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "franka_lwi/franka_lwi_logger.h"
@@ -18,7 +19,7 @@ enum TrialState {
 class IncisionTrialSystem {
 public:
   IncisionTrialSystem() :
-      DS(StateRepresentation::CartesianPose::Identity("attractor", "world")),
+      pointDS(StateRepresentation::CartesianPose::Identity("attractor", "world")),
       ctrl(1, 1, 1) {
 
     params = YAML::LoadFile("incision_trials_parameters.yaml");
@@ -37,8 +38,18 @@ public:
     auto angularGain = params["attractor"]["gains"]["angular"].as<double>();
     DSgains = {linearGain, linearGain, linearGain, angularGain, angularGain, angularGain};
 
-    DS.setTargetPose(StateRepresentation::CartesianPose("world", center, defaultOrientation));
-    DS.linearDS.set_gain(DSgains);
+    pointDS.setTargetPose(StateRepresentation::CartesianPose("world", center, defaultOrientation));
+    pointDS.linearDS.set_gain(DSgains);
+
+    ringDS.center = center;
+    ringDS.inclination = Eigen::Quaterniond::Identity();
+    ringDS.radius = params["circle"]["radius"].as<double>();
+    ringDS.width = params["circle"]["width"].as<double>();
+    ringDS.speed = params["circle"]["speed"].as<double>();
+    ringDS.fieldStrength = params["circle"]["field_strength"].as<double>();
+    ringDS.normalGain = params["circle"]["normal_gain"].as<double>();
+    ringDS.angularGain = params["circle"]["angular_gain"].as<double>();
+    ringDS.maxAngularSpeed = 1.5;
 
     ctrl = controller::CartesianPoseController(params["default"]["d1"].as<double>(),
                                                params["default"]["d2"].as<double>(),
@@ -46,10 +57,16 @@ public:
     ctrl.angularController.setDamping(params["default"]["ad"].as<double>());
   }
 
-  frankalwi::proto::CommandMessage<7> getCommand(frankalwi::proto::StateMessage<7>& state) {
+  frankalwi::proto::CommandMessage<7> getCommand(frankalwi::proto::StateMessage<7>& state, TrialState trialState) {
     StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("robot", "world"));
     frankalwi::utils::poseFromState(state, pose);
-    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+
+    StateRepresentation::CartesianTwist twist;
+    if (trialState == CUT) {
+      twist = ringDS.getTwist(pose);
+    } else {
+      twist = pointDS.getTwist(pose);
+    }
 
     std::vector<double> desiredVelocity = {
         twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
@@ -64,7 +81,7 @@ public:
   void setInsertionPhase() {
     // set the point attractor to ignore Z axis, and instead add constant Z velocity
     DSgains[2] = 0;
-    DS.linearDS.set_gain(DSgains);
+    pointDS.linearDS.set_gain(DSgains);
     zVelocity = -params["insertion"]["speed"].as<double>();
 
     // set the controller to specific insertion phase gains
@@ -74,12 +91,13 @@ public:
     ctrl.angularController.setDamping(params["insertion"]["ad"].as<double>());
   }
 
-  void setCutPhase() {
-    // switch to using a circular DS
-
+  void setCutPhase(const StateRepresentation::CartesianPose& pose) {
+    zVelocity = 0;
     // set circle center from current pose (radial distance along negative Y of local knife orientation)
-
-    // set gains for the circle phase / switch adaptive controller
+    std::cout << "Current position: " << pose.get_position().transpose() << std::endl;
+    Eigen::Vector3d center(0, -ringDS.radius, 0);
+    center = pose.get_orientation().toRotationMatrix() * center + pose.get_position();
+    std::cout << "Estimated circle center at " << center.transpose() << std::endl;
   }
 
   void setRetractionPhase(const StateRepresentation::CartesianPose& pose) {
@@ -90,9 +108,9 @@ public:
     targetPose.set_position(targetPosition);
 
     // reset the point attractor DS gains to respect Z axis
-    DS.setTargetPose(targetPose);
+    pointDS.setTargetPose(targetPose);
     DSgains[2] = DSgains[1];
-    DS.linearDS.set_gain(DSgains);
+    pointDS.linearDS.set_gain(DSgains);
     zVelocity = 0;
 
     // reset the controller to default damping values
@@ -102,7 +120,8 @@ public:
     ctrl.angularController.setDamping(params["default"]["ad"].as<double>());
   }
 
-  motion_generator::PointAttractor DS;
+  motion_generator::PointAttractor pointDS;
+  motion_generator::RingDS ringDS;
   controller::CartesianPoseController ctrl;
   YAML::Node params;
   std::vector<double> DSgains;
@@ -147,7 +166,7 @@ int main(int argc, char** argv) {
 
       switch (trialState) {
         case APPROACH:
-          if ((pose.get_position() - ITS.DS.targetPose.get_position()).norm() < 0.05) {
+          if ((pose.get_position() - ITS.pointDS.targetPose.get_position()).norm() < 0.05) {
             trialState = CALIBRATION;
             std::cout << "### STARTING CALIBRATION PHASE" << std::endl;
           }
@@ -173,7 +192,7 @@ int main(int argc, char** argv) {
           } else {
             double depth = (touchPose.get_position() - pose.get_position()).norm();
             if (depth > ITS.params["insertion"]["depth"].as<double>()) {
-              ITS.setCutPhase();
+              ITS.setCutPhase(pose);
               trialState = CUT;
               std::cout << "### STARTING CUT PHASE" << std::endl;
             }
@@ -193,7 +212,7 @@ int main(int argc, char** argv) {
           break;
       }
 
-      command = ITS.getCommand(state);
+      command = ITS.getCommand(state, trialState);
       frankalwi::proto::send(publisher, command);
     }
   }

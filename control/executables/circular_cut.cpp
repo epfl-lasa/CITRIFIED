@@ -10,6 +10,7 @@
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "motion_generators/CircularDS.h"
+#include "motion_generators/RingDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
 
 class BlendDS {
@@ -164,7 +165,7 @@ int main(int argc, char** argv) {
     if (frankalwi::proto::receive(subscriber, state)) {
 //      std::vector<double> desiredVelocity = DS.blend(state);
 
-      network::poseFromState(state, pose);
+      frankalwi::utils::poseFromState(state, pose);
       StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
       std::vector<double> desiredVelocity = {
           twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),

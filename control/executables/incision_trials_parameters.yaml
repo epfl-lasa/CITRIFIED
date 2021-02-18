@@ -1,0 +1,61 @@
+trial: '19'
+
+# Checklist:
+# Update trial number
+# Check cut boolean
+# Set Y parameter (-0.01, 0.0, 0.01, or 0.02)
+# Check depth
+# Check speed and stiffness
+
+trial_prefix: '20210218_banana_'
+
+# filename convention is
+# fruit_cut_trial_insertionspeed_insertiondepth_circlespeed_circlewidth
+# or
+# fruit_insertion_trial_insertionspeed_insertiondepth
+
+insertion_only: true
+
+# The attractor position and orientation during the hold phase
+attractor:
+  position:
+    x: 0.367
+    y: 0.035
+    z: 0.34
+  orientation:
+    w: 0.0
+    x: 1.0
+    y: 0.0
+    z: 0.0
+  gains:
+    linear: 50.0
+    angular: 10.0
+
+default:
+  d1: 100   # principle linear damping
+  d2: 100   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+
+insertion:
+  d1: 200   # principle linear damping
+  d2: 150   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+  speed: 0.06
+  depth: 0.015
+  touch_force: 1  # force magnitude to register surface
+  max_force: 10     # force magnitude to trigger retraction
+
+circle:
+  d1: 200   # principle linear damping
+  d2: 150   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+  radius: 0.18
+  width: 0.005
+  speed: 0.05
+  field_strength: 2
+  normal_gain: 10
+  angular_gain: 10
+  arc_angle: 160  # cut distance in degrees

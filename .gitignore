@@ -2,7 +2,9 @@
 /lib/
 
 .ipynb_checkpoints
-*/.idea
+*.idea
+
+/ml-tests/ML_toolbox
 
 /rviz_visualization/ros_ws/build/
 /rviz_visualization/ros_ws/devel/

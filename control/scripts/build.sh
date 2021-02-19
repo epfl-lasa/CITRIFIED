@@ -19,7 +19,7 @@ if [ "$path" != "CITRIFIED/control/scripts" ]; then
   exit 1
 fi
 
-IMAGE_NAME=citrified/control/runtime
+IMAGE_NAME=citrified/control/runtime/limbo
 
 if [ "$REBUILD" -eq 1 ]; then
   DOCKER_BUILDKIT=1 docker build --no-cache --target runtime -f ../Dockerfile --tag $IMAGE_NAME ..

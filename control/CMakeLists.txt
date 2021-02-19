@@ -5,9 +5,10 @@ project(CITRIFIED VERSION 0.2)
 
 enable_testing()
 
-find_package(Boost REQUIRED COMPONENTS system filesystem thread)
+find_package(Boost 1.45.0 REQUIRED COMPONENTS system filesystem thread regex unit_test_framework)
 find_package(Eigen3 REQUIRED)
 find_package(cppzmq REQUIRED)
+find_package(TBB 4.2 REQUIRED)
 
 if(BUILD_TESTING)
     find_package(GTest REQUIRED)
@@ -20,7 +21,10 @@ find_library(dynamical_systems REQUIRED)
 find_library(controllers REQUIRED)
 find_library(limbo REQUIRED)
 
+include_directories(include)
+include_directories(/limbo/src REQUIRED)
 include_directories(include ${Eigen_INCLUDE_DIRS})
 
+add_subdirectory(lib)
 add_subdirectory(source)
 add_subdirectory(executables)

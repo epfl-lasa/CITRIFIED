@@ -43,3 +43,6 @@ target_link_libraries(test_interface state_representation cppzmq)
 
 add_executable(test_zmqjoy tests/test_joy.cpp)
 target_link_libraries(test_zmqjoy sensors)
+
+add_executable(test_ml test_ml.cpp)
+target_link_libraries(test_ml Eigen3::Eigen ${Boost_LIBRARIES})

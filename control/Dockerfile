@@ -3,21 +3,23 @@ ARG TAG=latest
 FROM $BASE:$TAG as project-dependencies
 
 # get base dependencies
-RUN apt-get update && apt-get install -y \
-    libtool \
-    pkg-config \
-    autoconf \
-    automake \
-    bash-completion \
-    git \
-    libboost-all-dev \
-    libeigen3-dev \
-    libsodium-dev \
-    libzmq3-dev \
-    libtbb-dev \
-    libgtest-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN sudo apt-get install -y libtool pkg-config autoconf automake git libsodium-dev libzmq3-dev
+RUN sudo apt-get install -y libeigen3-dev libboost-all-dev libtbb-dev libgtest-dev
+
+RUN sudo apt-get -qq update && sudo apt-get -qq --yes --force-yes install autoconf automake
+RUN wget http://members.loria.fr/JBMouret/mirrors/nlopt-2.4.2.tar.gz \
+  && tar -zxvf nlopt-2.4.2.tar.gz \
+  && cd nlopt-2.4.2 \
+  && ./configure -with-cxx --enable-shared --without-python --without-matlab --without-octave \
+  && sudo make install \
+  && sudo ldconfig \
+  && cd .. \
+  && rm -rf nlopt-2.4.2
+
+RUN git clone -b release-2.1 --single-branch https://github.com/resibots/limbo.git \
+  && cd limbo \
+  && ./waf configure \
+  && ./waf build
 
 WORKDIR /tmp
 # get cppzmq bindings
@@ -55,6 +57,8 @@ RUN git clone https://github.com/jbeder/yaml-cpp.git \
   && make \
   && make install
 
+COPY ./good_standardized_sampled_train.csv /tmp/train.csv
+
 # install json library header
 RUN wget https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp \
   && mv json.hpp /usr/local/include
@@ -77,6 +81,8 @@ FROM project-dependencies as project-sources
 WORKDIR /usr/src/CITRIFIED/control
 COPY executables executables
 COPY include include
+COPY lib lib
+COPY scripts scripts
 COPY source source
 COPY CMakeLists.txt CMakeLists.txt
 

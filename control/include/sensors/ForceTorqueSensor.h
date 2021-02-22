@@ -1,8 +1,8 @@
-
 #pragma once
 
-#include "sensors/NetFTRDTDriver.h"
+#include "sensors/netft_rdt_driver/INetFTRDTDriver.h"
 
+#include <memory>
 #include <state_representation/Space/Cartesian/CartesianWrench.hpp>
 
 namespace sensors {
@@ -14,11 +14,8 @@ struct ToolSpec {
 
 class ForceTorqueSensor {
 public:
-  explicit ForceTorqueSensor(const std::string& sensorName,
-                             const std::string& address,
-                             ToolSpec tool,
-                             bool simulation = false,
-                             std::size_t sensorTimeout = 100);
+  explicit ForceTorqueSensor(const std::string& sensorName, const std::string& address, std::size_t sensorTimeoutMs,
+                             ToolSpec tool, bool simulation);
 
   bool computeBias(const Eigen::Matrix3d& worldToEERotation, std::size_t numPoints);
 
@@ -31,10 +28,9 @@ public:
   void resetBias();
 
 private:
-  bool simulation_;
 
   std::string sensorName_;
-  std::unique_ptr<netft_rdt_driver::NetFTRDTDriver> netftRDTDriver_;
+  std::unique_ptr<netft_rdt_driver::INetFTRDTDriver> netftRDTDriver_;
   ToolSpec tool_;
 
   StateRepresentation::CartesianWrench bias_;

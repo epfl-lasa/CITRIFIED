@@ -1,8 +1,15 @@
-target_sources(lib_controllers PUBLIC CartesianPoseController.cpp KDLRobot.cpp KinematicController.cpp)
+target_sources(controllers
+        PUBLIC
+            CartesianPoseController.cpp
+            KDLRobot.cpp
+            KinematicController.cpp)
 
-target_include_directories(lib_controllers PUBLIC ${Eigen3_INCLUDE_DIRS})
-target_link_libraries(lib_controllers Eigen3::Eigen cppzmq state_representation dynamical_systems passive-ds-control orocos-kdl)
+target_include_directories(controllers PUBLIC ${Eigen3_INCLUDE_DIRS})
+target_link_libraries(controllers Eigen3::Eigen cppzmq state_representation dynamical_systems passive-ds-control orocos-kdl)
 
-add_executable(test_kdl_robot test_kdl_robot.cpp)
-target_link_libraries(test_kdl_robot lib_controllers)
-add_test(NAME test_kdl_robot COMMAND test_kdl_robot)
+if(BUILD_TESTING)
+    file(GLOB_RECURSE MODULE_TEST_SOURCES tests test_*.cpp)
+    target_sources(run_tests PRIVATE ${MODULE_TEST_SOURCES})
+    target_include_directories(run_tests PUBLIC ${Eigen3_INCLUDE_DIRS})
+    target_link_libraries(run_tests controllers)
+endif()

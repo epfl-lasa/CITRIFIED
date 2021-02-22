@@ -11,6 +11,7 @@ find_package(cppzmq REQUIRED)
 
 find_library(state_representation REQUIRED)
 find_library(dynamical_systems REQUIRED)
+find_library(limbo REQUIRED)
 
 include_directories(include)
 

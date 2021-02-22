@@ -22,7 +22,7 @@ fi
 IMAGE_NAME=citrified/control/runtime
 
 if [ "$REBUILD" -eq 1 ]; then
-  docker build --no-cache --target runtime -f ../Dockerfile --tag $IMAGE_NAME ..
+  DOCKER_BUILDKIT=1 docker build --no-cache --target runtime -f ../Dockerfile --tag $IMAGE_NAME ..
 else
-  docker build --target runtime -f ../Dockerfile --tag $IMAGE_NAME ..
+  DOCKER_BUILDKIT=1 docker build --target runtime -f ../Dockerfile --tag $IMAGE_NAME ..
 fi

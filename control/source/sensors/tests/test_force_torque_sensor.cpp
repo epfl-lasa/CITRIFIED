@@ -8,14 +8,13 @@ public:
     tool.mass = 0.08;
     tool.centerOfMass = Eigen::Vector3d(0, 0, 0.025);
     simSensorPtr = std::make_unique<sensors::ForceTorqueSensor>("sim_sensor", "0.0.0.0", 100, tool, true);
-    realSensorPtr = std::make_unique<sensors::ForceTorqueSensor>("real_sensor", "192.168.1.1", 100, tool, true);
   }
   std::unique_ptr<sensors::ForceTorqueSensor> simSensorPtr;
   std::unique_ptr<sensors::ForceTorqueSensor> realSensorPtr;
   sensors::ToolSpec tool;
 };
 
-TEST_F(TestFTSensor, RealSensor) {
-  StateRepresentation::CartesianWrench wrench;
-  EXPECT_FALSE(realSensorPtr->readRawData(wrench));
+TEST_F(TestFTSensor, RealSensorConnectionRefused) {
+  EXPECT_ANY_THROW(
+      realSensorPtr = std::make_unique<sensors::ForceTorqueSensor>("real_sensor", "192.168.1.1", 100, tool, false));
 }

@@ -10,5 +10,5 @@ target_link_libraries(simple_ds_controller motion_generators controllers)
 add_executable(test_interface test_interface.cpp)
 target_link_libraries(test_interface cppzmq state_representation)
 
-add_executable(test_ft_sensor test_ft_sensor.cpp)
-target_link_libraries(test_ft_sensor sensors cppzmq)
+add_executable(example_ft_sensor example_ft_sensor.cpp)
+target_link_libraries(example_ft_sensor sensors cppzmq)

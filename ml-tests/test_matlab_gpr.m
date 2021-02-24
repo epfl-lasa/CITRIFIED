@@ -78,5 +78,16 @@ loss(gpr, X_test, y_test)
 %% sigmaF is the signal standard deviation, default = std(y)/sqrt(2)
 %% Sigma is "inital value for the noise standard deviation"
 
+%% test execution time
+vector = linspace(X(1), X(end), 1000);
+start = tic;
+for i=1:1000
+%     again = tic;
+    [y, std] = gpr.predict(vector(i));
+%     toc(again);
+end
+toc(start);
+
+
 
 

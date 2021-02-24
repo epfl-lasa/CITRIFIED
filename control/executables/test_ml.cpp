@@ -74,6 +74,25 @@ int main(int argc, char** argv) {
   gp.compute(samples, observations);
   gp.save<serialize::TextArchive>("/tmp/myGP");
 
+//  std::vector<Eigen::VectorXd> execution;
+//  double delta = (samples.back().x() - samples.front().x()) / 1000;
+//  std::cout << delta << std::endl;
+//  for (std::size_t i = 0; i < 1000; ++i) {
+//    Eigen::VectorXd x(1);
+//    x.x() = samples.front().x() + i * delta;
+//    execution.emplace_back(x);
+//  }
+//
+//  Eigen::VectorXd mu;
+//  double sigma;
+//  auto start = std::chrono::system_clock::now();
+//  for (const auto& x : execution) {
+//    std::tie(mu, sigma) = gp.query(x);
+//  }
+//  auto elapsed_seconds = std::chrono::system_clock::now() - start;
+//  std::cout << elapsed_seconds.count() / 1e9 << std::endl;
+//  std::cout << elapsed_seconds.count() / 1e12 << std::endl;
+
   auto start = std::chrono::system_clock::now();
   std::ofstream outputFile;
   outputFile.open("/tmp/myGP/test.csv", std::ofstream::out | std::ofstream::trunc);

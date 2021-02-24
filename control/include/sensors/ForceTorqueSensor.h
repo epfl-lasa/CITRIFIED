@@ -15,7 +15,7 @@ struct ToolSpec {
 class ForceTorqueSensor {
 public:
   explicit ForceTorqueSensor(const std::string& sensorName, const std::string& address, std::size_t sensorTimeoutMs,
-                             ToolSpec tool, bool simulation);
+                             ToolSpec tool, bool mock = false);
 
   bool computeBias(const Eigen::Matrix3d& worldToEERotation, std::size_t numPoints);
 

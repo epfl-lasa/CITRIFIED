@@ -1,5 +1,4 @@
-
-#include "sensors/NetFTRDTDriver.h"
+#include "sensors/netft_rdt_driver/NetFTRDTDriver.h"
 
 #include <cstdint>
 #include <iostream>
@@ -105,11 +104,10 @@ void NetFTRDTDriver::recvThreadFunc() {
     RawWrenchMessage tmpData;
     uint8_t buffer[RDTMessage::RDT_MESSAGE_SIZE + 1];
     while (!stopRecvThread_) {
-      size_t len = socket_.receive(boost::asio::buffer(buffer,
-                                                       RDTMessage::RDT_MESSAGE_SIZE + 1));
+      size_t len = socket_.receive(boost::asio::buffer(buffer, RDTMessage::RDT_MESSAGE_SIZE + 1));
       if (len != RDTMessage::RDT_MESSAGE_SIZE) {
-        printf("Receive size of %d bytes does not match expected size of %d",
-               int(len), int(RDTMessage::RDT_MESSAGE_SIZE));
+        printf("Receive size of %d bytes does not match expected size of %d", int(len),
+               int(RDTMessage::RDT_MESSAGE_SIZE));
       } else {
         rdtMessage.unpack(buffer);
         if (rdtMessage.status_ != 0) {

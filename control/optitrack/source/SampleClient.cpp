@@ -1,5 +1,5 @@
 /* 
-Copyright © 2012 NaturalPoint Inc.
+Copyright 2012 NaturalPoint Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,16 +44,16 @@ Usage [optional]:
 
 #include <vector>
 
-#include <NatNet/NatNetTypes.h>
-#include <NatNet/NatNetCAPI.h>
-#include <NatNet/NatNetClient.h>
+#include <NatNetTypes.h>
+#include <NatNetCAPI.h>
+#include <NatNetClient.h>
 
 #ifndef _WIN32
 char getch();
 #endif
-void WriteHeader(FILE* fp, sDataDescriptions* pBodyDefs);
-void WriteFrame(FILE* fp, sFrameOfMocapData* data);
-void WriteFooter(FILE* fp);
+void _WriteHeader(FILE* fp, sDataDescriptions* pBodyDefs);
+void _WriteFrame(FILE* fp, sFrameOfMocapData* data);
+void _WriteFooter(FILE* fp);
 void NATNET_CALLCONV ServerDiscoveredCallback( const sNatNetDiscoveredServer* pDiscoveredServer, void* pUserContext );
 void NATNET_CALLCONV DataHandler(sFrameOfMocapData* data, void* pUserData);    // receives data from the server
 void NATNET_CALLCONV MessageHandler(Verbosity msgType, const char* msg);      // receives NatNet error messages
@@ -62,7 +62,7 @@ int ConnectClient();
 
 static const ConnectionType kDefaultConnectionType = ConnectionType_Multicast;
 
-NatNetClient* g_pClient = nullptr;
+NatNetClient* g_pClient = NULL;
 FILE* g_outputFile;
 
 std::vector< sNatNetDiscoveredServer > g_discoveredServers;
@@ -155,7 +155,7 @@ int main( int argc, char* argv[] )
                         g_connectParams.serverDataPort = 0;
                         g_connectParams.serverAddress = discoveredServer.serverAddress;
                         g_connectParams.localAddress = discoveredServer.localAddress;
-                        g_connectParams.multicastAddress = nullptr;
+                        g_connectParams.multicastAddress = NULL;
                     }
 
                     break;
@@ -211,9 +211,9 @@ int main( int argc, char* argv[] )
 
 	// Retrieve Data Descriptions from Motive
 	printf("\n\n[SampleClient] Requesting Data Descriptions...");
-	sDataDescriptions* pDataDefs = nullptr;
+	sDataDescriptions* pDataDefs = NULL;
 	iResult = g_pClient->GetDataDescriptionList(&pDataDefs);
-	if (iResult != ErrorCode_OK || pDataDefs == nullptr)
+	if (iResult != ErrorCode_OK || pDataDefs == NULL)
 	{
 		printf("[SampleClient] Unable to retrieve Data Descriptions.");
 	}
@@ -241,7 +241,7 @@ int main( int argc, char* argv[] )
                 printf("RigidBody Parent ID : %d\n", pRB->parentID);
                 printf("Parent Offset : %3.2f,%3.2f,%3.2f\n", pRB->offsetx, pRB->offsety, pRB->offsetz);
 
-                if ( pRB->MarkerPositions != nullptr && pRB->MarkerRequiredLabels != nullptr )
+                if ( pRB->MarkerPositions != NULL && pRB->MarkerRequiredLabels != NULL )
                 {
                     for ( int markerIdx = 0; markerIdx < pRB->nMarkers; ++markerIdx )
                     {
@@ -325,9 +325,9 @@ int main( int argc, char* argv[] )
 
     if ( pDataDefs )
     {
-        WriteHeader( g_outputFile, pDataDefs );
+        _WriteHeader( g_outputFile, pDataDefs );
         NatNet_FreeDescriptions( pDataDefs );
-        pDataDefs = nullptr;
+        pDataDefs = NULL;
     }
 
 	// Ready to receive marker stream!
@@ -357,9 +357,9 @@ int main( int argc, char* argv[] )
             case 's':
                 {
                 printf("\n\n[SampleClient] Requesting Data Descriptions...");
-                sDataDescriptions* pDataDefs = nullptr;
+                sDataDescriptions* pDataDefs = NULL;
                 iResult = g_pClient->GetDataDescriptionList(&pDataDefs);
-                if (iResult != ErrorCode_OK || pDataDefs == nullptr)
+                if (iResult != ErrorCode_OK || pDataDefs == NULL)
                 {
                     printf("[SampleClient] Unable to retrieve Data Descriptions.");
                 }
@@ -406,14 +406,14 @@ int main( int argc, char* argv[] )
 	{
 		g_pClient->Disconnect();
 		delete g_pClient;
-		g_pClient = nullptr;
+		g_pClient = NULL;
 	}
 
 	if (g_outputFile)
 	{
-		WriteFooter(g_outputFile);
+		_WriteFooter(g_outputFile);
 		fclose(g_outputFile);
-		g_outputFile = nullptr;
+		g_outputFile = NULL;
 	}
 
 	return ErrorCode_OK;
@@ -430,7 +430,7 @@ void NATNET_CALLCONV ServerDiscoveredCallback( const sNatNetDiscoveredServer* pD
 
     const char* warning = "";
 
-    if (!pDiscoveredServer->serverDescription.bConnectionInfoValid)
+    if ( pDiscoveredServer->serverDescription.bConnectionInfoValid == false )
     {
         warning = " (WARNING: Legacy server, could not autodetect settings. Auto-connect may not work reliably.)";
     }
@@ -512,7 +512,7 @@ int ConnectClient()
 // This function is called by NatNet when a frame of mocap data is available
 void NATNET_CALLCONV DataHandler(sFrameOfMocapData* data, void* pUserData)
 {
-    auto* pClient = (NatNetClient*) pUserData;
+    NatNetClient* pClient = (NatNetClient*) pUserData;
 
     // Software latency here is defined as the span of time between:
     //   a) The reception of a complete group of 2D frames from the camera system (CameraDataReceivedTimestamp)
@@ -530,7 +530,7 @@ void NATNET_CALLCONV DataHandler(sFrameOfMocapData* data, void* pUserData)
 
     if (g_outputFile)
     {
-        WriteFrame( g_outputFile, data );
+        _WriteFrame( g_outputFile, data );
     }
 
     int i=0;
@@ -743,11 +743,11 @@ void NATNET_CALLCONV MessageHandler( Verbosity msgType, const char* msg )
 
 
 /* File writing routines */
-void WriteHeader(FILE* fp, sDataDescriptions* pBodyDefs)
+void _WriteHeader(FILE* fp, sDataDescriptions* pBodyDefs)
 {
 	int i=0;
 
-    if(pBodyDefs->arrDataDescriptions[0].type != Descriptor_MarkerSet)
+    if(!pBodyDefs->arrDataDescriptions[0].type == Descriptor_MarkerSet)
         return;
         
 	sMarkerSetDescription* pMS = pBodyDefs->arrDataDescriptions[0].Data.MarkerSetDescription;
@@ -773,7 +773,7 @@ void WriteHeader(FILE* fp, sDataDescriptions* pBodyDefs)
 }
 
 
-void WriteFrame(FILE* fp, sFrameOfMocapData* data)
+void _WriteFrame(FILE* fp, sFrameOfMocapData* data)
 {
 	fprintf(fp, "%d", data->iFrame);
 	for(int i =0; i < data->MocapData->nMarkers; i++)
@@ -784,7 +784,7 @@ void WriteFrame(FILE* fp, sFrameOfMocapData* data)
 }
 
 
-void WriteFooter(FILE* fp)
+void _WriteFooter(FILE* fp)
 {
 	fprintf(fp, "</Data>\n\n");
 	fprintf(fp, "</MarkerSet>\n");

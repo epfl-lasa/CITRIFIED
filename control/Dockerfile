@@ -73,14 +73,6 @@ RUN git clone -b release-2.1 --single-branch https://github.com/resibots/limbo.g
   && mkdir -p /opt/limbo \
   && cp -r limbo/src /opt/limbo
 
-# install core NatNet SDK
-RUN mkdir -p /tmp/NatNet && cd /tmp/NatNet \
-  && wget https://s3.amazonaws.com/naturalpoint/software/NatNetSDKLinux/ubuntu/NatNet_SDK_3.1_ubuntu.tar \
-  && tar -xvf NatNet_SDK_3.1_ubuntu.tar \
-  && cp lib/*.so /usr/local/lib \
-  && mkdir -p /usr/local/include/NatNet \
-  && cp include/* /usr/local/include/NatNet
-
 # install gtest
 RUN mkdir -p /tmp/gtest_build \
   && cd /tmp/gtest_build \

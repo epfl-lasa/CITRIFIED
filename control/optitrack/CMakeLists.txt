@@ -1,0 +1,4 @@
+add_executable(optitrack_sample_client source/SampleClient.cpp)
+target_include_directories(optitrack_sample_client PUBLIC include)
+target_link_directories(optitrack_sample_client PUBLIC lib)
+target_link_libraries(optitrack_sample_client NatNetLibShared)

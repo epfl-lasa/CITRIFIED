@@ -1,7 +1,7 @@
 /data/
 /lib/
 
-/notebooks/.ipynb_checkpoints/
+.ipynb_checkpoints
 /.idea/
 
 /rviz_visualization/ros_ws/build/

@@ -1,21 +1,21 @@
-
 #include "sensors/ForceTorqueSensor.h"
 
 #include <utility>
 
+#include "sensors/netft_rdt_driver/NetFTRDTDriver.h"
+#include "sensors/netft_rdt_driver/MockNetFTRDTDriver.h"
+
 namespace sensors {
 
-ForceTorqueSensor::ForceTorqueSensor(const std::string& sensorName,
-                                     const std::string& address,
-                                     ToolSpec tool,
-                                     bool simulation,
-                                     std::size_t sensorTimeout) :
-    simulation_(simulation),
+ForceTorqueSensor::ForceTorqueSensor(const std::string& sensorName, const std::string& address,
+                                     std::size_t sensorTimeoutMs, ToolSpec tool, bool mock) :
     sensorName_(sensorName),
     tool_(std::move(tool)),
     bias_(StateRepresentation::CartesianWrench(sensorName + "Bias", sensorName)) {
-  if (!simulation_) {
-    netftRDTDriver_ = std::make_unique<netft_rdt_driver::NetFTRDTDriver>(address, sensorTimeout);
+  if (mock) {
+    netftRDTDriver_ = std::make_unique<netft_rdt_driver::MockNetFTRDTDriver>();
+  } else {
+    netftRDTDriver_ = std::make_unique<netft_rdt_driver::NetFTRDTDriver>(address, sensorTimeoutMs);
   }
 }
 
@@ -55,31 +55,21 @@ bool ForceTorqueSensor::readRawData(StateRepresentation::CartesianWrench& wrench
   netft_rdt_driver::RawWrenchMessage rawMessage;
   if (wrench.get_reference_frame() != sensorName_) {
     wrench.set_reference_frame(sensorName_);
-    std::cout
-        << "[ForceTorqueSensor::getRawData] Warning: Resetting reference frame of contact wrench to sensor frame!"
-        << std::endl;
+    std::cout << "[ForceTorqueSensor::getRawData] Warning: Resetting reference frame of contact wrench to sensor frame!"
+              << std::endl;
   }
-  if (!simulation_) {
-    if (netftRDTDriver_->waitForNewData()) {
-      netftRDTDriver_->getData(rawMessage);
-      wrench.set_force(Eigen::Vector3d(rawMessage.force.x, rawMessage.force.y, rawMessage.force.z));
-      wrench.set_torque(Eigen::Vector3d(rawMessage.torque.x, rawMessage.torque.y, rawMessage.torque.z));
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    return true;
+  bool newData = netftRDTDriver_->waitForNewData();
+  if (newData) {
+    netftRDTDriver_->getData(rawMessage);
+    wrench.set_force(Eigen::Vector3d(rawMessage.force.x, rawMessage.force.y, rawMessage.force.z));
+    wrench.set_torque(Eigen::Vector3d(rawMessage.torque.x, rawMessage.torque.y, rawMessage.torque.z));
   }
+  return newData;
 }
 
 bool ForceTorqueSensor::readBias(StateRepresentation::CartesianWrench& wrench) {
-  if (biasOk_) {
-    wrench = bias_;
-    return true;
-  } else {
-    return false;
-  }
+  if (biasOk_) { wrench = bias_; }
+  return biasOk_;
 }
 
 void ForceTorqueSensor::resetBias() {

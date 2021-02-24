@@ -21,7 +21,7 @@ if [ "$path" != "CITRIFIED/control/scripts" ]; then
   exit 1
 fi
 
-IMAGE_NAME=citrified/control/remote-dev/limbo
+IMAGE_NAME=citrified/control/remote-dev
 CONTAINER_NAME=citrified-control-remote-dev
 PORT_SSH=2222
 PORT_OPTITRACK=5511

@@ -57,6 +57,34 @@ RUN git clone https://github.com/jbeder/yaml-cpp.git \
   && make \
   && make install
 
+# install limbo
+# WORKDIR /limbo_lib
+RUN wget http://members.loria.fr/JBMouret/mirrors/nlopt-2.4.2.tar.gz \
+  && tar -zxvf nlopt-2.4.2.tar.gz \
+  && cd nlopt-2.4.2 \
+  && ./configure -with-cxx --enable-shared --without-python --without-matlab --without-octave \
+  && make install \
+  && ldconfig \
+  && cd .. \
+  && rm -rf nlopt-2.4.2 \
+  && rm -rf *.tar.gz
+
+RUN git clone -b release-2.1 --single-branch https://github.com/resibots/limbo.git \
+  && cd limbo \
+  && ./waf configure \
+  && ./waf build \
+  && cp build/src/liblimbo.a /usr/local/lib \
+  && cp -r src/limbo /usr/local/include/limbo \
+  && cp -r src/external /usr/local/include/external \
+  && cd .. \
+  %% rm -rf limbo
+
+# install gtest
+WORKDIR /tmp/gtest_build
+RUN cmake /usr/src/gtest \
+  && make \
+  && cp lib/* /usr/local/lib
+
 COPY ./good_standardized_sampled_train.csv /tmp/train.csv
 
 # install json library header
@@ -82,26 +110,10 @@ WORKDIR /usr/src/CITRIFIED/control
 COPY executables executables
 COPY include include
 COPY lib lib
-COPY scripts scripts
 COPY source source
 COPY CMakeLists.txt CMakeLists.txt
 
-
-# tag a new build stage that compiles and runs the test targets
-FROM project-sources as tester
-
-WORKDIR /usr/src/CITRIFIED/control/build
-RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=True \
-  && make
-RUN make test
-
-
-# tag a new build stage that compiles the sources
-FROM project-sources as runtime
-
-RUN useradd -ms /bin/bash citrified
-
-WORKDIR /usr/src/CITRIFIED/control/build
+WORKDIR /tmp/CITRIFIED/control/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
   && make \
   && mkdir -p /home/citrified/executables \

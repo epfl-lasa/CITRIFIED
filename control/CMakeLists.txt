@@ -22,6 +22,7 @@ find_library(controllers REQUIRED)
 find_library(limbo REQUIRED)
 
 include_directories(include)
+include_directories(/usr/local/include/limbo REQUIRED)
 include_directories(/limbo/src REQUIRED)
 include_directories(include ${Eigen_INCLUDE_DIRS})
 

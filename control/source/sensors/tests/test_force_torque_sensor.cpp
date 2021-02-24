@@ -29,7 +29,7 @@ TEST_F(TestFTSensor, MockSensorBias) {
   Eigen::Matrix3d rotation(Eigen::Matrix3d::Identity());
   bool success = mockSensorPtr->computeBias(rotation, biasCounter);
   std::size_t count = 0;
-  while (!success && count < 100) {
+  while (!success && count < 2 * biasCounter) {
     success = mockSensorPtr->computeBias(rotation, biasCounter);
     ++count;
   }
@@ -61,7 +61,7 @@ TEST_F(TestFTSensor, MockSensorBiasGeneral) {
   Eigen::Matrix3d rotation(Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitX()).toRotationMatrix());
   bool success = mockSensorPtr->computeBias(rotation, biasCounter);
   std::size_t count = 0;
-  while (!success) {
+  while (!success && count < 2 * biasCounter) {
     success = mockSensorPtr->computeBias(rotation, biasCounter);
     ++count;
   }

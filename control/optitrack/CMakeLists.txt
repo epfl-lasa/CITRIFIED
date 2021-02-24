@@ -2,3 +2,8 @@ add_executable(optitrack_sample_client source/SampleClient.cpp)
 target_include_directories(optitrack_sample_client PUBLIC include)
 target_link_directories(optitrack_sample_client PUBLIC lib)
 target_link_libraries(optitrack_sample_client NatNetLibShared)
+
+add_executable(optitrack_zmq_bridge source/OptiTrackZMQBridge.cpp source/OptiTrackClient.cpp)
+target_include_directories(optitrack_zmq_bridge PUBLIC include)
+target_link_directories(optitrack_zmq_bridge PUBLIC lib)
+target_link_libraries(optitrack_zmq_bridge NatNetLibShared cppzmq)

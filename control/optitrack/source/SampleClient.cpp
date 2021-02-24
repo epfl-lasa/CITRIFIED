@@ -44,9 +44,9 @@ Usage [optional]:
 
 #include <vector>
 
-#include <NatNetTypes.h>
-#include <NatNetCAPI.h>
-#include <NatNetClient.h>
+#include "NatNet/NatNetTypes.h"
+#include "NatNet/NatNetCAPI.h"
+#include "NatNet/NatNetClient.h"
 
 #ifndef _WIN32
 char getch();
@@ -512,7 +512,7 @@ int ConnectClient()
 // This function is called by NatNet when a frame of mocap data is available
 void NATNET_CALLCONV DataHandler(sFrameOfMocapData* data, void* pUserData)
 {
-    NatNetClient* pClient = (NatNetClient*) pUserData;
+    auto pClient = static_cast<NatNetClient*>(pUserData);
 
     // Software latency here is defined as the span of time between:
     //   a) The reception of a complete group of 2D frames from the camera system (CameraDataReceivedTimestamp)

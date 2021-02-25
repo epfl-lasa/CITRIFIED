@@ -2,7 +2,7 @@
 
 #include <zmq.hpp>
 
-#include "optitrack_zmq_proto.h"
+#include "sensors/optitrack/optitrack_zmq_proto.h"
 
 namespace optitrack::utils {
 

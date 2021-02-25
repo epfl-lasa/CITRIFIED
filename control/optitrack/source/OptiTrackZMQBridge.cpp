@@ -93,7 +93,7 @@ void OptiTrackZMQBridge::publish(const proto::RigidBody& rb) {
 int main(int, char**) {
   optitrack::OptiTrackZMQBridge bridge;
 
-  if (!bridge.connect("0.0.0.0", "0.0.0.0:5511")) {
+  if (!bridge.connect("128.178.145.104", "0.0.0.0:5511")) {
     return -1;
   }
 

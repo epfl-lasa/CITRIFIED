@@ -7,3 +7,8 @@ add_executable(optitrack_zmq_bridge source/OptiTrackZMQBridge.cpp source/OptiTra
 target_include_directories(optitrack_zmq_bridge PUBLIC include)
 target_link_directories(optitrack_zmq_bridge PUBLIC lib)
 target_link_libraries(optitrack_zmq_bridge NatNetLibShared cppzmq)
+
+add_executable(test_receive_zmq source/test_receive_zmq.cpp)
+target_include_directories(test_receive_zmq PUBLIC include)
+target_link_directories(test_receive_zmq PUBLIC lib)
+target_link_libraries(test_receive_zmq cppzmq)

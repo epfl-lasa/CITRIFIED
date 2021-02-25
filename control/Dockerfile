@@ -78,7 +78,7 @@ RUN mkdir -p /tmp/gtest_build \
   && cd /tmp/gtest_build \
   && cmake /usr/src/gtest \
   && make \
-  && cp lib/* /usr/local/lib
+  && cp lib/* /usr/local/lib || cp *.a /usr/local/lib
 
 # clean up installation artefacts
 WORKDIR /

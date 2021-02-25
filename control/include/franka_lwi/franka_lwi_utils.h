@@ -9,7 +9,7 @@ void poseFromState(frankalwi::proto::StateMessage<7>& state, StateRepresentation
   Eigen::Vector3d position(frankalwi::proto::vec3DToArray(state.eePose.position).data());
   Eigen::Quaterniond orientation
       (state.eePose.orientation.w, state.eePose.orientation.x, state.eePose.orientation.y, state.eePose.orientation.z);
-  StateRepresentation::CartesianPose newPose(pose.get_reference_frame(), position, orientation);
+  StateRepresentation::CartesianPose newPose(pose.get_name(), position, orientation, pose.get_reference_frame());
   pose = newPose;
 }
 

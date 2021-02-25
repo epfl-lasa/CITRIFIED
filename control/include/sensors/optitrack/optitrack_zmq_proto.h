@@ -1,1 +1,1 @@
-optitrack/include/optitrack/optitrack_zmq_proto.h
+../../../../optitrack/include/optitrack/optitrack_zmq_proto.h

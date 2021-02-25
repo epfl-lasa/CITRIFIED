@@ -37,5 +37,5 @@ docker container stop "$CONTAINER_NAME" >/dev/null 2>&1
 docker rm --force "$CONTAINER_NAME" >/dev/null 2>&1
 
 docker run -d --cap-add sys_ptrace \
-  -p127.0.0.1:"$PORT_SSH":22 -p"$PORT_STATE":"$PORT_STATE" -p"$PORT_COMMAND":"$PORT_COMMAND" \
+  -p127.0.0.1:"$PORT_SSH":22 -p"$PORT_STATE":"$PORT_STATE" -p"$PORT_COMMAND":"$PORT_COMMAND" -p5511:5511 \
   --name $CONTAINER_NAME $IMAGE_NAME

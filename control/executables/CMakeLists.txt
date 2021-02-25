@@ -12,3 +12,6 @@ target_link_libraries(test_interface cppzmq state_representation)
 
 add_executable(example_ft_sensor example_ft_sensor.cpp)
 target_link_libraries(example_ft_sensor sensors cppzmq)
+
+add_executable(mocap_point_attractor mocap_point_attractor.cpp)
+target_link_libraries(mocap_point_attractor sensors motion_generators controllers state_representation)

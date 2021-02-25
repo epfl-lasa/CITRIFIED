@@ -1,12 +1,18 @@
-include = -I../../include
-libpath = -L../../lib
-libs = -lNatNetLibShared
+include = -I./include
+libpath = -L./lib
+libs = -lNatNetLibShared -lzmq
 
-all: build/SampleClient
+all: SampleClient OptiTrackZMQBridge test_receive
 
-build/SampleClient: 
-	g++ SampleClient.cpp $(include) $(libpath) $(libs) -o build/SampleClient
+SampleClient:
+	g++ source/SampleClient.cpp $(include) $(libpath) $(libs) -o run/SampleClient
+
+OptiTrackZMQBridge:
+	g++ source/OptiTrackZMQBridge.cpp source/OptiTrackClient.cpp $(include) $(libpath) $(libs) -o run/OptiTrackZMQBridge
+
+test_receive:
+	g++ source/test_receive_zmq.cpp $(include) $(libpath) $(libs) -o run/test_receive_zmq
 
 .PHONY: clean
 clean:
-	@rm -f ./build/SampleClient
+	@rm -r ./run/*

@@ -9,7 +9,7 @@
 
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
-#include "network/netutils.h"
+#include "franka_lwi/franka_lwi_utils.h"
 
 void throttledPrintCommand(const motion_generator::PointAttractor& DS,
                            std::vector<double> velocity,
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
   // Set up ZMQ
   zmq::context_t context;
   zmq::socket_t publisher, subscriber;
-  network::configure(context, publisher, subscriber);
+  frankalwi::utils::configureSockets(context, publisher, subscriber);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
     // blocking receive until we get a state from the robot
     if (frankalwi::proto::receive(subscriber, state)) {
       StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-      network::poseFromState(state, pose);
+      frankalwi::utils::poseFromState(state, pose);
       if (!positionSet || !orientationSet) {
         if (!positionSet) {
           std::cout << "Updating target position from current state" << std::endl;

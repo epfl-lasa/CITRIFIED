@@ -2,8 +2,11 @@
 #include <cstdio>
 #include <iomanip>
 
+#include <franka_lwi/franka_lwi_communication_protocol.h>
+
 #include "sensors/ForceTorqueSensor.h"
 #include "franka_lwi/franka_lwi_utils.h"
+#include "network/zmq_interface.h"
 
 void throttledPrintWrench(const StateRepresentation::CartesianWrench& wrench,
                           const StateRepresentation::CartesianWrench& bias, int skip, double avg_freq) {
@@ -34,7 +37,7 @@ int main(int argc, char** argv) {
 
   zmq::context_t context;
   zmq::socket_t publisher, subscriber;
-  frankalwi::utils::configureSockets(context, publisher, subscriber);
+  network::zmq_interface::configureSockets(context, publisher, subscriber);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
@@ -42,10 +45,10 @@ int main(int argc, char** argv) {
   auto start = std::chrono::system_clock::now();
   int iterations = 0;
   while (subscriber.connected()) {
-    if (frankalwi::proto::receive(subscriber, state)) {
+    if (network::zmq_interface::receive(subscriber, state)) {
       StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
       Eigen::Matrix3d worldToEERotation(pose.get_orientation().toRotationMatrix());
-      frankalwi::utils::poseFromState(state, pose);
+      frankalwi::proto::poseFromState(state, pose);
       // just for test purposes
       if (!ft_sensor.readRawData(rawWrench)) {
         std::cout << "getting raw data failed" << std::endl;

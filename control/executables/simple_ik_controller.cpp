@@ -1,9 +1,12 @@
 #include <state_representation/Space/Cartesian/CartesianPose.hpp>
 
+#include <franka_lwi/franka_lwi_communication_protocol.h>
+
 #include "controllers/KinematicController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "franka_lwi/franka_lwi_logger.h"
+#include "network/zmq_interface.h"
 
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
@@ -30,7 +33,7 @@ int main(int argc, char** argv) {
   // communication
   zmq::context_t context;
   zmq::socket_t publisher, subscriber;
-  frankalwi::utils::configureSockets(context, publisher, subscriber);
+  network::zmq_interface::configureSockets(context, publisher, subscriber);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
@@ -38,11 +41,11 @@ int main(int argc, char** argv) {
   // control loop
   bool stateReceived = false;
   while (subscriber.connected()) {
-    if (frankalwi::proto::receive(subscriber, state)) {
+    if (network::zmq_interface::receive(subscriber, state)) {
       logger.writeLine(state);
 
       StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-      frankalwi::utils::poseFromState(state, pose);
+      frankalwi::proto::poseFromState(state, pose);
       StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
       // TODO this is just an intermediate solution
       std::vector<double> desiredVelocity = {
@@ -50,7 +53,7 @@ int main(int argc, char** argv) {
           twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
       };
       command = ctrl.getJointTorque(state, desiredVelocity);
-      frankalwi::proto::send(publisher, command);
+      network::zmq_interface::send(publisher, command);
     }
   }
 }

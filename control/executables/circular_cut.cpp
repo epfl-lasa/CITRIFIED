@@ -12,6 +12,7 @@
 #include "motion_generators/CircularDS.h"
 #include "motion_generators/RingDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
+#include "network/zmq_interface.h"
 
 class BlendDS {
 public:
@@ -25,9 +26,8 @@ public:
     flatCircleDS.circularDS.set_planar_gain(circGains[0]);
     flatCircleDS.circularDS.set_normal_gain(circGains[1]);
 
-    inclinedCircleDS = motion_generator::CircleDS(StateRepresentation::CartesianPose("world",
-                                                                                     center,
-                                                                                     inclination * defaultOrientation));
+    inclinedCircleDS = motion_generator::CircleDS(
+        StateRepresentation::CartesianPose("world", center, inclination * defaultOrientation));
     inclinedCircleDS.circularDS.set_radius(radius);
     inclinedCircleDS.circularDS.set_circular_velocity(radialVelocity);
     inclinedCircleDS.circularDS.set_planar_gain(circGains[0]);
@@ -49,7 +49,7 @@ public:
   std::vector<double> blend(frankalwi::proto::StateMessage<7> state) {
 //    updateOrientationTarget(state);
     StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    frankalwi::utils::poseFromState(state, pose);
+    frankalwi::proto::poseFromState(state, pose);
     StateRepresentation::CartesianTwist twist = orientationDS.getTwist(pose);
     // TODO this is just an intermediate solution
     std::vector<double> v1 = {
@@ -100,7 +100,7 @@ private:
     double zVel = 0;
 
     StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    frankalwi::utils::poseFromState(state, pose);
+    frankalwi::proto::poseFromState(state, pose);
     StateRepresentation::CartesianTwist flatCircleTwist = flatCircleDS.getTwist(pose);
     StateRepresentation::CartesianTwist inclinedCircleTwist = inclinedCircleDS.getTwist(pose);
 
@@ -155,17 +155,17 @@ int main(int argc, char** argv) {
   // Set up ZMQ
   zmq::context_t context;
   zmq::socket_t publisher, subscriber;
-  frankalwi::utils::configureSockets(context, publisher, subscriber);
+  network::zmq_interface::configureSockets(context, publisher, subscriber);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
   StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
 
   while (subscriber.connected()) {
-    if (frankalwi::proto::receive(subscriber, state)) {
+    if (network::zmq_interface::receive(subscriber, state)) {
 //      std::vector<double> desiredVelocity = DS.blend(state);
 
-      frankalwi::utils::poseFromState(state, pose);
+      frankalwi::proto::poseFromState(state, pose);
       StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
       std::vector<double> desiredVelocity = {
           twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
       };
 
       command = ctrl.getJointTorque(state, desiredVelocity);
-      frankalwi::proto::send(publisher, command);
+      network::zmq_interface::send(publisher, command);
     }
   }
 }

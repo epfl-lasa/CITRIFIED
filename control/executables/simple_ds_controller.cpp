@@ -10,22 +10,21 @@
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
+#include "network/zmq_interface.h"
 
-void throttledPrintCommand(const motion_generator::PointAttractor& DS,
-                           std::vector<double> velocity,
-                           frankalwi::proto::CommandMessage<7> command,
-                           int skip) {
+void throttledPrintCommand(const motion_generator::PointAttractor& DS, std::vector<double> velocity,
+                           frankalwi::proto::CommandMessage<7> command, int skip) {
   static int count = 0;
   if (count > skip) {
 
     std::cout << "COMMAND ------------" << std::endl;
     std::cout << "Target " << DS.targetPose << std::endl;
 
-    printf("Desired twist:  % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f\n",
-           velocity[0], velocity[1], velocity[2], velocity[3], velocity[4], velocity[5]);
-    printf("Desired torque: % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f\n",
-           command.jointTorque[0], command.jointTorque[1], command.jointTorque[2], command.jointTorque[3],
-           command.jointTorque[4], command.jointTorque[5], command.jointTorque[6]);
+    printf("Desired twist:  % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f\n", velocity[0], velocity[1], velocity[2],
+           velocity[3], velocity[4], velocity[5]);
+    printf("Desired torque: % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f, % 3.2f\n", command.jointTorque[0],
+           command.jointTorque[1], command.jointTorque[2], command.jointTorque[3], command.jointTorque[4],
+           command.jointTorque[5], command.jointTorque[6]);
     count = 0;
   }
   ++count;
@@ -37,15 +36,10 @@ void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip) {
 
     std::cout << "STATE --------------" << std::endl;
 
-    printf("State position xyz:     % 3.3f, % 3.3f, % 3.3f\n",
-           state.eePose.position.x,
-           state.eePose.position.y,
+    printf("State position xyz:     % 3.3f, % 3.3f, % 3.3f\n", state.eePose.position.x, state.eePose.position.y,
            state.eePose.position.z);
-    printf("State orientation wxyz: % 3.3f, % 3.3f, % 3.3f, % 3.3f\n",
-           state.eePose.orientation.w,
-           state.eePose.orientation.x,
-           state.eePose.orientation.y,
-           state.eePose.orientation.z);
+    printf("State orientation wxyz: % 3.3f, % 3.3f, % 3.3f, % 3.3f\n", state.eePose.orientation.w,
+           state.eePose.orientation.x, state.eePose.orientation.y, state.eePose.orientation.z);
 
     const char map[3] = {'X', 'Y', 'Z'};
     for (std::size_t dof = 0; dof < 6; ++dof) {
@@ -100,16 +94,16 @@ int main(int argc, char** argv) {
   // Set up ZMQ
   zmq::context_t context;
   zmq::socket_t publisher, subscriber;
-  frankalwi::utils::configureSockets(context, publisher, subscriber);
+  network::zmq_interface::configureSockets(context, publisher, subscriber);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
   while (subscriber.connected()) {
     // blocking receive until we get a state from the robot
-    if (frankalwi::proto::receive(subscriber, state)) {
+    if (network::zmq_interface::receive(subscriber, state)) {
       StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-      frankalwi::utils::poseFromState(state, pose);
+      frankalwi::proto::poseFromState(state, pose);
       if (!positionSet || !orientationSet) {
         if (!positionSet) {
           std::cout << "Updating target position from current state" << std::endl;
@@ -135,7 +129,7 @@ int main(int argc, char** argv) {
       throttledPrintCommand(DS, desiredVelocity, command, 500);
       throttledPrintState(state, 500);
 
-      frankalwi::proto::send(publisher, command);
+      network::zmq_interface::send(publisher, command);
     }
   }
 }

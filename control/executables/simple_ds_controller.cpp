@@ -10,7 +10,7 @@
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
-#include "network/zmq_interface.h"
+#include "network/interfaces.h"
 
 void throttledPrintCommand(const motion_generator::PointAttractor& DS, std::vector<double> velocity,
                            frankalwi::proto::CommandMessage<7> command, int skip) {
@@ -91,45 +91,42 @@ int main(int argc, char** argv) {
     DS.setTargetPose(DS.targetPose);
   }
 
-  // Set up ZMQ
-  zmq::context_t context;
-  zmq::socket_t publisher, subscriber;
-  network::zmq_interface::configureSockets(context, publisher, subscriber);
+  // Set up franka ZMQ
+  network::Interface franka(network::InterfaceType::FRANKA_LWI);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
-  while (subscriber.connected()) {
-    // blocking receive until we get a state from the robot
-    if (network::zmq_interface::receive(subscriber, state)) {
-      StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-      frankalwi::proto::poseFromState(state, pose);
-      if (!positionSet || !orientationSet) {
-        if (!positionSet) {
-          std::cout << "Updating target position from current state" << std::endl;
-          DS.setTargetPosition(pose);
-          positionSet = true;
-        }
-        if (!orientationSet) {
-          std::cout << "Updating target orientation from current state" << std::endl;
-          DS.setTargetOrientation(pose);
-          orientationSet = true;
-        }
-        std::cout << DS.targetPose << std::endl;
+  // control loop
+  while (franka.receive(state)) {
+    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+    frankalwi::proto::poseFromState(state, pose);
+    if (!positionSet || !orientationSet) {
+      if (!positionSet) {
+        std::cout << "Updating target position from current state" << std::endl;
+        DS.setTargetPosition(pose);
+        positionSet = true;
       }
-
-      StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
-      // TODO this is just an intermediate solution
-      std::vector<double> desiredVelocity = {
-          twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
-          twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
-      };
-      command = ctrl.getJointTorque(state, desiredVelocity);
-
-      throttledPrintCommand(DS, desiredVelocity, command, 500);
-      throttledPrintState(state, 500);
-
-      network::zmq_interface::send(publisher, command);
+      if (!orientationSet) {
+        std::cout << "Updating target orientation from current state" << std::endl;
+        DS.setTargetOrientation(pose);
+        orientationSet = true;
+      }
+      std::cout << DS.targetPose << std::endl;
     }
+
+    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+    // TODO this is just an intermediate solution
+    std::vector<double> desiredVelocity = {
+        twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
+        twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
+    };
+    command = ctrl.getJointTorque(state, desiredVelocity);
+
+    throttledPrintCommand(DS, desiredVelocity, command, 500);
+    throttledPrintState(state, 500);
+    if (!franka.send(command)) {
+      std::cerr << "Warning: Couldn't send command to Franka!" << std::endl;
+    };
   }
 }

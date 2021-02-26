@@ -12,7 +12,7 @@
 #include "motion_generators/CircularDS.h"
 #include "motion_generators/RingDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
-#include "network/zmq_interface.h"
+#include "network/interfaces.h"
 
 class BlendDS {
 public:
@@ -152,28 +152,26 @@ int main(int argc, char** argv) {
 
   std::cout << std::fixed << std::setprecision(3);
 
-  // Set up ZMQ
-  zmq::context_t context;
-  zmq::socket_t publisher, subscriber;
-  network::zmq_interface::configureSockets(context, publisher, subscriber);
+  // Set up franka ZMQ
+  network::Interface franka(network::InterfaceType::FRANKA_LWI);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
   StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
 
-  while (subscriber.connected()) {
-    if (network::zmq_interface::receive(subscriber, state)) {
-//      std::vector<double> desiredVelocity = DS.blend(state);
+  while (franka.receive(state)) {
+//    std::vector<double> desiredVelocity = DS.blend(state);
 
-      frankalwi::proto::poseFromState(state, pose);
-      StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
-      std::vector<double> desiredVelocity = {
-          twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
-          twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
-      };
+    frankalwi::proto::poseFromState(state, pose);
+    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+    std::vector<double> desiredVelocity = {
+        twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
+        twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
+    };
 
-      command = ctrl.getJointTorque(state, desiredVelocity);
-      network::zmq_interface::send(publisher, command);
-    }
+    command = ctrl.getJointTorque(state, desiredVelocity);
+    if (!franka.send(command)) {
+      std::cerr << "Warning: Couldn't send command to Franka!" << std::endl;
+    };
   }
 }

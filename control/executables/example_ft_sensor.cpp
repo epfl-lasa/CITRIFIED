@@ -6,7 +6,7 @@
 
 #include "sensors/ForceTorqueSensor.h"
 #include "franka_lwi/franka_lwi_utils.h"
-#include "network/zmq_interface.h"
+#include "network/interfaces.h"
 
 void throttledPrintWrench(const StateRepresentation::CartesianWrench& wrench,
                           const StateRepresentation::CartesianWrench& bias, int skip, double avg_freq) {
@@ -35,33 +35,30 @@ int main(int argc, char** argv) {
   StateRepresentation::CartesianWrench wrench("ft_sensor", "ft_sensor");
   StateRepresentation::CartesianWrench bias("ft_sensor", "ft_sensor");
 
-  zmq::context_t context;
-  zmq::socket_t publisher, subscriber;
-  network::zmq_interface::configureSockets(context, publisher, subscriber);
+  // Set up franka ZMQ
+  network::Interface franka(network::InterfaceType::FRANKA_LWI);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
   auto start = std::chrono::system_clock::now();
   int iterations = 0;
-  while (subscriber.connected()) {
-    if (network::zmq_interface::receive(subscriber, state)) {
-      StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-      Eigen::Matrix3d worldToEERotation(pose.get_orientation().toRotationMatrix());
-      frankalwi::proto::poseFromState(state, pose);
-      // just for test purposes
-      if (!ft_sensor.readRawData(rawWrench)) {
-        std::cout << "getting raw data failed" << std::endl;
-        break;
-      }
-      if (ft_sensor.computeBias(worldToEERotation, 200)) {
-        ft_sensor.readBias(bias);
-        ft_sensor.readContactWrench(wrench, worldToEERotation);
-        // compute and send command here
-      }
-      std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-      throttledPrintWrench(wrench, bias, 1000, iterations / elapsed_seconds.count());
-      ++iterations;
+  while (franka.receive(state)) {
+    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+    Eigen::Matrix3d worldToEERotation(pose.get_orientation().toRotationMatrix());
+    frankalwi::proto::poseFromState(state, pose);
+    // just for test purposes
+    if (!ft_sensor.readRawData(rawWrench)) {
+      std::cout << "getting raw data failed" << std::endl;
+      break;
     }
+    if (ft_sensor.computeBias(worldToEERotation, 200)) {
+      ft_sensor.readBias(bias);
+      ft_sensor.readContactWrench(wrench, worldToEERotation);
+      // compute and send command here
+    }
+    std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
+    throttledPrintWrench(wrench, bias, 1000, iterations / elapsed_seconds.count());
+    ++iterations;
   }
 }

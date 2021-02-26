@@ -3,7 +3,7 @@
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
-#include "network/zmq_interface.h"
+#include "network/interfaces.h"
 
 void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip, double avg_freq) {
   static int count = 0;
@@ -66,10 +66,8 @@ int main(int argc, char** argv) {
 
   std::cout << std::fixed << std::setprecision(3);
 
-  // Set up ZMQ
-  zmq::context_t context;
-  zmq::socket_t publisher, subscriber;
-  network::zmq_interface::configureSockets(context, publisher, subscriber);
+  // Set up franka ZMQ
+  network::Interface franka(network::InterfaceType::FRANKA_LWI);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
@@ -77,27 +75,26 @@ int main(int argc, char** argv) {
   auto start = std::chrono::system_clock::now();
   int iterations;
   bool received = false;
-  while (subscriber.connected()) {
-    // blocking receive until we get a state from the robot
-    if (network::zmq_interface::receive(subscriber, state)) {
-      if (!received) {
-        received = true;
-        start = std::chrono::system_clock::now();
-        iterations = 0;
-      }
-      std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-      throttledPrintState(state, 500, iterations / elapsed_seconds.count());
-
-      // compute the desired command here
-      command.jointTorque[0] = 0.01;
-      command.jointTorque[1] = 0.02;
-      command.jointTorque[2] = 0.03;
-      command.jointTorque[3] = 0.04;
-      command.jointTorque[4] = 0.05;
-      command.jointTorque[5] = 0.06;
-      command.jointTorque[6] = 0.07;
-      network::zmq_interface::send(publisher, command);
-      ++iterations;
+  while (franka.receive(state)) {
+    if (!received) {
+      received = true;
+      start = std::chrono::system_clock::now();
+      iterations = 0;
     }
+    std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
+    throttledPrintState(state, 500, iterations / elapsed_seconds.count());
+
+    // compute the desired command here
+    command.jointTorque[0] = 0.01;
+    command.jointTorque[1] = 0.02;
+    command.jointTorque[2] = 0.03;
+    command.jointTorque[3] = 0.04;
+    command.jointTorque[4] = 0.05;
+    command.jointTorque[5] = 0.06;
+    command.jointTorque[6] = 0.07;
+    if (!franka.send(command)) {
+      std::cerr << "Warning: Couldn't send command to Franka!" << std::endl;
+    };
+    ++iterations;
   }
 }

@@ -5,8 +5,8 @@
 namespace network::zmq_interface {
 
 void configureSockets(zmq::context_t& context, zmq::socket_t& publisher, zmq::socket_t& subscriber,
-                      const std::string& state_uri = "0.0.0.0:5550", const std::string& command_uri = "0.0.0.0:5551",
-                      const bool bind = true) {
+                      const std::string& subscriber_uri = "0.0.0.0:5550",
+                      const std::string& publisher_uri = "0.0.0.0:5551", const bool bind = true) {
   context = zmq::context_t(1);
 
   subscriber = zmq::socket_t(context, ZMQ_SUB);
@@ -16,11 +16,11 @@ void configureSockets(zmq::context_t& context, zmq::socket_t& publisher, zmq::so
   publisher = zmq::socket_t(context, ZMQ_PUB);
 
   if (bind) {
-    subscriber.bind("tcp://" + state_uri);
-    publisher.bind("tcp://" + command_uri);
+    subscriber.bind("tcp://" + subscriber_uri);
+    publisher.bind("tcp://" + publisher_uri);
   } else {
-    subscriber.connect("tcp://" + state_uri);
-    publisher.connect("tcp://" + command_uri);
+    subscriber.connect("tcp://" + subscriber_uri);
+    publisher.connect("tcp://" + publisher_uri);
   }
 }
 

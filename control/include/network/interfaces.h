@@ -27,24 +27,24 @@ private:
 };
 
 Interface::Interface(InterfaceType type) {
-  std::string state_uri, command_uri;
+  std::string subscriber_uri, publisher_uri;
   bool bind;
   switch (type) {
     case FRANKA_LWI:
       bind = true;
-      state_uri = "0.0.0.0:5550";
-      command_uri = "0.0.0.0:5551";
+      subscriber_uri = "0.0.0.0:5550";
+      publisher_uri = "0.0.0.0:5551";
       break;
     case OPTITRACK:
       bind = false;
-      state_uri = "0.0.0.0:6660";
-      command_uri = "0.0.0.0:6661";
+      subscriber_uri = "0.0.0.0:6660";
+      publisher_uri = "0.0.0.0:6661";
     case GPR:
       bind = false;
-      state_uri = "0.0.0.0:7770";
-      command_uri = "0.0.0.0:7771";
+      subscriber_uri = "0.0.0.0:7770";
+      publisher_uri = "0.0.0.0:7771";
   }
-  network::zmq_interface::configureSockets(context_, publisher_, subscriber_, state_uri, command_uri, bind);
+  network::zmq_interface::configureSockets(context_, publisher_, subscriber_, subscriber_uri, publisher_uri, bind);
 }
 
 template <typename T> bool Interface::receive(T& message) {

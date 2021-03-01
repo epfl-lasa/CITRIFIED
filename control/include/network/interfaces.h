@@ -39,10 +39,12 @@ Interface::Interface(InterfaceType type) {
       bind = false;
       subscriber_uri = "0.0.0.0:6660";
       publisher_uri = "0.0.0.0:6661";
+      break;
     case GPR:
       bind = false;
       subscriber_uri = "0.0.0.0:7770";
       publisher_uri = "0.0.0.0:7771";
+      break;
   }
   network::zmq_interface::configureSockets(context_, publisher_, subscriber_, subscriber_uri, publisher_uri, bind);
 }

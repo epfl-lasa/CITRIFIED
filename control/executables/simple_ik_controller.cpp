@@ -1,15 +1,18 @@
 #include <state_representation/Space/Cartesian/CartesianPose.hpp>
 
+#include <franka_lwi/franka_lwi_communication_protocol.h>
+
 #include "controllers/KinematicController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "franka_lwi/franka_lwi_logger.h"
+#include "network/interfaces.h"
 
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // logger
-  frankalwi::proto::Logger logger;
+  frankalwi::utils::Logger logger;
 
   // motion generator
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
@@ -27,30 +30,27 @@ int main(int argc, char** argv) {
   controller::KinematicController ctrl;
   ctrl.gain = 10;
 
-  // communication
-  zmq::context_t context;
-  zmq::socket_t publisher, subscriber;
-  frankalwi::utils::configureSockets(context, publisher, subscriber);
+  // Set up franka ZMQ
+  network::Interface franka(network::InterfaceType::FRANKA_LWI);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
   // control loop
-  bool stateReceived = false;
-  while (subscriber.connected()) {
-    if (frankalwi::proto::receive(subscriber, state)) {
-      logger.writeLine(state);
+  while (franka.receive(state)) {
+    logger.writeLine(state);
 
-      StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-      frankalwi::utils::poseFromState(state, pose);
-      StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
-      // TODO this is just an intermediate solution
-      std::vector<double> desiredVelocity = {
-          twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
-          twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
-      };
-      command = ctrl.getJointTorque(state, desiredVelocity);
-      frankalwi::proto::send(publisher, command);
-    }
+    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+    frankalwi::utils::poseFromState(state, pose);
+    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+    // TODO this is just an intermediate solution
+    std::vector<double> desiredVelocity = {
+        twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
+        twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
+    };
+    command = ctrl.getJointTorque(state, desiredVelocity);
+    if (!franka.send(command)) {
+      std::cerr << "Warning: Couldn't send command to Franka!" << std::endl;
+    };
   }
 }

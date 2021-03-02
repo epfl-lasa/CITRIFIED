@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // logger
-  frankalwi::proto::Logger logger;
+  frankalwi::utils::Logger logger;
 
   // motion generator
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     logger.writeLine(state);
 
     StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    frankalwi::proto::poseFromState(state, pose);
+    frankalwi::utils::poseFromState(state, pose);
     StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
     // TODO this is just an intermediate solution
     std::vector<double> desiredVelocity = {

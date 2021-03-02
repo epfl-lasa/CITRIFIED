@@ -50,18 +50,24 @@ Interface::Interface(InterfaceType type) {
 }
 
 template <typename T> bool Interface::receive(T& message) {
-  if (!subscriber_.connected()) { return false; }
-  return network::zmq_interface::receive(subscriber_, message);
+  if (subscriber_.connected()) {
+    return network::zmq_interface::receive(subscriber_, message);
+  }
+  return false;
 }
 
 template <typename T> bool Interface::poll(T& message) {
-  if (!subscriber_.connected()) { return false; }
-  return network::zmq_interface::poll(subscriber_, message);
+  if (subscriber_.connected()) {
+    return network::zmq_interface::poll(subscriber_, message);
+  }
+  return false;
 }
 
 template <typename T> bool Interface::send(const T& message) {
-  if (!publisher_.connected()) { return false; }
-  return network::zmq_interface::send(publisher_, message);
+  if (publisher_.connected()) {
+    return network::zmq_interface::send(publisher_, message);
+  }
+  return false;
 }
 
 }

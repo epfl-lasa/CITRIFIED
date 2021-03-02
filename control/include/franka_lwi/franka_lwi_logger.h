@@ -6,7 +6,7 @@
 
 #include "franka_lwi_communication_protocol.h"
 
-namespace frankalwi::proto {
+namespace frankalwi::utils {
 
 class Logger {
 private:
@@ -14,14 +14,12 @@ private:
   int size_ = 0;
   int maxSize_ = 600000;
 
-  template<std::size_t T>
-  void writeColumns(const std::array<frankalwi::proto::datatype, T>& data) {
+  template <std::size_t T> void writeColumns(const std::array<frankalwi::proto::datatype, T>& data) {
     for (std::size_t i = 0; i < T; ++i) {
       outputFile_ << data.at(i) << ",";
     }
   }
-  template<std::size_t T>
-  void writeLast(const std::array<frankalwi::proto::datatype, T>& data) {
+  template <std::size_t T> void writeLast(const std::array<frankalwi::proto::datatype, T>& data) {
     for (std::size_t i = 0; i < T - 1; ++i) {
       outputFile_ << data.at(i) << ",";
     }

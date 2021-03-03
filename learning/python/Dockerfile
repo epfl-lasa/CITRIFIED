@@ -18,15 +18,16 @@ RUN wget https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz \
   && ./configure --enable-optimizations \
   && make altinstall
 
-# copy source
 WORKDIR /tmp/learning
+
+RUN pip3 install pipenv --upgrade
+RUN pipenv run pip install --upgrade setuptools
+
 COPY ./source ./source
 COPY ./Pipfile ./
 COPY ./Pipfile.lock ./
 
 # install pipenv
-RUN pip3 install pipenv --upgrade
-RUN pipenv run pip install --upgrade setuptools
 RUN pipenv install
 
 ENTRYPOINT ["/usr/local/bin/pipenv", "run"]

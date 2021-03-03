@@ -23,3 +23,6 @@ target_link_libraries(incision_trials dynamical_systems local_controllers yaml-c
 add_executable(surface_prober surface_prober.cpp)
 target_compile_definitions(surface_prober PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(surface_prober dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)
+
+add_executable(test_learning test_learning.cpp)
+target_link_libraries(test_learning cppzmq)

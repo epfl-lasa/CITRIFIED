@@ -41,7 +41,7 @@ inline Interface::Interface(InterfaceType type) {
       publisher_uri = "0.0.0.0:5512";
       break;
     case GPR:
-      bind = false;
+      bind = true;
       subscriber_uri = "0.0.0.0:7770";
       publisher_uri = "0.0.0.0:7771";
       break;

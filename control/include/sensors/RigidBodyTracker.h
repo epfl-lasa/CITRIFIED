@@ -3,9 +3,9 @@
 #include <thread>
 #include <mutex>
 
-#include <zmq.hpp>
+#include <state_representation/Space/Cartesian/CartesianState.hpp>
 
-#include "state_representation/Space/Cartesian/CartesianState.hpp"
+#include "network/interfaces.h"
 
 namespace sensors {
 class RigidBodyTracker {
@@ -23,8 +23,7 @@ private:
   bool keepAlive_ = false;
 
   StateRepresentation::CartesianState stateEstimate_;
-  zmq::context_t context_;
-  zmq::socket_t subscriber_;
+  network::Interface interface_;
 
   int rigidBodyID_;
   bool receivedState_ = false;

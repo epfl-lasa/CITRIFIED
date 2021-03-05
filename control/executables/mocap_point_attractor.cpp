@@ -1,10 +1,11 @@
 #include <state_representation/Space/Cartesian/CartesianState.hpp>
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
-#include "sensors/RigidBodyTracker.h"
+#include "network/interfaces.h"
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
+#include "sensors/RigidBodyTracker.h"
 
 int main(int argc, char** argv) {
   sensors::RigidBodyTracker tracker(1);
@@ -28,33 +29,29 @@ int main(int argc, char** argv) {
   ctrl.angularController.setDamping(5);
 
   // Set up ZMQ
-  zmq::context_t context;
-  zmq::socket_t publisher, subscriber;
-  frankalwi::utils::configureSockets(context, publisher, subscriber);
+  network::Interface franka(network::InterfaceType::FRANKA_LWI);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
   bool firstPose = true;
-  while (subscriber.connected()) {
-    if (frankalwi::proto::receive(subscriber, state)) {
-      frankalwi::utils::poseFromState(state, pose);
-      if (firstPose) {
-        DS.setTargetPose(pose);
-        firstPose = false;
-      } else if (tracker.getState(rigidBodyState)) {
-        rigidBodyState *= StateRepresentation::CartesianPose("offset", Eigen::Vector3d(0, 0, -0.1), "rigid_body_1");
-        DS.setTargetPose(optiTrackInWorld * StateRepresentation::CartesianPose(rigidBodyState));
-      }
-
-      StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
-
-      std::vector<double> desiredVelocity = {
-          twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
-          twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
-      };
-      command = ctrl.getJointTorque(state, desiredVelocity);
-      frankalwi::proto::send(publisher, command);
+  while (franka.receive(state)) {
+    frankalwi::utils::poseFromState(state, pose);
+    if (firstPose) {
+      DS.setTargetPose(pose);
+      firstPose = false;
+    } else if (tracker.getState(rigidBodyState)) {
+      rigidBodyState *= StateRepresentation::CartesianPose("offset", Eigen::Vector3d(0, 0, -0.1), "rigid_body_1");
+      DS.setTargetPose(optiTrackInWorld * StateRepresentation::CartesianPose(rigidBodyState));
     }
+
+    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+
+    std::vector<double> desiredVelocity = {
+        twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
+        twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
+    };
+    command = ctrl.getJointTorque(state, desiredVelocity);
+    franka.send(command);
   }
 }

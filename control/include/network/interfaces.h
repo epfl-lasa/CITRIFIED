@@ -26,7 +26,7 @@ private:
 
 };
 
-Interface::Interface(InterfaceType type) {
+inline Interface::Interface(InterfaceType type) {
   std::string subscriber_uri, publisher_uri;
   bool bind;
   switch (type) {
@@ -37,8 +37,8 @@ Interface::Interface(InterfaceType type) {
       break;
     case OPTITRACK:
       bind = false;
-      subscriber_uri = "0.0.0.0:6660";
-      publisher_uri = "0.0.0.0:6661";
+      subscriber_uri = "0.0.0.0:5511";
+      publisher_uri = "0.0.0.0:5512";
       break;
     case GPR:
       bind = false;
@@ -46,26 +46,26 @@ Interface::Interface(InterfaceType type) {
       publisher_uri = "0.0.0.0:7771";
       break;
   }
-  network::zmq_interface::configureSockets(context_, publisher_, subscriber_, subscriber_uri, publisher_uri, bind);
+  zmq_interface::configureSockets(context_, publisher_, subscriber_, subscriber_uri, publisher_uri, bind);
 }
 
 template <typename T> bool Interface::receive(T& message) {
   if (subscriber_.connected()) {
-    return network::zmq_interface::receive(subscriber_, message);
+    return zmq_interface::receive(subscriber_, message);
   }
   return false;
 }
 
 template <typename T> bool Interface::poll(T& message) {
   if (subscriber_.connected()) {
-    return network::zmq_interface::poll(subscriber_, message);
+    return zmq_interface::poll(subscriber_, message);
   }
   return false;
 }
 
 template <typename T> bool Interface::send(const T& message) {
   if (publisher_.connected()) {
-    return network::zmq_interface::send(publisher_, message);
+    return zmq_interface::send(publisher_, message);
   }
   return false;
 }

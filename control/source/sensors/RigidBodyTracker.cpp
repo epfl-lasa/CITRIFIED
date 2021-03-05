@@ -3,14 +3,14 @@
 #include <thread>
 #include <unistd.h>
 
-#include "sensors/optitrack/optitrack_zmq_utils.h"
+#include "sensors/optitrack/optitrack_zmq_proto.h"
 
 namespace sensors {
 
 RigidBodyTracker::RigidBodyTracker(int rigidBodyID) :
   rigidBodyID_(rigidBodyID),
-  stateEstimate_("rigid_body_" + std::to_string(rigidBodyID), "optitrack") {
-  optitrack::utils::configureSockets(context_, subscriber_);
+  stateEstimate_("rigid_body_" + std::to_string(rigidBodyID), "optitrack"),
+  interface_(network::InterfaceType::OPTITRACK) {
 }
 
 void RigidBodyTracker::start() {
@@ -37,7 +37,7 @@ bool RigidBodyTracker::getState(StateRepresentation::CartesianState& state) {
 void RigidBodyTracker::pollThread() {
   optitrack::proto::RigidBody rb{};
   while(keepAlive_) {
-    if (optitrack::utils::poll(subscriber_, rb)) {
+    if (interface_.poll(rb)) {
       if (rb.id == rigidBodyID_) {
         receivedState_ = true;
         stateMutex_.lock();

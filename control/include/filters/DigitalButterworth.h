@@ -5,9 +5,9 @@
 
 namespace filter {
 
-class DigitalButterFilter {
+class DigitalButterworth {
 public:
-  explicit DigitalButterFilter(const std::string& filterName, const std::string& filePath);
+  explicit DigitalButterworth(const std::string& filterName, const std::string& filePath);
 
   double computeFilterOutput(const double& input);
 
@@ -15,8 +15,6 @@ public:
 
 private:
   double order_;
-  double output_ = 0;
-  double gain_;
   std::vector<double> numeratorCoeffs_;
   std::vector<double> denominatorCoeffs_;
   std::vector<double> w_;

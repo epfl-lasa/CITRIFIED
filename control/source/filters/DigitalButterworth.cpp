@@ -1,11 +1,11 @@
-#include "filters/DigitalButterFilter.h"
+#include "filters/DigitalButterworth.h"
 
 #include <stdexcept>
 #include <yaml-cpp/yaml.h>
 
 namespace filter {
 
-DigitalButterFilter::DigitalButterFilter(const std::string& filterName, const std::string& filePath) {
+DigitalButterworth::DigitalButterworth(const std::string& filterName, const std::string& filePath) {
   YAML::Node params = YAML::LoadFile(filePath);
   order_ = params[filterName]["order"].as<double>();
   auto numCoeffs = params[filterName]["numerator_coefficients"].as<std::vector<double>>();
@@ -17,22 +17,20 @@ DigitalButterFilter::DigitalButterFilter(const std::string& filterName, const st
   numeratorCoeffs_ = numCoeffs;
   denominatorCoeffs_ = denomCoeffs;
   w_.resize(order_);
+  resetFilter();
 }
 
-double DigitalButterFilter::computeFilterOutput(const double& input) {
-  output_ = numeratorCoeffs_.at(0) * input + w_.at(0);
+double DigitalButterworth::computeFilterOutput(const double& input) {
+  double output = numeratorCoeffs_.at(0) * input + w_.at(0);
   for (size_t i = 0; i < order_ - 1; ++i) {
-    w_.at(i) = numeratorCoeffs_.at(i + 1) * input + w_.at(i + 1) - denominatorCoeffs_.at(i + 1) * output_;
+    w_.at(i) = numeratorCoeffs_.at(i + 1) * input + w_.at(i + 1) - denominatorCoeffs_.at(i + 1) * output;
   }
-  w_.back() = numeratorCoeffs_.back() * input - denominatorCoeffs_.back() * output_;
-  return output_;
+  w_.back() = numeratorCoeffs_.back() * input - denominatorCoeffs_.back() * output;
+  return output;
 }
 
-void DigitalButterFilter::resetFilter() {
-  for (size_t i = 0; i < order_; ++i) {
-    w_.at(i) = 0;
-  }
-  output_ = 0;
+void DigitalButterworth::resetFilter() {
+  std::fill(w_.begin(), w_.end(), 0);
 }
 
 }

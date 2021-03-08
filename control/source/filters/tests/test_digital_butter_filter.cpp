@@ -1,11 +1,11 @@
-#include "filters/DigitalButterFilter.h"
+#include "filters/DigitalButterworth.h"
 
 #include <stdexcept>
 #include <gtest/gtest.h>
 
 using namespace filter;
 
-class DigitalButterFilterTest : public testing::Test {
+class DigitalButterworthTest : public testing::Test {
 protected:
   void SetUp() override {
     path = std::string(FILTER_TEST_FIXTURES) + "filter_config.yaml";
@@ -34,13 +34,24 @@ protected:
   }
 };
 
-TEST_F(DigitalButterFilterTest, TestWrongNumCoeff) {
-  EXPECT_THROW(filter::DigitalButterFilter filter("filter_fail_test", path), std::invalid_argument);
+TEST_F(DigitalButterworthTest, TestWrongNumCoeff) {
+  EXPECT_THROW(filter::DigitalButterworth filter("filter_fail_test", path), std::invalid_argument);
 }
 
-TEST_F(DigitalButterFilterTest, TestFilter) {
-  filter::DigitalButterFilter filter("filter_test", path);
+TEST_F(DigitalButterworthTest, TestFilter) {
+  filter::DigitalButterworth filter("filter_test", path);
   for (std::size_t i = 0; i < testInput.size(); ++i) {
     EXPECT_NEAR(filter.computeFilterOutput(testInput.at(i)), testOutput.at(i), tol);
   }
+}
+
+TEST_F(DigitalButterworthTest, TestFilterReset) {
+  filter::DigitalButterworth filter("filter_test", path);
+  for (std::size_t i = 0; i < testInput.size(); ++i) {
+    filter.computeFilterOutput(testInput.at(i));
+  }
+  EXPECT_GT(abs(filter.computeFilterOutput(0)), 0);
+
+  filter.resetFilter();
+  EXPECT_EQ(filter.computeFilterOutput(0), 0);
 }

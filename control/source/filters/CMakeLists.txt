@@ -1,6 +1,6 @@
 target_sources(filters
     PUBLIC
-    DigitalButterFilter.cpp)
+    DigitalButterworth.cpp)
 target_include_directories(filters PUBLIC)
 
 if (BUILD_TESTING)

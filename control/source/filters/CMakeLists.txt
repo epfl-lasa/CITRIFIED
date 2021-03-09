@@ -1,7 +1,8 @@
 target_sources(filters
     PUBLIC
     DigitalButterworth.cpp)
-target_include_directories(filters PUBLIC)
+target_include_directories(filters PUBLIC ${Eigen3_INCLUDE_DIRS})
+target_link_libraries(filters Eigen3::Eigen)
 
 if (BUILD_TESTING)
   file(GLOB_RECURSE MODULE_TEST_SOURCES tests test_*.cpp)

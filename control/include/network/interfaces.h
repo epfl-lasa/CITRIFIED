@@ -36,7 +36,7 @@ inline Interface::Interface(InterfaceType type) {
       publisher_uri = "0.0.0.0:5551";
       break;
     case OPTITRACK:
-      bind = false;
+      bind = true;
       subscriber_uri = "0.0.0.0:5511";
       publisher_uri = "0.0.0.0:5512";
       break;

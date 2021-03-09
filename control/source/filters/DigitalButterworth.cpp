@@ -17,44 +17,41 @@ DigitalButterworth::DigitalButterworth(const std::string& filterName, const std:
   }
   numeratorCoeffs_ = numCoeffs;
   denominatorCoeffs_ = denomCoeffs;
-  w_.resize(dim_, Eigen::VectorXd::Zero(order_));
+  w_.resize(order_, Eigen::VectorXd::Zero(dim_));
   resetFilter();
 }
 
-double DigitalButterworth::computeFilterOutput(const double& input) {
-  if (dim_ == 1) {
-    return differenceEquations(input, 0);
-  } else {
+double DigitalButterworth::computeFilterOutput(double input) {
+  if (dim_ != 1) {
     throw std::invalid_argument(
         "This filter has input dimension " + std::to_string(dim_) + ". Check the size of your input");
   }
+  Eigen::VectorXd vectorInput(1);
+  vectorInput << input;
+  Eigen::VectorXd output = differenceEquations(vectorInput);
+  return output(0);
 }
 
 Eigen::VectorXd DigitalButterworth::computeFilterOutput(const Eigen::VectorXd& input) {
-  if (dim_ == input.size()) {
-    Eigen::VectorXd output(dim_);
-    for (std::size_t dim = 0; dim < dim_; ++dim) {
-      output(dim) = differenceEquations(input(dim), dim);
-    }
-    return output;
-  } else {
+  if (dim_ != input.size()) {
     throw std::invalid_argument(
         "This filter has input dimension " + std::to_string(dim_) + ". Check the size of your input");
   }
+
+  return differenceEquations(input);
 }
 
-double DigitalButterworth::differenceEquations(const double& input, const int& wIndex) {
-  double output = numeratorCoeffs_.at(0) * input + w_.at(wIndex)(0);
+Eigen::VectorXd DigitalButterworth::differenceEquations(const Eigen::VectorXd& input) {
+  Eigen::VectorXd output = numeratorCoeffs_.at(0) * input + w_.at(0);
   for (size_t i = 0; i < order_ - 1; ++i) {
-    w_.at(wIndex)(i) =
-        numeratorCoeffs_.at(i + 1) * input + w_.at(wIndex)(i + 1) - denominatorCoeffs_.at(i + 1) * output;
+    w_.at(i) = numeratorCoeffs_.at(i + 1) * input + w_.at(i + 1) - denominatorCoeffs_.at(i + 1) * output;
   }
-  w_.at(wIndex)(order_ - 1) = numeratorCoeffs_.back() * input - denominatorCoeffs_.back() * output;
+  w_.at(order_ - 1) = numeratorCoeffs_.back() * input - denominatorCoeffs_.back() * output;
   return output;
 }
 
 void DigitalButterworth::resetFilter() {
-  std::fill(w_.begin(), w_.end(), Eigen::VectorXd::Zero(order_));
+  std::fill(w_.begin(), w_.end(), Eigen::VectorXd::Zero(dim_));
 }
 
 }

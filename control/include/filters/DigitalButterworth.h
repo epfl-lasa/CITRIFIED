@@ -10,14 +10,13 @@ class DigitalButterworth {
 public:
   explicit DigitalButterworth(const std::string& filterName, const std::string& filePath, const int& dimensions);
 
-  double computeFilterOutput(const double& input);
-
+  double computeFilterOutput(double input);
   Eigen::VectorXd computeFilterOutput(const Eigen::VectorXd& input);
 
   void resetFilter();
 
 private:
-  double differenceEquations(const double& input, const int& wIndex);
+  Eigen::VectorXd differenceEquations(const Eigen::VectorXd& input);
 
   const int dim_;
   int order_;

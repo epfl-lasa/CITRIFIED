@@ -13,3 +13,6 @@ add_subdirectory(controllers)
 
 add_library(sensors STATIC "")
 add_subdirectory(sensors)
+
+add_library(filters STATIC "")
+add_subdirectory(filters)

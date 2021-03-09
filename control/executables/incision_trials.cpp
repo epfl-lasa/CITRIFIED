@@ -1,5 +1,6 @@
 
 #include <yaml-cpp/yaml.h>
+#include <network/interfaces.h>
 
 #include "controllers/CartesianPoseController.h"
 #include "motion_generators/PointAttractorDS.h"
@@ -7,6 +8,11 @@
 #include "sensors/ForceTorqueSensor.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "franka_lwi/franka_lwi_logger.h"
+#include "sensors/RigidBodyTracker.h"
+
+#define RB_ID_ROBOT_BASE 1
+#define RB_ID_TASK_BASE 2
+#define RB_ID_SURFACE_PROBE 3
 
 enum TrialState {
   APPROACH,
@@ -23,7 +29,7 @@ public:
       pointDS(StateRepresentation::CartesianPose::Identity("attractor", "world")),
       ctrl(1, 1, 1) {
 
-    params = YAML::LoadFile("/tmp/tmp.zCDKCpEeHz/executables/incision_trials_parameters.yaml");
+    params = YAML::LoadFile(std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml");
     Eigen::Vector3d center = {
         params["attractor"]["position"]["x"].as<double>(),
         params["attractor"]["position"]["y"].as<double>(),
@@ -40,7 +46,7 @@ public:
     auto angularGain = params["attractor"]["gains"]["angular"].as<double>();
     DSgains = {linearGain, linearGain, linearGain, angularGain, angularGain, angularGain};
 
-    pointDS.setTargetPose(StateRepresentation::CartesianPose("world", center, defaultOrientation));
+    pointDS.setTargetPose(StateRepresentation::CartesianPose("center", center, defaultOrientation, "task"));
     pointDS.linearDS.set_gain(DSgains);
 
     ringDS.center = center;
@@ -81,24 +87,32 @@ public:
     std::cout << trialName << std::endl;
   }
 
-  frankalwi::proto::CommandMessage<7> getCommand(frankalwi::proto::StateMessage<7>& state, TrialState trialState, std::vector<double>& desiredVelocity) {
+  frankalwi::proto::CommandMessage<7> getCommand(frankalwi::proto::StateMessage<7>& state,
+                                                 const StateRepresentation::CartesianState& taskInWorld,
+                                                 TrialState trialState,
+                                                 std::vector<double>& desiredVelocity) {
     StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("robot", "world"));
     frankalwi::utils::poseFromState(state, pose);
 
-    StateRepresentation::CartesianTwist twist = StateRepresentation::CartesianTwist::Zero("robot", "world");
+    // robot in task
+//    pose = StateRepresentation::CartesianPose(taskInWorld.inverse() * pose);
+//    std::cout << pose << std::endl;
+
+    StateRepresentation::CartesianTwist twist = StateRepresentation::CartesianTwist::Zero("robot", "task");
     if (trialState == CUT) {
       twist = ringDS.getTwist(pose);
     } else if (trialState != PAUSE) {
+      pointDS.linearDS.set_reference_frame(taskInWorld);
       twist = pointDS.getTwist(pose);
     }
+
+    twist.set_linear_velocity(twist.get_linear_velocity() + Eigen::Vector3d(0, 0, zVelocity));
+    twist = StateRepresentation::CartesianTwist(taskInWorld * twist);
 
     desiredVelocity = {
         twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
         twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
     };
-
-    desiredVelocity[2] += zVelocity;
-
     return ctrl.getJointTorque(state, desiredVelocity);
   }
 
@@ -172,128 +186,137 @@ int main(int argc, char** argv) {
   IncisionTrialSystem ITS;
 
   // logger
-  frankalwi::proto::Logger logger(ITS.trialName);
+//  frankalwi::proto::Logger logger(ITS.trialName);
+
+  // set up optitrack
+  sensors::RigidBodyTracker optitracker;
+  optitracker.start();
 
   // set up FT sensor
   sensors::ToolSpec tool;
   tool.mass = 0.07;
   tool.centerOfMass = Eigen::Vector3d(0, 0, 0.02);
-  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.89", tool, false, 100);
-  StateRepresentation::CartesianWrench rawWrench("ft_sensor_raw", "ft_sensor");
-  StateRepresentation::CartesianWrench wrench("ft_sensor", "ft_sensor");
-  StateRepresentation::CartesianWrench bias("ft_sensor", "ft_sensor");
+  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.89", 100, tool, true);
+  StateRepresentation::CartesianWrench wrench("ft_sensor_wrench", "ft_sensor");
+  StateRepresentation::CartesianWrench bias("ft_sensor_bias", "ft_sensor");
 
-  // Set up ZMQ
-  zmq::context_t context;
-  zmq::socket_t publisher, subscriber;
-  frankalwi::utils::configureSockets(context, publisher, subscriber);
-
+  // set up robot connection
+  network::Interface franka(network::InterfaceType::FRANKA_LWI);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
-  StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("robot", "world"));
+  StateRepresentation::CartesianPose robotInWorld(StateRepresentation::CartesianPose::Identity("robot", "world"));
 
-  StateRepresentation::CartesianPose touchPose = pose;
+  StateRepresentation::CartesianState taskInOptitrack(StateRepresentation::CartesianState::Identity("task", "optitrack"));
+  StateRepresentation::CartesianState robotInOptitrack(StateRepresentation::CartesianState::Identity("robot", "optitrack"));
+
+  StateRepresentation::CartesianPose touchPose = robotInWorld;
   bool touchPoseSet = false;
 
   auto start = std::chrono::system_clock::now();
   auto pauseTimer = start;
   TrialState trialState = TrialState::APPROACH;
-  while (subscriber.connected()) {
-    if (frankalwi::proto::receive(subscriber, state)) {
-      frankalwi::utils::poseFromState(state, pose);
+  while (franka.receive(state)) {
+    frankalwi::utils::poseFromState(state, robotInWorld);
 
-      if (ft_sensor.readBias(bias)) {
-        ft_sensor.readContactWrench(wrench, pose.get_orientation().toRotationMatrix());
-      }
+    //update optitrack states
+    optitracker.getState(robotInOptitrack, RB_ID_ROBOT_BASE);
+    optitracker.getState(taskInOptitrack, RB_ID_TASK_BASE);
 
-      switch (trialState) {
-        case APPROACH:
-          if ((pose.get_position() - ITS.pointDS.targetPose.get_position()).norm() < 0.05) {
-            trialState = CALIBRATION;
-            std::cout << "### STARTING CALIBRATION PHASE" << std::endl;
-          }
-          break;
-        case CALIBRATION:
-          if (ft_sensor.computeBias(pose.get_orientation().toRotationMatrix(), 2000)) {
-            ITS.setInsertionPhase();
-            trialState = INSERTION;
-            std::cout << "### STARTING INSERTION PHASE" << std::endl;
-          }
-          break;
-        case INSERTION: {
-          if (wrench.get_force().norm() > ITS.params["insertion"]["max_force"].as<double>()) {
-            std::cout << "Max force exceeded" << std::endl;
-            ITS.setRetractionPhase(pose);
-            trialState = RETRACTION;
-            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
-            break;
-          }
-
-          if (!touchPoseSet && abs(wrench.get_force().z()) > ITS.params["insertion"]["touch_force"].as<double>()) {
-            std::cout << "Surface detected at position " << pose.get_position().transpose() << std::endl;
-            touchPose = pose;
-            touchPoseSet = true;
-          } else if (touchPoseSet) {
-            double depth = (touchPose.get_position() - pose.get_position()).norm();
-            if (depth > ITS.params["insertion"]["depth"].as<double>()) {
-              ITS.zVelocity = 0;
-              pauseTimer = std::chrono::system_clock::now();
-              trialState = PAUSE;
-              std::cout << "### PAUSING - INCISION DEPTH REACHED" << std::endl;
-            }
-          }
-          break;
-        }
-        case PAUSE: {
-          std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
-          if (elapsed_seconds.count() > 2.0f) {
-            if (ITS.cut) {
-              ITS.setCutPhase(pose);
-              trialState = CUT;
-              std::cout << "### STARTING CUT PHASE" << std::endl;
-            } else {
-              ITS.setRetractionPhase(pose);
-              trialState = RETRACTION;
-              std::cout << "### STARTING RETRACTION PHASE" << std::endl;
-            }
-            break;
-          }
-        }
-        case CUT: {
-          if (wrench.get_force().norm() > ITS.params["insertion"]["max_force"].as<double>()) {
-            ITS.setRetractionPhase(pose);
-            trialState = RETRACTION;
-            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
-            break;
-          }
-
-          double angle = touchPose.get_orientation().angularDistance(pose.get_orientation()) * 180 / M_PI;
-          double distance = (pose.get_position() - touchPose.get_position()).norm();
-          if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {
-            ITS.setRetractionPhase(pose);
-            trialState = RETRACTION;
-            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
-          }
-          break;
-        }
-        case RETRACTION:
-          break;
-      }
-
-      std::vector<double> desiredVelocity;
-      command = ITS.getCommand(state, trialState, desiredVelocity);
-      frankalwi::proto::send(publisher, command);
-
-      std::array<double, 6> arr{};
-      std::copy_n(wrench.array().data(), size(arr), arr.begin());
-      state.eeWrench = frankalwi::proto::EETwist(arr);
-
-      std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-      logger.writeCustomLine(elapsed_seconds.count(), state,
-                             desiredVelocity,
-                             std::vector<double>(6, 0),
-                             std::vector<double>(3, 0),
-                             ITS.principleDamping);
+    if (ft_sensor.readBias(bias)) {
+      ft_sensor.readContactWrench(wrench, robotInWorld.get_orientation().toRotationMatrix());
     }
+
+    switch (trialState) {
+      case APPROACH:
+        if ((robotInWorld.get_position() - ITS.pointDS.targetPose.get_position()).norm() < 0.05) {
+//          trialState = CALIBRATION;
+//          std::cout << "### STARTING CALIBRATION PHASE" << std::endl;
+        }
+        break;
+      case CALIBRATION:
+        if (ft_sensor.computeBias(robotInWorld.get_orientation().toRotationMatrix(), 2000)) {
+          ITS.setInsertionPhase();
+          trialState = INSERTION;
+          std::cout << "### STARTING INSERTION PHASE" << std::endl;
+        }
+        break;
+      case INSERTION: {
+        if (wrench.get_force().norm() > ITS.params["insertion"]["max_force"].as<double>()) {
+          std::cout << "Max force exceeded" << std::endl;
+          ITS.setRetractionPhase(robotInWorld);
+          trialState = RETRACTION;
+          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+          break;
+        }
+
+        if (!touchPoseSet && abs(wrench.get_force().z()) > ITS.params["insertion"]["touch_force"].as<double>()) {
+          std::cout << "Surface detected at position " << robotInWorld.get_position().transpose() << std::endl;
+          touchPose = robotInWorld;
+          touchPoseSet = true;
+        } else if (touchPoseSet) {
+          double depth = (touchPose.get_position() - robotInWorld.get_position()).norm();
+          if (depth > ITS.params["insertion"]["depth"].as<double>()) {
+            ITS.zVelocity = 0;
+            pauseTimer = std::chrono::system_clock::now();
+            trialState = PAUSE;
+            std::cout << "### PAUSING - INCISION DEPTH REACHED" << std::endl;
+          }
+        }
+        break;
+      }
+      case PAUSE: {
+        std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
+        if (elapsed_seconds.count() > 2.0f) {
+          if (ITS.cut) {
+            ITS.setCutPhase(robotInWorld);
+            trialState = CUT;
+            std::cout << "### STARTING CUT PHASE" << std::endl;
+          } else {
+            ITS.setRetractionPhase(robotInWorld);
+            trialState = RETRACTION;
+            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+          }
+          break;
+        }
+      }
+      case CUT: {
+        if (wrench.get_force().norm() > ITS.params["insertion"]["max_force"].as<double>()) {
+          ITS.setRetractionPhase(robotInWorld);
+          trialState = RETRACTION;
+          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+          break;
+        }
+
+        double angle = touchPose.get_orientation().angularDistance(robotInWorld.get_orientation()) * 180 / M_PI;
+        double distance = (robotInWorld.get_position() - touchPose.get_position()).norm();
+        if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {
+          ITS.setRetractionPhase(robotInWorld);
+          trialState = RETRACTION;
+          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+        }
+        break;
+      }
+      case RETRACTION:
+        break;
+    }
+
+    // task in world
+    auto taskInWorld = robotInWorld * robotInOptitrack.inverse() * taskInOptitrack;
+    std::cout << taskInWorld << std::endl;
+
+    std::vector<double> desiredVelocity;
+    command = ITS.getCommand(state, taskInWorld, trialState, desiredVelocity);
+//    franka.send(command);
+
+    std::array<double, 6> arr{};
+    std::copy_n(wrench.array().data(), size(arr), arr.begin());
+    state.eeWrench = frankalwi::proto::EETwist(arr);
+
+    std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
+//    logger.writeCustomLine(elapsed_seconds.count(), state,
+//                           desiredVelocity,
+//                           std::vector<double>(6, 0),
+//                           std::vector<double>(3, 0),
+//                           ITS.principleDamping);
   }
 }

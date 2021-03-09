@@ -80,16 +80,6 @@ RUN mkdir -p /tmp/gtest_build \
   && make \
   && cp lib/* /usr/local/lib || cp *.a /usr/local/lib
 
-# install yaml-cpp
-WORKDIR /tmp
-RUN git clone https://github.com/jbeder/yaml-cpp.git \
-  && cd yaml-cpp \
-  && mkdir build \
-  && cd build \
-  && cmake .. \
-  && make \
-  && make install
-
 # clean up installation artefacts
 WORKDIR /
 RUN rm -rf /tmp/*

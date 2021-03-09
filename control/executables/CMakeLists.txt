@@ -17,4 +17,5 @@ add_executable(mocap_point_attractor mocap_point_attractor.cpp)
 target_link_libraries(mocap_point_attractor sensors motion_generators controllers state_representation)
 
 add_executable(incision_trials incision_trials.cpp)
+target_compile_definitions(incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/")
 target_link_libraries(incision_trials motion_generators controllers sensors cppzmq yaml-cpp)

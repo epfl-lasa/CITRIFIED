@@ -1,4 +1,4 @@
-trial: '19'
+trial: '1'
 
 # Checklist:
 # Update trial number
@@ -7,7 +7,7 @@ trial: '19'
 # Check depth
 # Check speed and stiffness
 
-trial_prefix: '20210218_banana_'
+trial_prefix: '20210311_orange_'
 
 # filename convention is
 # fruit_cut_trial_insertionspeed_insertiondepth_circlespeed_circlewidth
@@ -19,9 +19,9 @@ insertion_only: true
 # The attractor position and orientation during the hold phase
 attractor:
   position:
-    x: 0.367
-    y: 0.035
-    z: 0.34
+    x: 0.0
+    y: 0.0
+    z: 0.1
   orientation:
     w: 0.0
     x: 1.0

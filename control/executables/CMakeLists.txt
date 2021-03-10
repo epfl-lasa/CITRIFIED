@@ -15,3 +15,6 @@ target_link_libraries(example_ft_sensor sensors cppzmq)
 
 add_executable(mocap_point_attractor mocap_point_attractor.cpp)
 target_link_libraries(mocap_point_attractor sensors motion_generators controllers state_representation)
+
+add_executable(esn_test test_esn.cpp)
+target_link_libraries(esn_test learning)

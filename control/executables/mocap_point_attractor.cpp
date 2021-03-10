@@ -8,8 +8,9 @@
 #include "sensors/RigidBodyTracker.h"
 
 int main(int argc, char** argv) {
-  sensors::RigidBodyTracker tracker(1);
+  sensors::RigidBodyTracker tracker;
   tracker.start();
+  int rigidBodyID = 1;
 
   StateRepresentation::CartesianState rigidBodyState("rigid_body_1", "optitrack");
   StateRepresentation::CartesianPose optiTrackInWorld("optitrack", Eigen::Vector3d(0.18, 0, 0.10), "world");
@@ -40,7 +41,7 @@ int main(int argc, char** argv) {
     if (firstPose) {
       DS.setTargetPose(pose);
       firstPose = false;
-    } else if (tracker.getState(rigidBodyState)) {
+    } else if (tracker.getState(rigidBodyState, rigidBodyID)) {
       rigidBodyState *= StateRepresentation::CartesianPose("offset", Eigen::Vector3d(0, 0, -0.1), "rigid_body_1");
       DS.setTargetPose(optiTrackInWorld * StateRepresentation::CartesianPose(rigidBodyState));
     }

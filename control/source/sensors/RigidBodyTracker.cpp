@@ -1,16 +1,12 @@
 #include "sensors/RigidBodyTracker.h"
 
 #include <thread>
-#include <unistd.h>
-
-#include "sensors/optitrack/optitrack_zmq_proto.h"
 
 namespace sensors {
 
-RigidBodyTracker::RigidBodyTracker(int rigidBodyID) :
-  rigidBodyID_(rigidBodyID),
-  stateEstimate_("rigid_body_" + std::to_string(rigidBodyID), "optitrack"),
-  interface_(network::InterfaceType::OPTITRACK) {
+RigidBodyTracker::RigidBodyTracker() :
+    interface_(network::InterfaceType::OPTITRACK) {
+  bodies_.clear();
 }
 
 void RigidBodyTracker::start() {
@@ -22,31 +18,29 @@ void RigidBodyTracker::start() {
 void RigidBodyTracker::stop() {
   // stop polling thread
   keepAlive_ = false;
-  receivedState_ = false;
+  bodies_.clear();
 }
 
-bool RigidBodyTracker::getState(StateRepresentation::CartesianState& state) {
-  if (receivedState_) {
+bool RigidBodyTracker::getState(StateRepresentation::CartesianState& state, int ID) {
+  bool exists = static_cast<bool>(bodies_.count(ID));
+  if (exists) {
     stateMutex_.lock();
-    state = stateEstimate_;
+    auto rb = bodies_.at(ID);
     stateMutex_.unlock();
+    state.set_position(Eigen::Vector3d(rb.x, rb.y, rb.z));
+    state.set_orientation(Eigen::Quaterniond(rb.qw, rb.qx, rb.qy, rb.qz));
   }
-  return receivedState_;
+  return exists;
 }
 
 void RigidBodyTracker::pollThread() {
   optitrack::proto::RigidBody rb{};
   while(keepAlive_) {
-    if (interface_.poll(rb)) {
-      if (rb.id == rigidBodyID_) {
-        receivedState_ = true;
-        stateMutex_.lock();
-        stateEstimate_.set_position(Eigen::Vector3d(rb.x, rb.y, rb.z));
-        stateEstimate_.set_orientation(Eigen::Quaterniond(rb.qw, rb.qx, rb.qy, rb.qz));
-        stateMutex_.unlock();
-      }
+    if (interface_.receive(rb)) {
+      stateMutex_.lock();
+      bodies_.insert_or_assign(rb.id, rb);
+      stateMutex_.unlock();
     }
-    usleep(100);
   }
 }
 

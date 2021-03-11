@@ -2,7 +2,7 @@
 pwd;
 currentFolder = pwd;
 if isunix
-    cd /home/rui/matlab
+    cd /home/wr
     addpath(genpath('CITRIFIED'))
     cd CITRIFIED/
 else

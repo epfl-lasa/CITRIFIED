@@ -1,4 +1,4 @@
-trial: '1'
+trial: '05'
 
 # Checklist:
 # Update trial number
@@ -7,25 +7,25 @@ trial: '1'
 # Check depth
 # Check speed and stiffness
 
-trial_prefix: '20210311_orange_'
+trial_prefix: '20210311_orange_11_'
 
 # filename convention is
-# fruit_cut_trial_insertionspeed_insertiondepth_circlespeed_circlewidth
+# fruit_number_cut_trial_insertionspeed_insertiondepth_circlespeed_circlewidth
 # or
-# fruit_insertion_trial_insertionspeed_insertiondepth
+# fruit_number_insertion_trial_insertionspeed_insertiondepth
 
-insertion_only: true
+insertion_only: false
 
 # The attractor position and orientation during the hold phase
 attractor:
   position:
-    x: 0.0
-    y: 0.0
-    z: 0.1
+    x: 0.015
+    y: -0.02
+    z: 0.2
   orientation:
     w: 0.0
-    x: 1.0
-    y: 0.0
+    x: 0.0
+    y: 1.0
     z: 0.0
   gains:
     linear: 50.0
@@ -38,24 +38,24 @@ default:
   ad: 4     # angular damping
 
 insertion:
-  d1: 200   # principle linear damping
+  d1: 210   # principle linear damping
   d2: 150   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping
-  speed: 0.06
-  depth: 0.015
+  speed: 0.075
+  depth: 0.005
   touch_force: 1  # force magnitude to register surface
-  max_force: 10     # force magnitude to trigger retraction
+  max_force: 15     # force magnitude to trigger retraction
 
 circle:
   d1: 200   # principle linear damping
   d2: 150   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping
-  radius: 0.18
+  radius: 1.02
   width: 0.005
   speed: 0.05
   field_strength: 2
   normal_gain: 10
   angular_gain: 10
-  arc_angle: 160  # cut distance in degrees
+  arc_angle: 120  # cut distance in degrees

@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 
   StateRepresentation::CartesianPose attractorInTask("attractor",
                                                      Eigen::Vector3d(0, 0, 0.2),
-                                                     Eigen::Quaterniond(0, 1, 0, 0),
+                                                     Eigen::Quaterniond(0, 0, 1, 0),
                                                      "task");
   StateRepresentation::CartesianState taskInOptitrack("task", "optitrack");
   StateRepresentation::CartesianState robotInOptitrack("robot", "optitrack");
@@ -24,8 +24,8 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {50.0, 50.0, 0.0, 10.0, 10.0, 10.0};
   DynamicalSystems::Linear<StateRepresentation::CartesianState> DS(attractorInTask, gains);
 
-  controller::CartesianPoseController ctrl(150, 100, 4);
-  ctrl.angularController.setDamping(4);
+  controller::CartesianPoseController ctrl(50, 50, 3);
+  ctrl.angularController.setDamping(3);
 
   // Set up ZMQ
   network::Interface franka(network::InterfaceType::FRANKA_LWI);
@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
   std::cout << "Optitrack ready" << std::endl;
 
   std::ofstream outputFile;
-  outputFile.open("/tmp/surface_probe_apple.csv", std::ofstream::out | std::ofstream::trunc);
+  outputFile.open("/tmp/20210311_orange_11_surface.csv", std::ofstream::out | std::ofstream::trunc);
 
   if (outputFile.is_open()) {
     outputFile << "time, base_x, base_y, base_z, base_qw, base_qx, base_qw, base_qz,";
@@ -56,13 +56,15 @@ int main(int argc, char** argv) {
     tracker.getState(probeInOptiTrack, 3);
 
     auto taskInRobot = robotInOptitrack.inverse() * taskInOptitrack;
-    DS.set_reference_frame(taskInRobot);
-    StateRepresentation::CartesianTwist twist = DS.evaluate(eeInRobot);
-//    twist.clamp(0.5, 0.0, 1.0, 0.0);
+    auto eeInTask = taskInRobot.inverse() * eeInRobot;
+//    DS.set_reference_frame(taskInRobot);
+    StateRepresentation::CartesianTwist twistInTask = DS.evaluate(eeInTask);
+    auto twistInRobot = StateRepresentation::CartesianTwist(taskInRobot * twistInTask);
+    twistInRobot.clamp(0.5, 1.0, 0.0, 0.0);
 
     std::vector<double> desiredVelocity = {
-        twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
-        twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
+        twistInRobot.get_linear_velocity().x(), twistInRobot.get_linear_velocity().y(), twistInRobot.get_linear_velocity().z(),
+        twistInRobot.get_angular_velocity().x(), twistInRobot.get_angular_velocity().y(), twistInRobot.get_angular_velocity().z()
     };
     command = ctrl.getJointTorque(state, desiredVelocity);
 //    franka.send(command);
@@ -80,11 +82,14 @@ int main(int argc, char** argv) {
     outputFile << probeInOptiTrack.get_position().y() << ", ";
     outputFile << probeInOptiTrack.get_position().z() << std::endl;
 
-//    ++iterations;
-//    if (iterations > 1000) {
-//      std::cout << double(1000) / elapsed_seconds.count() <<  " Hz" << std::endl;
-//      start = std::chrono::system_clock::now();
-//      iterations = 0;
-//    }
+    ++iterations;
+    if (iterations > 1000) {
+      std::cout << eeInRobot << std::endl;
+      std::cout <<  taskInRobot * attractorInTask << std::endl;
+
+      std::cout << double(1000) / elapsed_seconds.count() <<  " Hz" << std::endl;
+      start = std::chrono::system_clock::now();
+      iterations = 0;
+    }
   }
 }

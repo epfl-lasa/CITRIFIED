@@ -108,8 +108,8 @@ int ESN::test_esn(const Eigen::MatrixXd& data, int nbDataPoints) {
   classification.maxCoeff(&maxIndex);
   binaryClassification(maxIndex) = 1;
 
-  std::cout << classification.transpose() << std::endl;
-  std::cout << binaryClassification.transpose() << std::endl;
+//  std::cout << classification.transpose() << std::endl;
+//  std::cout << binaryClassification.transpose() << std::endl;
 
   return maxIndex + 1;
 }
@@ -164,7 +164,7 @@ Eigen::VectorXd ESN::s_classify2(const Eigen::MatrixXd& outputSeq, const int& nb
   }
   averagePredictedOutput.row(nbSplits - 1) =
       outputSeq.middleRows((nbSplits - 1) * split, outputSeq.rows()).colwise().mean();
-  Eigen::VectorXd sumOfAveragePredictedOutput = averagePredictedOutput.colwise().sum().normalized();
+  Eigen::VectorXd sumOfAveragePredictedOutput = averagePredictedOutput.colwise().sum() / averagePredictedOutput.colwise().sum().sum();
 
   return sumOfAveragePredictedOutput;
 }

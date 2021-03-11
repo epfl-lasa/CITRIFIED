@@ -9,6 +9,7 @@
 #include "franka_lwi/franka_lwi_utils.h"
 #include "franka_lwi/franka_lwi_logger.h"
 #include "sensors/RigidBodyTracker.h"
+#include "learning/ESN.h"
 
 #define RB_ID_ROBOT_BASE 1
 #define RB_ID_TASK_BASE 2
@@ -179,6 +180,82 @@ public:
   bool cut = false;
 };
 
+class ESNWrapper {
+public:
+  ESNWrapper(const std::string& file) : esn_(file), window_(Eigen::Matrix<double, 50, 6>::Zero()) {
+  }
+
+  int classify() {
+    return esn_.test_esn(window_, window_.cols());
+  }
+
+  void addSample(const Eigen::VectorXd& sample) {
+    // shift the sample observations up one row, and append the most recent sample to the end
+    window_.block(window_.rows() - 1, window_.cols(), 0, 0) = window_.block(window_.rows() - 1, window_.cols(), 1, 0);
+    window_.row(window_.rows() - 1) = sample;
+
+    if (nSamples_ < window_.rows()) {
+      ++nSamples_;
+    }
+  }
+
+  bool ready() {
+    return nSamples_ >= window_.rows();
+  }
+private:
+  learning::ESN esn_;
+  Eigen::Matrix<double, 50, 6> window_;
+  int nSamples_ = 0;
+};
+
+class TrialLogger {
+public:
+  explicit TrialLogger(const std::string& filename) {
+    logfile_.open("/tmp/" + filename, std::ofstream::out | std::ofstream::trunc);
+  }
+
+  void writeHeaders(const std::vector<std::string>& headers, bool last=false) {
+    if (last) {
+      for (std::size_t idx = 0; idx < headers.size() - 1; ++idx) {
+        logfile_ << headers[idx] << ",";
+      }
+      logfile_ << headers.back() << std::endl;
+    } else {
+      for (auto& d : headers) {
+        logfile_ << d << ",";
+      }
+    }
+  }
+  void writeHeaders(const std::string& header, bool last=false) {
+    writeHeaders(std::vector<std::string>(1, header), last);
+  }
+
+  void writeData(const std::vector<double>& data, bool last=false) {
+    if (last) {
+      for (std::size_t idx = 0; idx < data.size() - 1; ++idx) {
+        logfile_ << data[idx] << ",";
+      }
+      logfile_ << data.back() << std::endl;
+    } else {
+      for (auto& d : data) {
+        logfile_ << d << ",";
+      }
+    }
+  }
+  template<std::size_t N>
+  void writeData(const std::array<double, N> data, bool last=false) {
+    writeData(std::vector<double>(data.begin(), data.end()), last);
+  }
+  void writeData(const Eigen::VectorXd& data, bool last=false) {
+    writeData(std::vector<double>(data.data(), data.data() + data.size()), last);
+  }
+  void writeData(double data, bool last=false) {
+    writeData(std::vector<double>(1, data), last);
+  }
+private:
+  std::ofstream logfile_;
+};
+
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
@@ -186,7 +263,15 @@ int main(int argc, char** argv) {
   IncisionTrialSystem ITS;
 
   // logger
-//  frankalwi::proto::Logger logger(ITS.trialName);
+  TrialLogger logger(ITS.trialName);
+  logger.writeHeaders({"time", "ee_pose_x", "ee_pose_y", "ee_pose_z"});
+  logger.writeHeaders({"ee_pose_qw", "ee_pose_qx","ee_pose_qy", "ee_pose_qz"});
+  logger.writeHeaders({"ee_twist_lin_x", "ee_twist_lin_y", "ee_twist_lin_z"});
+  logger.writeHeaders({"ee_twist_ang_x", "ee_twist_ang_y", "ee_twist_ang_z"});
+  logger.writeHeaders({"des_twist_lin_x", "des_twist_lin_y", "des_twist_lin_z"});
+  logger.writeHeaders({"des_twist_ang_x", "des_twist_ang_y", "des_twist_ang_z"});
+  logger.writeHeaders({"ft_force_x", "ft_force_y", "ft_force_z"});
+  logger.writeHeaders({"ft_torque_x", "ft_torque_y", "ft_torque_z"});
 
   // set up optitrack
   sensors::RigidBodyTracker optitracker;
@@ -304,8 +389,8 @@ int main(int argc, char** argv) {
     auto taskInWorld = robotInWorld * robotInOptitrack.inverse() * taskInOptitrack;
     std::cout << taskInWorld << std::endl;
 
-    std::vector<double> desiredVelocity;
-    command = ITS.getCommand(state, taskInWorld, trialState, desiredVelocity);
+    std::vector<double> desiredTwist(6, 0);
+    command = ITS.getCommand(state, taskInWorld, trialState, desiredTwist);
 //    franka.send(command);
 
     std::array<double, 6> arr{};
@@ -313,10 +398,13 @@ int main(int argc, char** argv) {
     state.eeWrench = frankalwi::proto::EETwist(arr);
 
     std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
-//    logger.writeCustomLine(elapsed_seconds.count(), state,
-//                           desiredVelocity,
-//                           std::vector<double>(6, 0),
-//                           std::vector<double>(3, 0),
-//                           ITS.principleDamping);
+    logger.writeData(elapsed_seconds.count());
+    logger.writeData(frankalwi::proto::vec3DToArray(state.eePose.position));
+    logger.writeData(frankalwi::proto::quaternionToArray(state.eePose.orientation));
+    logger.writeData(frankalwi::proto::vec3DToArray(state.eeTwist.linear));
+    logger.writeData(frankalwi::proto::vec3DToArray(state.eeTwist.angular));
+    logger.writeData(desiredTwist);
+    logger.writeData(frankalwi::proto::vec3DToArray(state.eeWrench.linear));
+    logger.writeData(frankalwi::proto::vec3DToArray(state.eeWrench.angular), true);
   }
 }

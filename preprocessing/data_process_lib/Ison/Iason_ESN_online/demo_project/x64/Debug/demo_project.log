@@ -1,0 +1,16 @@
+﻿Build started 8/24/2016 2:24:18 PM.
+     1>Project "C:\Users\Iason\Documents\Visual Studio 2013\Projects\demo_project\demo_project\demo_project.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /I.\include /I"C:\Program Files\MATLAB\R2015b\extern\include" /Zi /nologo /W3 /WX- /sdl /Od /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc120.pdb" /Gd /TP /errorReport:prompt Source.cpp
+         Source.cpp
+     1>Source.cpp(125): warning C4244: 'argument' : conversion from 'double' to 'int', possible loss of data
+     1>c:\users\iason\documents\visual studio 2013\projects\demo_project\demo_project\include\filters.h(564): warning C4715: 'ButterLP' : not all control paths return a value
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Iason\Documents\Visual Studio 2013\Projects\demo_project\x64\Debug\demo_project.exe" /INCREMENTAL /NOLOGO /LIBPATH:.\lib /LIBPATH:"C:\Program Files\MATLAB\R2015b\extern\lib\win64\microsoft" nisyscfg.lib NIDAQmx.lib libmx.lib libmex.lib libmat.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Iason\Documents\Visual Studio 2013\Projects\demo_project\x64\Debug\demo_project.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Iason\Documents\Visual Studio 2013\Projects\demo_project\x64\Debug\demo_project.lib" /MACHINE:X64 x64\Debug\Source.obj
+         x64\Debug\tcpHandle.obj
+         demo_project.vcxproj -> C:\Users\Iason\Documents\Visual Studio 2013\Projects\demo_project\x64\Debug\demo_project.exe
+     1>Done Building Project "C:\Users\Iason\Documents\Visual Studio 2013\Projects\demo_project\demo_project\demo_project.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:03.19

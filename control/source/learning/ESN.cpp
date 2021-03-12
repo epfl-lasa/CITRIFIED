@@ -1,61 +1,64 @@
 #include "learning/ESN.h"
 
 #include <iostream>
-#include <fstream>
+#include <stdexcept>
+#include <yaml-cpp/yaml.h>
 
 namespace learning {
 
 ESN::ESN(const std::string& file) {
-  std::ifstream esnFile(file);
-  if (esnFile.is_open()) {
-    esnFile >> nbForgetPoints_;
-    esnFile >> nbInternalUnits_;
-    esnFile >> nbInputs_;
-    esnFile >> nbOutputs_;
-    fillMatrix(esnFile, internalWeightsUnitSR_, nbInternalUnits_, nbInternalUnits_);
-    esnFile >> nbTotalUnits_;
-    fillMatrix(esnFile, inputWeights_, nbInternalUnits_, nbInputs_);
-    fillMatrix(esnFile, outputWeights_, nbOutputs_, nbInternalUnits_ + nbInputs_);
-    fillMatrix(esnFile, feedbackWeights_, nbInternalUnits_, nbOutputs_);
-    fillVector(esnFile, inputScaling_, nbInputs_);
-    fillVector(esnFile, inputShift_, nbInputs_);
-    fillVector(esnFile, teacherScaling_, nbOutputs_);
-    fillVector(esnFile, teacherShift_, nbOutputs_);
-    fillVector(esnFile, feedbackScaling_, nbOutputs_);
-    fillVector(esnFile, timeConstants_, nbInternalUnits_);
-    esnFile >> leakage_;
-    fillMatrix(esnFile, internalWeights_, nbInternalUnits_, nbInternalUnits_);
+  YAML::Node esnParams = YAML::LoadFile(file);
+
+  nbForgetPoints_ = esnParams["nForgetPoints"].as<int>();
+  nbInternalUnits_ = esnParams["nInternalUnits"].as<int>();
+  nbInputs_ = esnParams["nInputUnits"].as<int>();
+  nbOutputs_ = esnParams["nOutputUnits"].as<int>();
+  nbTotalUnits_ = esnParams["nTotalUnits"].as<int>();
+
+  readMatrix(esnParams, "inputWeights", inputWeights_, nbInternalUnits_, nbInputs_);
+  readMatrix(esnParams, "outputWeights", outputWeights_, nbOutputs_, nbInternalUnits_ + nbInputs_);
+  readMatrix(esnParams, "feedbackWeights", feedbackWeights_, nbInternalUnits_, nbOutputs_);
+  readMatrix(esnParams, "internalWeights", internalWeights_, nbInternalUnits_, nbInternalUnits_);
+
+  readVector(esnParams, "inputScaling", inputScaling_, nbInputs_);
+  readVector(esnParams, "inputShift", inputShift_, nbInputs_);
+  readVector(esnParams, "teacherScaling", teacherScaling_, nbOutputs_);
+  readVector(esnParams, "teacherShift", teacherShift_, nbOutputs_);
+  readVector(esnParams, "feedbackScaling", feedbackScaling_, nbOutputs_);
+}
+
+void ESN::readMatrix(const YAML::Node& params, const std::string& paramName, Eigen::MatrixXd& matrix, const int& rows,
+                     const int& cols) {
+  try {
+    auto tmp = params[paramName].as < std::vector < double >> ();
+    if (tmp.size() != rows * cols) {
+      std::cerr << "[ESN] Warning! Parameter '" + paramName + "' does not have the expected length!" << std::endl;
+    }
+    matrix = Eigen::Map < Eigen::Matrix < double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor
+        >> (tmp.data(), rows, cols);
+  } catch (YAML::Exception& ex) {
+    std::cerr << ex.what() << std::endl;
+    throw std::invalid_argument("[ESN] Error parsing parameter. Could not find '" + paramName + "'!");
   }
 }
 
-void ESN::fillMatrix(std::ifstream& data, Eigen::MatrixXd& matrix, const int& size1, const int& size2) {
-  std::vector<double> input(size1 * size2);
-  for (std::size_t i = 0; i < size1 * size2; ++i) {
-    data >> input.at(i);
+void ESN::readVector(const YAML::Node& params, const std::string& paramName, Eigen::VectorXd& vector, const int& rows) {
+  try {
+    auto tmp = params[paramName].as < std::vector < double >> ();
+    if (tmp.size() != rows) {
+      std::cerr << "[ESN] Warning! Parameter '" + paramName + "' does not have the expected length!" << std::endl;
+    }
+    vector = Eigen::Map<Eigen::VectorXd>(tmp.data(), rows);
+  } catch (YAML::Exception& ex) {
+    std::cerr << ex.what() << std::endl;
+    throw std::invalid_argument("[ESN] Error parsing parameter. Could not find '" + paramName + "'!");
   }
-
-  matrix.resize(size1, size2);
-  matrix =
-      Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(input.data(), size1, size2);
-}
-
-void ESN::fillVector(std::ifstream& data, Eigen::VectorXd& vector, const int& size) {
-  std::vector<double> input(size);
-  for (std::size_t i = 0; i < size; ++i) {
-    data >> input.at(i);
-  }
-
-  vector.resize(size);
-  vector = Eigen::Map<Eigen::VectorXd>(input.data(), size);
 }
 
 void ESN::printAll() {
   std::cout << "number of Internal Units: " << nbInternalUnits_ << std::endl;
   std::cout << "number of Input Units: " << nbInputs_ << std::endl;
   std::cout << "number of Output Units: " << nbOutputs_ << std::endl;
-
-  std::cout << "internal Weights UnitSR" << std::endl;
-//  std::cout << internalWeightsUnitSR_ << std::endl;
 
   std::cout << "number of Total Units: " << nbTotalUnits_ << std::endl;
 
@@ -83,13 +86,8 @@ void ESN::printAll() {
   std::cout << "feedback Scaling:" << std::endl;
   std::cout << feedbackScaling_.transpose() << std::endl;
 
-  std::cout << "time Constants:" << std::endl;
-//  std::cout << timeConstants_.transpose() << std::endl;
-
   std::cout << "internal Weights:" << std::endl;
 //  std::cout << internalWeights_ << std::endl;
-
-  std::cout << "leakage: " << leakage_ << std::endl;
 }
 
 int ESN::test_esn(const Eigen::MatrixXd& data, int nbDataPoints) {
@@ -99,8 +97,7 @@ int ESN::test_esn(const Eigen::MatrixXd& data, int nbDataPoints) {
   outputSequence -= teacherShift_.transpose().replicate(nbDataPoints - nbForgetPoints_, 1);
   outputSequence *= teacherScaling_.asDiagonal().inverse();
 
-//  int classification_result = s_classify(outputSequence, nbDataPoints - nbForgetPoints_);
-  Eigen::VectorXd classification = s_classify2(outputSequence, 1);
+  Eigen::VectorXd classification = s_classify2(outputSequence, 3);
 
   Eigen::VectorXd binaryClassification = Eigen::VectorXd::Zero(nbOutputs_);
 
@@ -160,11 +157,12 @@ Eigen::VectorXd ESN::s_classify2(const Eigen::MatrixXd& outputSeq, const int& nb
   int split = floor(static_cast<double>(outputSeq.rows()) / nbSplits);
   Eigen::MatrixXd averagePredictedOutput = Eigen::MatrixXd::Zero(nbSplits, nbOutputs_);
   for (std::size_t i = 0; i < nbSplits - 1; ++i) {
-    averagePredictedOutput.row(i) = outputSeq.topRows(split).rowwise().mean();
+    averagePredictedOutput.row(i) = outputSeq.middleRows(i * split, split).colwise().mean();
   }
   averagePredictedOutput.row(nbSplits - 1) =
-      outputSeq.middleRows((nbSplits - 1) * split, outputSeq.rows()).colwise().mean();
-  Eigen::VectorXd sumOfAveragePredictedOutput = averagePredictedOutput.colwise().sum().normalized();
+      outputSeq.bottomRows(outputSeq.rows() - (nbSplits - 1) * split).colwise().mean();
+  Eigen::VectorXd sumOfAveragePredictedOutput =
+      averagePredictedOutput.colwise().sum() / averagePredictedOutput.colwise().sum().sum();
 
   return sumOfAveragePredictedOutput;
 }

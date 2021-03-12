@@ -80,6 +80,8 @@ end
 %%%%% change the tissues number %%%%%
 exp_kind_total=[1:3];
 
+class_label={'apple','banana','orange'};
+
 %%%%% using which direction　%%%
 not_use_xy_dir_and_add_depth=1;
 
@@ -131,7 +133,7 @@ for spectralRadius_0_1_kind=spectralRadius_0_1_kind_best  % 5 5 3
             fail_trials=[];
 
             for trials_num=1:size(test_cell,1)
-                clearvars -except numInternalUnits1 spectralRadius overlap1 TW_kind_1 label_num numInternalUnits_kind_best TW_kind_best do_grid fid learning_method_name extFeatures classfer k_fold test_train_rate with_robot_data spectralRadius_0_1 numInternalUnits time_of_timeWindow time_of_overlap learning_method_name path_of_load_model spectralRadius_0_1_kind numInternalUnits_kind TW_kind less_feature_no_vel testtimestd test_time SVMModel learning_method fail_trials TW_success_for_each_trial success_time_A trial_A success_time_B trial_B success_time_C trial_C...
+                clearvars -except class_label numInternalUnits1 spectralRadius overlap1 TW_kind_1 label_num numInternalUnits_kind_best TW_kind_best do_grid fid learning_method_name extFeatures classfer k_fold test_train_rate with_robot_data spectralRadius_0_1 numInternalUnits time_of_timeWindow time_of_overlap learning_method_name path_of_load_model spectralRadius_0_1_kind numInternalUnits_kind TW_kind less_feature_no_vel testtimestd test_time SVMModel learning_method fail_trials TW_success_for_each_trial success_time_A trial_A success_time_B trial_B success_time_C trial_C...
                     success_time_D  trial_D test_cell nForgetPoints nOutputUnits score_validation trials_num trainedEsn success_rate_test_for_each_trial...
                     predict*
                 
@@ -455,9 +457,14 @@ pause
 file_mat=[path_of_load_model 'ESN_february' num2str(spectralRadius_0_1_kind) num2str(numInternalUnits_kind) num2str(TW_kind) '.mat'];
 save(file_mat,'trainedEsn');
 
-file=[path_of_load_model 'ESN_february' num2str(spectralRadius_0_1_kind) num2str(numInternalUnits_kind) num2str(TW_kind) '.txt'];
 nfp=nForgetPoints;   %%% nForgetPoints
-a=writeESNtofile(trainedEsn, file, nfp)
+
+% file=[path_of_load_model 'ESN_february' num2str(spectralRadius_0_1_kind) num2str(numInternalUnits_kind) num2str(TW_kind) '.txt'];
+% a=writeESNtofile(trainedEsn, file, nfp)
+
+file=[path_of_load_model 'ESN_february' num2str(spectralRadius_0_1_kind) num2str(numInternalUnits_kind) num2str(TW_kind) '.yaml'];
+a=writeESNtoYAML(trainedEsn, file, nfp, class_label);
+
 if a
     !echo Write ESN success!
 else

@@ -7,6 +7,12 @@
 
 namespace learning {
 
+struct esnPrediction {
+  std::string className;
+  int classIndex;
+  Eigen::VectorXd predictions;
+};
+
 class ESN {
 public:
   explicit ESN(const std::string& file);
@@ -15,30 +21,29 @@ public:
 
   void printAll();
 
-  Eigen::MatrixXd compute_statematrix(const Eigen::MatrixXd& data, int nbDataPoints);
-
-  Eigen::VectorXd s_classify2(const Eigen::MatrixXd& outputSeq, const int& nbSplits = 1) const;
-
-  Eigen::VectorXd plain_esn(const Eigen::VectorXd& tState);
-
-  int test_esn(const Eigen::MatrixXd& data, int nbDataPoints);
+  esnPrediction predict(const Eigen::MatrixXd& data, const int& nbPredictionSplits = 1);
 
 private:
-  static void readMatrix(const YAML::Node& params, const std::string& paramName, Eigen::MatrixXd& matrix,
-                         const int& rows, const int& cols);
-  static void readVector(const YAML::Node& params, const std::string& paramName, Eigen::VectorXd& matrix,
-                         const int& rows);
+  static void readInt(const YAML::Node& params, const std::string& paramName, int& var);
+
+  template <typename T>
+  static void readMatrix(const YAML::Node& params, const std::string& paramName, T& matrix, const int& rows,
+                         const int& cols = 1);
+
+  Eigen::MatrixXd collectStates(const Eigen::MatrixXd& data);
+
+  esnPrediction classify(const Eigen::MatrixXd& outputSeq, const int& nbSplits) const;
 
   int nbForgetPoints_;
   int nbInternalUnits_;
   int nbInputs_;
   int nbOutputs_;
-  int nbTotalUnits_;
+  std::vector<std::string> classNames_;
 
-  Eigen::MatrixXd internalWeights_; // nbInternalUnits_ x nbInternalUnits_
-  Eigen::MatrixXd inputWeights_; // nbInternalUnits_ x nbInputs_
-  Eigen::MatrixXd outputWeights_; // nbOutputs_ x col_outWeights_
-  Eigen::MatrixXd feedbackWeights_; // nbInternalUnits_ x nbOutputs_
+  Eigen::MatrixXd outputWeights_; // nbOutputs_ x (nbInternalUnits + nbInputs)
+
+  Eigen::MatrixXd systemEquationWeightMatrix_; // nbInternalUnits_ x (nbInternalUnits + nbInputs + nbOutputs)
+  Eigen::MatrixXd invTeacherScalingMatrix_; // nbOutputs_ x nbOutputs_
 
   Eigen::VectorXd inputScaling_; // nbInputs_
   Eigen::VectorXd inputShift_; // nbInputs_

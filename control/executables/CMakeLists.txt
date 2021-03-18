@@ -4,8 +4,8 @@ target_link_libraries(circular_cut motion_generators local_controllers)
 add_executable(ik_controller simple_ik_controller.cpp)
 target_link_libraries(ik_controller motion_generators local_controllers)
 
-add_executable(simple_ds_controller simple_ds_controller.cpp)
-target_link_libraries(simple_ds_controller motion_generators local_controllers)
+add_executable(simple_point_attractor simple_point_attractor.cpp)
+target_link_libraries(simple_point_attractor state_representation dynamical_systems local_controllers)
 
 add_executable(test_interface test_interface.cpp)
 target_link_libraries(test_interface cppzmq state_representation)

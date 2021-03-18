@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     logger.writeLine(state);
 
     state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
-    frankalwi::utils::poseToState(state, pose);
+    frankalwi::utils::toCartesianPose(state, pose);
     state_representation::CartesianTwist twist = DS.getTwist(pose);
     // TODO this is just an intermediate solution
     std::vector<double> desiredVelocity = {

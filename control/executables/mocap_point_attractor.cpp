@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
 
   bool firstPose = true;
   while (franka.receive(state)) {
-    frankalwi::utils::poseToState(state, pose);
+    frankalwi::utils::toCartesianPose(state, pose);
     if (firstPose) {
       DS.setTargetPose(pose);
       firstPose = false;

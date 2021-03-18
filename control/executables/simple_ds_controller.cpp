@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
   // control loop
   while (franka.receive(state)) {
     state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
-    frankalwi::utils::poseToState(state, pose);
+    frankalwi::utils::toCartesianPose(state, pose);
     if (!positionSet || !orientationSet) {
       if (!positionSet) {
         std::cout << "Updating target position from current state" << std::endl;

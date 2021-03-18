@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
   while (franka.receive(state)) {
     state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
     Eigen::Matrix3d worldToEERotation(pose.get_orientation().toRotationMatrix());
-    frankalwi::utils::poseToState(state, pose);
+    frankalwi::utils::toCartesianPose(state, pose);
     // just for test purposes
     if (!ft_sensor.readRawData(rawWrench)) {
       std::cout << "getting raw data failed" << std::endl;

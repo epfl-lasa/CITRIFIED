@@ -8,7 +8,7 @@ endif ()
 add_library(motion_generators STATIC "")
 add_subdirectory(motion_generators)
 
-add_library(controllers STATIC "")
+add_library(local_controllers STATIC "")
 add_subdirectory(controllers)
 
 add_library(sensors STATIC "")

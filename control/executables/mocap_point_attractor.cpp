@@ -1,4 +1,4 @@
-#include <state_representation/Space/Cartesian/CartesianState.hpp>
+#include <state_representation/space/cartesian/CartesianState.hpp>
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
 #include "network/interfaces.h"
@@ -12,9 +12,9 @@ int main(int argc, char** argv) {
   tracker.start();
   int rigidBodyID = 1;
 
-  StateRepresentation::CartesianState rigidBodyState("rigid_body_1", "optitrack");
-  StateRepresentation::CartesianPose optiTrackInWorld("optitrack", Eigen::Vector3d(0.18, 0, 0.10), "world");
-  StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("robot", "world"));
+  state_representation::CartesianState rigidBodyState("rigid_body_1", "optitrack");
+  state_representation::CartesianPose optiTrackInWorld("optitrack", Eigen::Vector3d(0.18, 0, 0.10), "world");
+  state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("robot", "world"));
 
   motion_generator::PointAttractor DS;
   DS.currentPose = pose;
@@ -37,16 +37,16 @@ int main(int argc, char** argv) {
 
   bool firstPose = true;
   while (franka.receive(state)) {
-    frankalwi::utils::poseFromState(state, pose);
+    frankalwi::utils::poseToState(state, pose);
     if (firstPose) {
       DS.setTargetPose(pose);
       firstPose = false;
     } else if (tracker.getState(rigidBodyState, rigidBodyID)) {
-      rigidBodyState *= StateRepresentation::CartesianPose("offset", Eigen::Vector3d(0, 0, -0.1), "rigid_body_1");
-      DS.setTargetPose(optiTrackInWorld * StateRepresentation::CartesianPose(rigidBodyState));
+      rigidBodyState *= state_representation::CartesianPose("offset", Eigen::Vector3d(0, 0, -0.1), "rigid_body_1");
+      DS.setTargetPose(optiTrackInWorld * state_representation::CartesianPose(rigidBodyState));
     }
 
-    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+    state_representation::CartesianTwist twist = DS.getTwist(pose);
 
     std::vector<double> desiredVelocity = {
         twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),

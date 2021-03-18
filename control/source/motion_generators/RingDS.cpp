@@ -25,13 +25,13 @@ RingDS::RingDS() :
  * @param pose CartesianPose representing the current pose in the parent frame
  * @return CartesianTwist twist of linear and angular velocity in the parent frame
  */
-StateRepresentation::CartesianTwist RingDS::getTwist(const StateRepresentation::CartesianPose& pose) {
+state_representation::CartesianTwist RingDS::getTwist(const state_representation::CartesianPose& pose) {
   updateLocalPose(pose);
 
   Eigen::Vector3d linearVelocity = inclination.toRotationMatrix() * calculateLocalLinearVelocity();
   Eigen::Vector3d angularVelocity = inclination.toRotationMatrix() * calculateLocalAngularVelocity();
 
-  StateRepresentation::CartesianTwist twist(pose);
+  state_representation::CartesianTwist twist(pose);
   twist.set_linear_velocity(linearVelocity);
   twist.set_angular_velocity(angularVelocity);
 
@@ -46,7 +46,7 @@ StateRepresentation::CartesianTwist RingDS::getTwist(const StateRepresentation::
  * should be removed; the dynamical system itself should be parented to a translated or rotated frame as necessary.
  * @param pose CartesianPose representing the current pose in the parent frame
  */
-void RingDS::updateLocalPose(const StateRepresentation::CartesianPose& pose) {
+void RingDS::updateLocalPose(const state_representation::CartesianPose& pose) {
   localPosition_ = inclination.toRotationMatrix().transpose() * (pose.get_position() - center);
 
   //FIXME: inclination doesn't seem to be working correctly for calculateLocalAngularVelocity.

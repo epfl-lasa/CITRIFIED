@@ -1,4 +1,4 @@
-#include <state_representation/Space/Cartesian/CartesianPose.hpp>
+#include <state_representation/space/cartesian/CartesianPose.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
   Eigen::Vector3d center = {0.35, 0, 0.5};
   Eigen::Quaterniond defaultOrientation = {0, 0.707, 0.707, 0};
 
-  StateRepresentation::CartesianPose defaultPose("world", center, defaultOrientation);
+  state_representation::CartesianPose defaultPose("world", center, defaultOrientation);
 
   motion_generator::PointAttractor DS;
   DS.currentPose = defaultPose;
@@ -40,9 +40,9 @@ int main(int argc, char** argv) {
   while (franka.receive(state)) {
     logger.writeLine(state);
 
-    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    frankalwi::utils::poseFromState(state, pose);
-    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+    state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
+    frankalwi::utils::poseToState(state, pose);
+    state_representation::CartesianTwist twist = DS.getTwist(pose);
     // TODO this is just an intermediate solution
     std::vector<double> desiredVelocity = {
         twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),

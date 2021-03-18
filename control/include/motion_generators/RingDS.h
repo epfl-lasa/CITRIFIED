@@ -8,7 +8,7 @@ namespace motion_generator {
 class RingDS : public BaseDS {
 public:
   RingDS();
-  StateRepresentation::CartesianTwist getTwist(const StateRepresentation::CartesianPose& pose) override;
+  state_representation::CartesianTwist getTwist(const state_representation::CartesianPose& pose) override;
 
   Eigen::Vector3d center;         // - center of the circle [m]
   Eigen::Quaterniond inclination; // - orientation of the circular plane
@@ -21,7 +21,7 @@ public:
   double angularGain;             // - scale factor for angular velocity restitution
 
 private:
-  void updateLocalPose(const StateRepresentation::CartesianPose& pose);
+  void updateLocalPose(const state_representation::CartesianPose& pose);
   Eigen::Vector3d calculateLocalLinearVelocity();
   Eigen::Vector3d calculateLocalAngularVelocity();
 

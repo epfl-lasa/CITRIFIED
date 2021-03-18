@@ -3,13 +3,13 @@
 namespace motion_generator {
 
 BaseDS::BaseDS() :
-    currentPose(StateRepresentation::CartesianPose::Identity("world")) {}
+    currentPose(state_representation::CartesianPose::Identity("world")) {}
 
-void BaseDS::clampTwist(StateRepresentation::CartesianTwist& twist) const {
+void BaseDS::clampTwist(state_representation::CartesianTwist& twist) const {
   twist.clamp(maxLinearSpeed, maxAngularSpeed, minLinearSpeed, minAngularSpeed);
 }
 
-void BaseDS::updateCurrentPose(const StateRepresentation::CartesianPose& pose) {
+void BaseDS::updateCurrentPose(const state_representation::CartesianPose& pose) {
   currentPose = pose;
 }
 

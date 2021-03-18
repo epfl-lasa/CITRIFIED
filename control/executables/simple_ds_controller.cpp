@@ -2,8 +2,8 @@
 #include <iostream>
 #include <cstdio>
 
-#include <state_representation/Space/Cartesian/CartesianPose.hpp>
-#include <state_representation/Space/Cartesian/CartesianState.hpp>
+#include <state_representation/space/cartesian/CartesianPose.hpp>
+#include <state_representation/space/cartesian/CartesianState.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
@@ -57,7 +57,7 @@ void throttledPrintState(frankalwi::proto::StateMessage<7> state, int skip) {
 
 int main(int argc, char** argv) {
   motion_generator::PointAttractor DS;
-  DS.currentPose = StateRepresentation::CartesianPose::Identity("robot");
+  DS.currentPose = state_representation::CartesianPose::Identity("robot");
   DS.setTargetPose(DS.currentPose);
 
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
@@ -99,8 +99,8 @@ int main(int argc, char** argv) {
 
   // control loop
   while (franka.receive(state)) {
-    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    frankalwi::utils::poseFromState(state, pose);
+    state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
+    frankalwi::utils::poseToState(state, pose);
     if (!positionSet || !orientationSet) {
       if (!positionSet) {
         std::cout << "Updating target position from current state" << std::endl;
@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
       std::cout << DS.targetPose << std::endl;
     }
 
-    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+    state_representation::CartesianTwist twist = DS.getTwist(pose);
     // TODO this is just an intermediate solution
     std::vector<double> desiredVelocity = {
         twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),

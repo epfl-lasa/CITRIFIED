@@ -4,7 +4,7 @@
 #include <mutex>
 #include <map>
 
-#include <state_representation/Space/Cartesian/CartesianState.hpp>
+#include <state_representation/space/cartesian/CartesianState.hpp>
 
 #include "sensors/optitrack/optitrack_zmq_proto.h"
 #include "network/interfaces.h"
@@ -17,7 +17,7 @@ public:
   void start();
   void stop();
 
-  bool getState(StateRepresentation::CartesianState& state, int ID);
+  bool getState(state_representation::CartesianState& state, int ID);
 private:
   void pollThread();
   std::thread pollThread_;

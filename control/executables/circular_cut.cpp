@@ -2,8 +2,8 @@
 #include <iostream>
 #include <cstdio>
 
-#include <state_representation/Space/Cartesian/CartesianPose.hpp>
-#include <state_representation/Space/Cartesian/CartesianState.hpp>
+#include <state_representation/space/cartesian/CartesianPose.hpp>
+#include <state_representation/space/cartesian/CartesianState.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
@@ -17,17 +17,17 @@
 class BlendDS {
 public:
   BlendDS() {
-    orientationDS.setTargetPose(StateRepresentation::CartesianPose("world", center, defaultOrientation));
+    orientationDS.setTargetPose(state_representation::CartesianPose("world", center, defaultOrientation));
     orientationDS.linearDS.set_gain(pointGains);
 
-    flatCircleDS = motion_generator::CircleDS(StateRepresentation::CartesianPose("world", center, defaultOrientation));
+    flatCircleDS = motion_generator::CircleDS(state_representation::CartesianPose("world", center, defaultOrientation));
     flatCircleDS.circularDS.set_radius(radius);
     flatCircleDS.circularDS.set_circular_velocity(radialVelocity);
     flatCircleDS.circularDS.set_planar_gain(circGains[0]);
     flatCircleDS.circularDS.set_normal_gain(circGains[1]);
 
     inclinedCircleDS = motion_generator::CircleDS(
-        StateRepresentation::CartesianPose("world", center, inclination * defaultOrientation));
+        state_representation::CartesianPose("world", center, inclination * defaultOrientation));
     inclinedCircleDS.circularDS.set_radius(radius);
     inclinedCircleDS.circularDS.set_circular_velocity(radialVelocity);
     inclinedCircleDS.circularDS.set_planar_gain(circGains[0]);
@@ -48,9 +48,9 @@ public:
 
   std::vector<double> blend(frankalwi::proto::StateMessage<7> state) {
 //    updateOrientationTarget(state);
-    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    frankalwi::utils::poseFromState(state, pose);
-    StateRepresentation::CartesianTwist twist = orientationDS.getTwist(pose);
+    state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
+    frankalwi::utils::toCartesianPose(state, pose);
+    state_representation::CartesianTwist twist = orientationDS.getTwist(pose);
     // TODO this is just an intermediate solution
     std::vector<double> v1 = {
         twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
@@ -89,7 +89,7 @@ private:
     Eigen::Quaterniond
         target = Eigen::Quaterniond(Eigen::AngleAxisd(angle, Eigen::Vector3d::UnitZ())) * defaultOrientation;
 
-    orientationDS.setTargetOrientation(StateRepresentation::CartesianPose("world", center, target));
+    orientationDS.setTargetOrientation(state_representation::CartesianPose("world", center, target));
   }
 
   std::vector<double> blendCircles(frankalwi::proto::StateMessage<7> state) {
@@ -99,10 +99,10 @@ private:
 
     double zVel = 0;
 
-    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    frankalwi::utils::poseFromState(state, pose);
-    StateRepresentation::CartesianTwist flatCircleTwist = flatCircleDS.getTwist(pose);
-    StateRepresentation::CartesianTwist inclinedCircleTwist = inclinedCircleDS.getTwist(pose);
+    state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
+    frankalwi::utils::toCartesianPose(state, pose);
+    state_representation::CartesianTwist flatCircleTwist = flatCircleDS.getTwist(pose);
+    state_representation::CartesianTwist inclinedCircleTwist = inclinedCircleDS.getTwist(pose);
 
     Eigen::Vector3d l;
     if (state.eePose.position.x - center.x() > xBlendWidth) {
@@ -157,13 +157,13 @@ int main(int argc, char** argv) {
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
-  StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+  state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
 
   while (franka.receive(state)) {
 //    std::vector<double> desiredVelocity = DS.blend(state);
 
-    frankalwi::utils::poseFromState(state, pose);
-    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+    frankalwi::utils::toCartesianPose(state, pose);
+    state_representation::CartesianTwist twist = DS.getTwist(pose);
     std::vector<double> desiredVelocity = {
         twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
         twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()

@@ -21,7 +21,7 @@ TEST_F(TestFTSensor, RealSensorConnectionRefused) {
 }
 
 TEST_F(TestFTSensor, MockSensorConnectionRefused) {
-  StateRepresentation::CartesianWrench wrench("mock_sensor");
+  state_representation::CartesianWrench wrench("mock_sensor");
   ASSERT_TRUE(mockSensorPtr->readRawData(wrench));
 }
 
@@ -36,21 +36,21 @@ TEST_F(TestFTSensor, MockSensorBias) {
   EXPECT_TRUE(success);
   EXPECT_EQ(count, biasCounter - 1);
 
-  StateRepresentation::CartesianWrench bias("mock_sensor");
+  state_representation::CartesianWrench bias("mock_sensor");
   EXPECT_TRUE(mockSensorPtr->readBias(bias));
   EXPECT_NEAR(bias.get_force().x(), 0, tol);
   EXPECT_NEAR(bias.get_force().y(), 0, tol);
   EXPECT_NEAR(bias.get_force().z(), tool.mass * 9.81, tol);
   EXPECT_NEAR(bias.get_torque().norm(), 0, tol);
 
-  StateRepresentation::CartesianWrench wrench("mock_sensor");
+  state_representation::CartesianWrench wrench("mock_sensor");
   EXPECT_TRUE(mockSensorPtr->readContactWrench(wrench, rotation));
   EXPECT_NEAR(wrench.get_wrench().norm(), 0, tol);
 }
 
 TEST_F(TestFTSensor, MockSensorResetBias) {
   Eigen::Matrix3d rotation(Eigen::Matrix3d::Identity());
-  StateRepresentation::CartesianWrench bias("mock_sensor");
+  state_representation::CartesianWrench bias("mock_sensor");
 
   mockSensorPtr->resetBias();
   EXPECT_FALSE(mockSensorPtr->computeBias(rotation, biasCounter));
@@ -68,7 +68,7 @@ TEST_F(TestFTSensor, MockSensorBiasGeneral) {
   EXPECT_TRUE(success);
   EXPECT_EQ(count, biasCounter - 1);
 
-  StateRepresentation::CartesianWrench bias("mock_sensor");
+  state_representation::CartesianWrench bias("mock_sensor");
   EXPECT_TRUE(mockSensorPtr->readBias(bias));
   std::cout << bias << std::endl;
   Eigen::Matrix<double, 6, 1> wrench;

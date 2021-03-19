@@ -5,19 +5,6 @@
 
 namespace controller {
 
-static inline Eigen::MatrixXd mapE(const Eigen::Quaterniond& q) {
-  Eigen::Matrix<double, 3, 3> skewSymmetric;
-  skewSymmetric << 0, -q.z(), q.y(),
-      q.z(), 0, -q.x(),
-      -q.y(), q.x(), 0;
-
-  return q.w() * Eigen::MatrixXd::Identity(3, 3) + skewSymmetric;
-}
-
-CartesianLinearSpaceController::CartesianLinearSpaceController() {
-  controller_ = new PassiveDSController(3, d0_, d1_, maxTankLevel_, dz_);
-}
-
 CartesianLinearSpaceController::CartesianLinearSpaceController(double d0, double d1) : d0_(d0), d1_(d1) {
   controller_ = new PassiveDSController(3, d0_, d1_, maxTankLevel_, dz_);
 }
@@ -52,6 +39,24 @@ Eigen::Matrix<double, 6, 1> CartesianLinearSpaceController::getWrenchCommand(fra
   return wrench;
 }
 
+state_representation::CartesianWrench CartesianLinearSpaceController::getWrenchCommand(const state_representation::CartesianTwist& state,
+                                                                                       const state_representation::CartesianTwist& command) {
+  Vec stateVel(3), commandVel(3);
+  stateVel << state.get_linear_velocity().x(), state.get_linear_velocity().y(), state.get_linear_velocity().z();
+  commandVel << command.get_linear_velocity().x(), command.get_linear_velocity().y(), command.get_linear_velocity().z();
+
+  controller_->Update(stateVel, commandVel);
+  Vec force = controller_->control_output();
+
+  if (force.norm() > maxForce) {
+    force = force.normalized() * maxForce;
+  }
+
+  auto wrench = state_representation::CartesianWrench::Zero(state.get_name(), state.get_reference_frame());
+  wrench.set_force({force[0], force[1], force[2]});
+  return wrench;
+}
+
 frankalwi::proto::CommandMessage<7> CartesianLinearSpaceController::getJointTorque(frankalwi::proto::StateMessage<7> state,
                                                                                    const std::vector<double>& twist) {
   auto wrench = getWrenchCommand(state, twist);
@@ -66,8 +71,6 @@ frankalwi::proto::CommandMessage<7> CartesianLinearSpaceController::getJointTorq
   frankalwi::proto::CommandMessage<7> command{};
   Eigen::MatrixXd::Map(command.jointTorque.data.data(), 7, 1) = torques.array();
   return command;
-}
-CartesianAngularSpaceController::CartesianAngularSpaceController(double k) : k_(k) {
 }
 
 CartesianAngularSpaceController::CartesianAngularSpaceController(double k, double d) : k_(k),
@@ -122,10 +125,33 @@ Eigen::Matrix<double, 6, 1> CartesianAngularSpaceController::getWrenchCommand(fr
   return wrench;
 }
 
+state_representation::CartesianWrench CartesianAngularSpaceController::getWrenchCommand(const state_representation::CartesianTwist& state,
+                                                                                        const state_representation::CartesianTwist& command) {
+  // Find angular displacement from current orientation and desired velocity
+  Eigen::Quaterniond angularDisplacement = Eigen::Quaterniond::Identity();
+  Eigen::Vector3d halfAngle = 0.5 * state.get_angular_velocity();
+  double magnitude = halfAngle.norm();
+  if (magnitude > 1e-9) {
+    halfAngle *= sin(magnitude) / magnitude;
+    angularDisplacement = Eigen::Quaterniond(cos(magnitude), halfAngle.x(), halfAngle.y(), halfAngle.z()).normalized();
+  }
+
+  Eigen::Vector3d torque = k_ * angularDisplacement.vec() - d_ * (state.get_angular_velocity() - command.get_angular_velocity());
+
+  if (torque.norm() > maxTorque) {
+    torque = torque.normalized() * maxTorque;
+  }
+
+  auto wrench = state_representation::CartesianWrench::Zero(state.get_name(), state.get_reference_frame());
+  wrench.set_torque(torque);
+  return wrench;
+}
+
 CartesianPoseController::CartesianPoseController(double linearD0,
                                                  double linearD1,
-                                                 double angularK) : linearController(linearD0, linearD1),
-                                                                    angularController(angularK) {
+                                                 double angularK,
+                                                 double angularD) : linearController(linearD0, linearD1),
+                                                                    angularController(angularK, angularD) {
 
 }
 
@@ -150,5 +176,13 @@ frankalwi::proto::CommandMessage<7> CartesianPoseController::getJointTorque(fran
   Eigen::MatrixXd::Map(command.jointTorque.data.data(), 7, 1) = jointTorque.array();
 
   return command;
+}
+
+state_representation::JointTorques CartesianPoseController::getJointTorque(const state_representation::CartesianTwist& state,
+                                                                           const state_representation::CartesianTwist& command,
+                                                                           const state_representation::Jacobian& jacobian) {
+  state_representation::CartesianWrench wrench = linearController.getWrenchCommand(state, command) + angularController.getWrenchCommand(state, command);
+  state_representation::JointTorques torques = jacobian.transpose() * wrench;
+  return torques;
 }
 }

@@ -1,9 +1,9 @@
-#include <state_representation/Space/Cartesian/CartesianPose.hpp>
+#include <state_representation/space/cartesian/CartesianPose.hpp>
+#include <dynamical_systems/Linear.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
 #include "controllers/KinematicController.h"
-#include "motion_generators/PointAttractorDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "franka_lwi/franka_lwi_logger.h"
 #include "network/interfaces.h"
@@ -15,16 +15,12 @@ int main(int argc, char** argv) {
   frankalwi::utils::Logger logger;
 
   // motion generator
-  std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   Eigen::Vector3d center = {0.35, 0, 0.5};
   Eigen::Quaterniond defaultOrientation = {0, 0.707, 0.707, 0};
+  state_representation::CartesianPose attractor("attractor", center, defaultOrientation);
 
-  StateRepresentation::CartesianPose defaultPose("world", center, defaultOrientation);
-
-  motion_generator::PointAttractor DS;
-  DS.currentPose = defaultPose;
-  DS.setTargetPose(DS.currentPose);
-  DS.linearDS.set_gain(gains);
+  std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
+  dynamical_systems::Linear<state_representation::CartesianState> DS(attractor, gains);
 
   // controller
   controller::KinematicController ctrl;
@@ -36,13 +32,15 @@ int main(int argc, char** argv) {
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
+  state_representation::CartesianState robot("robot");
+
   // control loop
   while (franka.receive(state)) {
     logger.writeLine(state);
 
-    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    frankalwi::utils::poseFromState(state, pose);
-    StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
+    frankalwi::utils::toCartesianState(state, robot);
+    state_representation::CartesianTwist twist = DS.evaluate(robot);
+    twist.clamp(0.5, 1.0);
     // TODO this is just an intermediate solution
     std::vector<double> desiredVelocity = {
         twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),

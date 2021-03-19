@@ -10,17 +10,17 @@ namespace motion_generator {
 class PointAttractor : public BaseDS {
 public:
   PointAttractor();
-  explicit PointAttractor(const StateRepresentation::CartesianPose& pose);
+  explicit PointAttractor(const state_representation::CartesianPose& pose);
 
-  void setTargetPose(const StateRepresentation::CartesianPose& pose);
-  void setTargetPosition(StateRepresentation::CartesianPose pose);
-  void setTargetOrientation(StateRepresentation::CartesianPose pose);
+  void setTargetPose(const state_representation::CartesianPose& pose);
+  void setTargetPosition(state_representation::CartesianPose pose);
+  void setTargetOrientation(state_representation::CartesianPose pose);
 
-  StateRepresentation::CartesianTwist getTwist(const StateRepresentation::CartesianPose& pose) override;
-  StateRepresentation::CartesianTwist getTwist();
+  state_representation::CartesianTwist getTwist(const state_representation::CartesianPose& pose) override;
+  state_representation::CartesianTwist getTwist();
 
-  StateRepresentation::CartesianPose targetPose;
-  DynamicalSystems::Linear<StateRepresentation::CartesianState> linearDS;
+  state_representation::CartesianPose targetPose;
+  dynamical_systems::Linear<state_representation::CartesianState> linearDS;
 };
 
 }

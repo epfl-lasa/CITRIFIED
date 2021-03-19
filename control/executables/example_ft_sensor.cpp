@@ -8,8 +8,8 @@
 #include "franka_lwi/franka_lwi_utils.h"
 #include "network/interfaces.h"
 
-void throttledPrintWrench(const StateRepresentation::CartesianWrench& wrench,
-                          const StateRepresentation::CartesianWrench& bias, int skip, double avg_freq) {
+void throttledPrintWrench(const state_representation::CartesianWrench& wrench,
+                          const state_representation::CartesianWrench& bias, int skip, double avg_freq) {
   static int count = 0;
   if (count > skip) {
     printf("Average frequency of wrench messages: % 3.3f\n", avg_freq);
@@ -31,9 +31,9 @@ int main(int argc, char** argv) {
   tool.mass = 0.08;
   tool.centerOfMass = Eigen::Vector3d(0, 0, 0.025);
   sensors::ForceTorqueSensor ft_sensor("ft_sensor", "192.168.1.1", 100, tool, true);
-  StateRepresentation::CartesianWrench rawWrench("ft_sensor_raw", "ft_sensor");
-  StateRepresentation::CartesianWrench wrench("ft_sensor", "ft_sensor");
-  StateRepresentation::CartesianWrench bias("ft_sensor", "ft_sensor");
+  state_representation::CartesianWrench rawWrench("ft_sensor_raw", "ft_sensor");
+  state_representation::CartesianWrench wrench("ft_sensor", "ft_sensor");
+  state_representation::CartesianWrench bias("ft_sensor", "ft_sensor");
 
   // Set up franka ZMQ
   network::Interface franka(network::InterfaceType::FRANKA_LWI);
@@ -44,9 +44,9 @@ int main(int argc, char** argv) {
   auto start = std::chrono::system_clock::now();
   int iterations = 0;
   while (franka.receive(state)) {
-    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
+    state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
     Eigen::Matrix3d worldToEERotation(pose.get_orientation().toRotationMatrix());
-    frankalwi::utils::poseFromState(state, pose);
+    frankalwi::utils::toCartesianPose(state, pose);
     // just for test purposes
     if (!ft_sensor.readRawData(rawWrench)) {
       std::cout << "getting raw data failed" << std::endl;

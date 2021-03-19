@@ -21,7 +21,7 @@ void RigidBodyTracker::stop() {
   bodies_.clear();
 }
 
-bool RigidBodyTracker::getState(StateRepresentation::CartesianState& state, int ID) {
+bool RigidBodyTracker::getState(state_representation::CartesianState& state, int ID) {
   bool exists = static_cast<bool>(bodies_.count(ID));
   if (exists) {
     stateMutex_.lock();

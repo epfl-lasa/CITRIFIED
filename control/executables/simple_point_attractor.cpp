@@ -3,11 +3,11 @@
 
 #include <state_representation/space/cartesian/CartesianPose.hpp>
 #include <state_representation/space/cartesian/CartesianState.hpp>
+#include <dynamical_systems/Linear.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
-#include "controllers/CartesianPoseController.h"
-#include "motion_generators/PointAttractorDS.h"
+#include "controllers/TwistController.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "network/interfaces.h"
 
@@ -34,6 +34,7 @@ void throttledPrint(const state_representation::CartesianState& robot,
 }
 
 int main(int argc, char** argv) {
+  std::cout << std::fixed << std::setprecision(3);
 
   state_representation::CartesianPose attractor("attractor", "franka");
   state_representation::CartesianState robot("end-effector", "franka");
@@ -42,9 +43,7 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> DS(attractor, gains);
 
-  controller::CartesianPoseController ctrl(50, 50, 5, 5);
-
-  std::cout << std::fixed << std::setprecision(3);
+  controllers::TwistController ctrl(200, 200, 5, 5);
 
   bool positionSet = false;
   bool orientationSet = false;
@@ -67,9 +66,7 @@ int main(int argc, char** argv) {
   }
   DS.set_attractor(attractor);
 
-  // Set up franka ZMQ
   network::Interface franka(network::InterfaceType::FRANKA_LWI);
-
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
@@ -93,13 +90,12 @@ int main(int argc, char** argv) {
 
     state_representation::CartesianTwist dsTwist = DS.evaluate(robot);
     dsTwist.clamp(0.25, 0.5);
-    auto torques = ctrl.getJointTorque(robot, dsTwist, jacobian);
-    frankalwi::utils::fromJointTorque(torques, command);
 
-    throttledPrint(robot, attractor, dsTwist, torques, 500);
+    state_representation::JointTorques joint_command = ctrl.compute_command(dsTwist, robot, jacobian);
 
-    if (!franka.send(command)) {
-      std::cerr << "Warning: Couldn't send command to Franka!" << std::endl;
-    };
+    frankalwi::utils::fromJointTorque(joint_command, command);
+    throttledPrint(robot, attractor, dsTwist, joint_command, 500);
+
+    franka.send(command);
   }
 }

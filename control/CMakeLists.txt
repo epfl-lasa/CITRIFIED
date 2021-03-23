@@ -22,6 +22,5 @@ find_library(limbo REQUIRED)
 
 include_directories(include ${Eigen_INCLUDE_DIRS})
 
-add_subdirectory(lib)
 add_subdirectory(source)
 add_subdirectory(executables)

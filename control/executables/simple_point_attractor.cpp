@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> DS(attractor, gains);
 
-  controllers::TwistController ctrl(200, 200, 5, 5);
+  controllers::TwistController ctrl(100, 100, 5, 5);
 
   bool positionSet = false;
   bool orientationSet = false;

@@ -37,12 +37,6 @@ RUN git clone -b develop --single-branch https://github.com/epfl-lasa/control_li
   && make -j \
   && make install
 
-# "install" passive-ds-control repo (we will build it in our own makefile)
-RUN git clone https://github.com/epfl-lasa/passive-ds-control.git \
-  && cd passive-ds-control \
-  && mv include /usr/local/include/passive-ds-control \
-  && mv src /usr/local/src/passive-ds-control
-
 # install KDL
 RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
   && cd orocos_kinematics_dynamics/orocos_kdl \
@@ -90,7 +84,6 @@ FROM project-dependencies as project-sources
 WORKDIR /usr/src/CITRIFIED/control
 COPY executables executables
 COPY include include
-COPY lib lib
 COPY source source
 COPY CMakeLists.txt CMakeLists.txt
 

@@ -4,10 +4,11 @@
 
 #include <state_representation/space/cartesian/CartesianPose.hpp>
 #include <state_representation/space/cartesian/CartesianState.hpp>
+#include <state_representation/robot/Jacobian.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
-#include "controllers/CartesianPoseController.h"
+#include "controllers/TwistController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "motion_generators/CircularDS.h"
 #include "motion_generators/RingDS.h"
@@ -147,8 +148,7 @@ int main(int argc, char** argv) {
 
   DS.defaultPose = Eigen::Quaterniond(0.0, -0.393, 0.919, 0.0).normalized();
 
-  controller::CartesianPoseController ctrl(230, 150, 5);
-  ctrl.angularController.setDamping(5);
+  controllers::TwistController ctrl(230, 150, 5, 5);
 
   std::cout << std::fixed << std::setprecision(3);
 
@@ -157,21 +157,20 @@ int main(int argc, char** argv) {
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
-  state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
+
+  state_representation::CartesianState robot_ee("end-effector", "robot");
+  state_representation::Jacobian jacobian("robot", 7);
 
   while (franka.receive(state)) {
+    frankalwi::utils::toCartesianState(state, robot_ee);
+    frankalwi::utils::toJacobian(state.jacobian, jacobian);
+
 //    std::vector<double> desiredVelocity = DS.blend(state);
+    state_representation::CartesianTwist twist = DS.getTwist(robot_ee);
 
-    frankalwi::utils::toCartesianPose(state, pose);
-    state_representation::CartesianTwist twist = DS.getTwist(pose);
-    std::vector<double> desiredVelocity = {
-        twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
-        twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
-    };
+    state_representation::JointTorques joint_command = ctrl.compute_command(twist, robot_ee, jacobian);
 
-    command = ctrl.getJointTorque(state, desiredVelocity);
-    if (!franka.send(command)) {
-      std::cerr << "Warning: Couldn't send command to Franka!" << std::endl;
-    };
+    frankalwi::utils::fromJointTorque(joint_command, command);
+    franka.send(command);
   }
 }

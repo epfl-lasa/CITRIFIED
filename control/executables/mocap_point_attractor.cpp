@@ -3,49 +3,53 @@
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
 #include "network/interfaces.h"
-#include "controllers/CartesianPoseController.h"
+#include "controllers/TwistController.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "sensors/RigidBodyTracker.h"
 
-int main(int argc, char** argv) {
+int main(int, char**) {
   sensors::RigidBodyTracker tracker;
   tracker.start();
-  int rigidBodyID = 1;
+  int robotBaseID = 1;  // the OptiTrack streaming ID for the robot base frame
+  int attractorID = 2;  // the OptiTrack streaming ID for the attractor frame
+  Eigen::Vector3d attractor_offset(0, 0, 0.05);  // the distance offset to follow (in attractor frame)
 
-  state_representation::CartesianState rigidBodyState("rigid_body_1", "optitrack");
-  state_representation::CartesianPose optiTrackInWorld("optitrack", Eigen::Vector3d(0.18, 0, 0.10), "world");
-  state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("robot", "world"));
+  state_representation::CartesianPose offset("offset", attractor_offset, "attractor");
+  state_representation::CartesianState attractor("attractor", "optitrack");
+  state_representation::CartesianPose robotInOptitrack("robot_base", "optitrack");
+  state_representation::CartesianState robot_ee("robot_ee", "robot_base");
+  state_representation::Jacobian jacobian("robot", 7);
 
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
-  dynamical_systems::Linear<state_representation::CartesianState> DS(state_representation::CartesianState("attractor"), gains);
+  dynamical_systems::Linear<state_representation::CartesianState> DS(state_representation::CartesianState("attractor", "robot_base"), gains);
 
-  controller::CartesianPoseController ctrl(50, 50, 5, 5);
+  controllers::TwistController ctrl(100, 100, 5, 5);
 
-  // Set up ZMQ
   network::Interface franka(network::InterfaceType::FRANKA_LWI);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
-  bool firstPose = true;
-  while (franka.receive(state)) {
-    frankalwi::utils::toCartesianPose(state, pose);
-    if (firstPose) {
-      DS.set_attractor(pose);
-      firstPose = false;
-    } else if (tracker.getState(rigidBodyState, rigidBodyID)) {
-      rigidBodyState *= state_representation::CartesianPose("offset", Eigen::Vector3d(0, 0, -0.1), "rigid_body_1");
-      DS.set_attractor(optiTrackInWorld * state_representation::CartesianPose(rigidBodyState));
-    }
+  std::cout << "Waiting for optitrack data for attractor and robot base..." << std::endl;
+  while (!tracker.getState(robotInOptitrack, robotBaseID) || !tracker.getState(attractor, attractorID)) {}
+  std::cout << "OptiTrack ready!" << std::endl;
 
-    state_representation::CartesianTwist twist = DS.evaluate(pose);
+  while (franka.receive(state)) {
+    frankalwi::utils::toCartesianState(state, robot_ee);
+    frankalwi::utils::toJacobian(state.jacobian, jacobian);
+
+    tracker.getState(robotInOptitrack, robotBaseID);
+    tracker.getState(attractor, attractorID);
+
+    auto attractorInRobot = robotInOptitrack.inverse() * attractor;
+    DS.set_attractor(attractorInRobot * offset);
+
+    state_representation::CartesianTwist twist = DS.evaluate(robot_ee);
     twist.clamp(0.5, 1.0);
 
-    std::vector<double> desiredVelocity = {
-        twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
-        twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
-    };
-    command = ctrl.getJointTorque(state, desiredVelocity);
+    state_representation::JointTorques joint_command = ctrl.compute_command(twist, robot_ee, jacobian);
+
+    frankalwi::utils::fromJointTorque(joint_command, command);
     franka.send(command);
   }
 }

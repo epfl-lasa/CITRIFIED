@@ -77,4 +77,8 @@ void ForceTorqueSensor::resetBias() {
   bias_.set_zero();
   biasCount_ = 0;
 }
+
+bool ForceTorqueSensor::biasOK() {
+  return biasOk_;
+}
 }

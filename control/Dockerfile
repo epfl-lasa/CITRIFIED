@@ -33,7 +33,7 @@ RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.
 RUN git clone -b develop --single-branch https://github.com/epfl-lasa/control_libraries.git \
   && mkdir -p control_libraries/source/build \
   && cd control_libraries/source/build \
-  && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ROBOT_MODEL="OFF" .. \
+  && cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_ROBOT_MODEL="OFF" .. \
   && make -j \
   && make install
 

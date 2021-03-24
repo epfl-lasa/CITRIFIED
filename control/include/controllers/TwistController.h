@@ -20,8 +20,8 @@ public:
 
   double max_force = 50;
   double max_torque = 50;
-  double ak_;
-  double ad_;
+  double angular_stiffness;
+  double angular_damping;
 private:
   controllers::impedance::Dissipative<state_representation::CartesianState> linear_dissipative_ctrl_;
   double d0_;

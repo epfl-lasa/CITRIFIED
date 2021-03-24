@@ -12,9 +12,9 @@ int main(int, char**) {
   tracker.start();
   int robotBaseID = 1;  // the OptiTrack streaming ID for the robot base frame
   int attractorID = 2;  // the OptiTrack streaming ID for the attractor frame
-  Eigen::Vector3d atttractor_offset(0, 0, 0.05);  // the distance offset to follow (in attractor frame)
+  Eigen::Vector3d attractor_offset(0, 0, 0.05);  // the distance offset to follow (in attractor frame)
 
-  state_representation::CartesianPose offset("offset", atttractor_offset, "attractor");
+  state_representation::CartesianPose offset("offset", attractor_offset, "attractor");
   state_representation::CartesianState attractor("attractor", "optitrack");
   state_representation::CartesianPose robotInOptitrack("robot_base", "optitrack");
   state_representation::CartesianState robot_ee("robot_ee", "robot_base");

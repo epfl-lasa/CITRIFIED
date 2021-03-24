@@ -19,3 +19,6 @@ add_subdirectory(filters)
 
 add_library(learning STATIC "")
 add_subdirectory(learning)
+
+add_library(logger STATIC "")
+add_subdirectory(logger)

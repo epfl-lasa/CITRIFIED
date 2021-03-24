@@ -1,4 +1,4 @@
-target_sources(logger PUBLIC json_logger.cpp)
+target_sources(logger PUBLIC JSONLogger.cpp)
 target_link_libraries(logger state_representation)
 
 if (BUILD_TESTING)

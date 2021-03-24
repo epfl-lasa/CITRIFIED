@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -32,7 +33,11 @@ public:
   void print();
   void clear();
 
+  void addTime();
   void addMetaData(const std::string& trialID, const std::string& details="");
+
+  template<class T>
+  void addField(MessageType type, const std::string& field, const T& value);
 
   template<class T>
   bool addBody(MessageType type, const T& body);
@@ -47,8 +52,14 @@ private:
   template<class T>
   json createBody(const T& body);
 
+  std::chrono::steady_clock::time_point startTime_;
   std::ofstream file_;
 };
+
+template<class T>
+void JSONLogger::addField(MessageType type, const std::string& field, const T& value) {
+  object[mapType(type)][field] = value;
+}
 
 template<class T>
 bool JSONLogger::addBody(MessageType type, const T& body) {

@@ -6,7 +6,7 @@
 #include <state_representation/space/cartesian/CartesianWrench.hpp>
 #include <state_representation/space/cartesian/CartesianState.hpp>
 
-#include "logger/json_logger.h"
+#include "logger/JSONLogger.h"
 
 
 const static std::string logfileName = "test_json_logger_output.json";
@@ -175,6 +175,22 @@ TEST_F(JSONLoggerTest, AddCommand) {
   EXPECT_EQ(command["wrench"]["force"].size(), 3);
   ASSERT_TRUE(command["wrench"]["torque"].is_array());
   EXPECT_EQ(command["wrench"]["torque"].size(), 3);
+}
+
+TEST_F(JSONLoggerTest, AddField) {
+  logger_.addField(logger::CONTROL, "phase", "test");
+  ASSERT_TRUE(logger_.object.contains("control"));
+  ASSERT_TRUE(logger_.object["control"].contains("phase"));
+  ASSERT_TRUE(logger_.object["control"]["phase"].is_string());
+  EXPECT_STREQ(logger_.object["control"]["phase"].get<std::string>().c_str(), "test");
+}
+
+TEST_F(JSONLoggerTest, AddTime) {
+  EXPECT_FALSE(logger_.object.contains("time"));
+  logger_.addTime();
+  ASSERT_TRUE(logger_.object.contains("time"));
+  ASSERT_TRUE(logger_.object["time"].is_number());
+  EXPECT_GT(logger_.object["time"].get<double>(), 0);
 }
 
 TEST_F(JSONLoggerTest, Clear) {

@@ -1,6 +1,6 @@
 #include <ctime>
 #include <iomanip>
-#include "logger/json_logger.h"
+#include "logger/JSONLogger.h"
 
 #include <state_representation/space/cartesian/CartesianPose.hpp>
 #include <state_representation/space/cartesian/CartesianState.hpp>
@@ -34,6 +34,8 @@ JSONLogger::JSONLogger(std::string filename, const std::string& prefix) {
 
   file_.open(prefix + filename, std::ofstream::out | std::ofstream::trunc);
   setPrecision(4);
+
+  startTime_ = std::chrono::steady_clock::now();
 }
 
 void JSONLogger::setPrecision(int precision) {
@@ -120,6 +122,12 @@ void JSONLogger::print() {
 
 void JSONLogger::clear() {
   object = json::object();
+}
+
+void JSONLogger::addTime() {
+  auto now = std::chrono::steady_clock::now();
+  std::chrono::duration<double> delta = now - startTime_;
+  object["time"] = delta.count();
 }
 
 void JSONLogger::addMetaData(const std::string& trialID, const std::string& details) {

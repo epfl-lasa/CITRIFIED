@@ -18,4 +18,4 @@ target_link_libraries(mocap_point_attractor sensors motion_generators local_cont
 
 add_executable(incision_trials incision_trials.cpp)
 target_compile_definitions(incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
-target_link_libraries(incision_trials dynamical_systems local_controllers sensors yaml-cpp cppzmq logger)
+target_link_libraries(incision_trials filters dynamical_systems local_controllers sensors yaml-cpp cppzmq logger)

@@ -21,6 +21,7 @@ using namespace state_representation;
 enum TrialState {
   APPROACH,
   CALIBRATION,
+  TOUCH,
   INSERTION,
   PAUSE,
   CUT,
@@ -30,6 +31,7 @@ enum TrialState {
 static const std::map<TrialState, std::string> trialStateMap {
     {APPROACH, "approach"},
     {CALIBRATION, "calibration"},
+    {TOUCH, "touch"},
     {INSERTION, "insertion"},
     {PAUSE, "pause"},
     {CUT, "cut"},
@@ -85,18 +87,10 @@ public:
     cut = !params["insertion_only"].as<bool>();
     trialName = params["trial_prefix"].as<std::string>();
     if (cut) {
-      trialName += "cut_" + params["trial"].as<std::string>() + "_"
-          + std::to_string(params["insertion"]["speed"].as<double>()) + "_"
-          + std::to_string(params["insertion"]["depth"].as<double>()) + "_"
-          + std::to_string(params["circle"]["speed"].as<double>()) + "_"
-          + std::to_string(params["circle"]["width"].as<double>()) + ".csv";
-
+      trialName += "cut_" + params["trial"].as<std::string>() + ".json";
     } else {
-      trialName += "insertion_" + params["trial"].as<std::string>() + "_"
-          + std::to_string(params["insertion"]["speed"].as<double>()) + "_"
-          + std::to_string(params["insertion"]["depth"].as<double>()) + ".csv";
+      trialName += "insertion_" + params["trial"].as<std::string>() + ".json";
     }
-
     std::cout << trialName << std::endl;
   }
 
@@ -127,6 +121,18 @@ public:
   void setDSBaseFrame(const CartesianState& base) {
     pointDS.set_base_frame(base);
     ringDS.set_base_frame(base);
+  }
+
+  void setTouchPhase() {
+    // set the point attractor to ignore Z axis, and instead add constant Z velocity
+    DSgains[2] = 0;
+    pointDS.set_gain(DSgains);
+    zVelocity = -params["touch"]["speed"].as<double>();
+
+    // set the controller to specific insertion phase gains
+    ctrl.set_linear_damping(params["touch"]["d1"].as<double>(), params["touch"]["d2"].as<double>());
+    ctrl.angular_stiffness = params["touch"]["ak"].as<double>();
+    ctrl.angular_damping = params["touch"]["ad"].as<double>();
   }
 
   void setInsertionPhase() {
@@ -309,7 +315,7 @@ int main(int argc, char** argv) {
       .centerOfMass = Eigen::Vector3d(0, 0, 0.02),
       .mass = 0.07
   };
-  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
+  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.89", 100, tool);
 
 /*
   // set up ESN classifier
@@ -335,7 +341,7 @@ int main(int argc, char** argv) {
   CartesianTwist eeLocalTwistFilt = eeLocalTwist;
   CartesianWrench ftWrenchInRobotFilt = ftWrenchInRobot;
 
-  state_representation::Jacobian jacobian("robot", 7);
+  state_representation::Jacobian jacobian("robot", 7, "ee", "robot");
 
   CartesianPose touchPose = eeInRobot;
   bool touchPoseSet = false;
@@ -399,6 +405,13 @@ int main(int argc, char** argv) {
     // update ESN data
     esn.addSample(esnSignalsWithTime.block<1, 6>(2, 0));
 */
+    if (ftWrenchInRobot.get_force().norm() > ITS.params["default"]["max_force"].as<double>()) {
+      std::cout << "Max force exceeded" << std::endl;
+      ITS.setRetractionPhase(eeInTask);
+      trialState = RETRACTION;
+      std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+      break;
+    }
 
     switch (trialState) {
       case APPROACH:
@@ -409,33 +422,31 @@ int main(int argc, char** argv) {
         break;
       case CALIBRATION:
         if (ft_sensor.computeBias(eeInRobot.get_orientation().toRotationMatrix(), 2000)) {
-          ITS.setInsertionPhase();
-          trialState = INSERTION;
-          std::cout << "### STARTING INSERTION PHASE" << std::endl;
+          ITS.setTouchPhase();
+          trialState = TOUCH;
+          std::cout << "### STARTING TOUCH PHASE" << std::endl;
         }
         break;
-      case INSERTION: {
-        if (ftWrenchInRobot.get_force().norm() > ITS.params["insertion"]["max_force"].as<double>()) {
-          std::cout << "Max force exceeded" << std::endl;
-          ITS.setRetractionPhase(eeInTask);
-          trialState = RETRACTION;
-          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
-          break;
-        }
-
-        if (!touchPoseSet
-            && abs(ftWrenchInRobot.get_force().z()) > ITS.params["insertion"]["touch_force"].as<double>()) {
+      case TOUCH:
+        if (!touchPoseSet && abs(ftWrenchInRobotFilt.get_force().z()) > ITS.params["touch"]["touch_force"].as<double>()) {
           std::cout << "Surface detected at position " << eeInRobot.get_position().transpose() << std::endl;
           touchPose = eeInRobot;
           touchPoseSet = true;
-        } else if (touchPoseSet) {
-          double depth = (touchPose.get_position() - eeInRobot.get_position()).norm();
-          if (depth > ITS.params["insertion"]["depth"].as<double>()) {
-            ITS.zVelocity = 0;
-            pauseTimer = std::chrono::system_clock::now();
-            trialState = PAUSE;
-            std::cout << "### PAUSING - INCISION DEPTH REACHED" << std::endl;
-          }
+//          ITS.setInsertionPhase();
+//          trialState = INSERTION;
+//          std::cout << "### STARTING INSERTION PHASE" << std::endl;
+          ITS.setRetractionPhase(eeInTask);
+          trialState = RETRACTION;
+          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+        }
+        break;
+      case INSERTION: {
+        double depth = (touchPose.get_position() - eeInRobot.get_position()).norm();
+        if (depth > ITS.params["insertion"]["depth"].as<double>()) {
+          ITS.zVelocity = 0;
+          pauseTimer = std::chrono::system_clock::now();
+          trialState = PAUSE;
+          std::cout << "### PAUSING - INCISION DEPTH REACHED" << std::endl;
         }
         break;
       }
@@ -451,17 +462,10 @@ int main(int argc, char** argv) {
             trialState = RETRACTION;
             std::cout << "### STARTING RETRACTION PHASE" << std::endl;
           }
-          break;
         }
+        break;
       }
       case CUT: {
-        if (ftWrenchInRobot.get_force().norm() > ITS.params["insertion"]["max_force"].as<double>()) {
-          ITS.setRetractionPhase(eeInTask);
-          trialState = RETRACTION;
-          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
-          break;
-        }
-
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
         double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
         if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {

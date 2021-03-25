@@ -55,6 +55,10 @@ RUN git clone https://github.com/jbeder/yaml-cpp.git \
   && make \
   && make install
 
+# install json library header
+RUN wget https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp \
+  && mv json.hpp /usr/local/include
+
 # install limbo
 RUN wget http://members.loria.fr/JBMouret/mirrors/nlopt-2.4.2.tar.gz \
   && tar -zxvf nlopt-2.4.2.tar.gz \

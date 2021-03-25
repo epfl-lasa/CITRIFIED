@@ -28,7 +28,6 @@ class JSONLogger {
 public:
   explicit JSONLogger(std::string filename = "", const std::string& prefix = "/tmp/");
 
-  void setPrecision(int precision = 4);
   bool write();
   void print();
   void clear();

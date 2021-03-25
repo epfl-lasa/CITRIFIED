@@ -33,13 +33,8 @@ JSONLogger::JSONLogger(std::string filename, const std::string& prefix) {
   }
 
   file_.open(prefix + filename, std::ofstream::out | std::ofstream::trunc);
-  setPrecision(4);
 
   startTime_ = std::chrono::steady_clock::now();
-}
-
-void JSONLogger::setPrecision(int precision) {
-  file_ << std::fixed << std::setprecision(precision);
 }
 
 template<>

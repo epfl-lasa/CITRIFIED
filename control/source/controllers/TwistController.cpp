@@ -4,7 +4,7 @@
 namespace controllers {
 
 TwistController::TwistController(double d0, double d1, double ak, double ad) :
-    d0_(d0), d1_(d1), ak_(ak), ad_(ad), linear_dissipative_ctrl_(controllers::impedance::ComputationalSpaceType::LINEAR) {
+    d0_(d0), d1_(d1), angular_stiffness(ak), angular_damping(ad), linear_dissipative_ctrl_(controllers::impedance::ComputationalSpaceType::LINEAR) {
   set_linear_damping(d0, d1);
 }
 
@@ -33,7 +33,7 @@ state_representation::CartesianState TwistController::compute_command(const stat
   auto angular_displacement = std::chrono::seconds(1) * state_representation::CartesianTwist(desired_state);
 
   // Feed-forward angular displacement and damp the angular velocity error
-  Eigen::Vector3d torque = ak_ * angular_displacement.get_orientation().vec() - ad_ * (feedback_state.get_angular_velocity() - desired_state.get_angular_velocity());
+  Eigen::Vector3d torque = angular_stiffness * angular_displacement.get_orientation().vec() - angular_damping * (feedback_state.get_angular_velocity() - desired_state.get_angular_velocity());
   command.set_torque(torque);
 
   command.clamp(max_force, max_torque);

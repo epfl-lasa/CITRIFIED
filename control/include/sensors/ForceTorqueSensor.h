@@ -25,10 +25,11 @@ public:
 
   bool readBias(state_representation::CartesianWrench& bias);
 
+  bool biasOK();
+
   void resetBias();
 
 private:
-
   std::string sensorName_;
   std::unique_ptr<netft_rdt_driver::INetFTRDTDriver> netftRDTDriver_;
   ToolSpec tool_;

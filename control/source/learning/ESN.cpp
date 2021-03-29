@@ -139,4 +139,9 @@ esnPrediction ESN::classify(const Eigen::MatrixXd& outputSeq, const int& nbSplit
 
   return result;
 }
+
+int ESN::inputDimensions() const {
+  return nbInputs_;
+}
+
 }

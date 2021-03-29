@@ -62,7 +62,7 @@ TEST_F(TestFrankaLWI, ToJacobian) {
   for (std::size_t idx = 0; idx < 42; ++idx) {
     stateMessage.jacobian[idx] = idx;
   }
-  state_representation::Jacobian jacobian("franka", 7);
+  state_representation::Jacobian jacobian("franka", 7, "ee");
   frankalwi::utils::toJacobian(stateMessage.jacobian, jacobian);
   for (std::size_t idx = 0; idx < 42; ++idx) {
     EXPECT_NEAR(jacobian.data()(idx % 6, floor(idx / 6)), idx, 1e-9);

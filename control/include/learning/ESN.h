@@ -23,6 +23,8 @@ public:
 
   esnPrediction predict(const Eigen::MatrixXd& data, const int& nbPredictionSplits = 1);
 
+  int inputDimensions() const;
+
 private:
   static void readInt(const YAML::Node& params, const std::string& paramName, int& var);
 

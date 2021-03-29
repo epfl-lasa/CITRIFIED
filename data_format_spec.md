@@ -99,7 +99,7 @@ The low frequency message is generated for and by the ESN classification.
 
 ```json
 "esn": {
-  "input": [],
+  "input": {"time": [], "A": [], "B": [], ...},
   "probabilities": [], 
   "class_index": 1,
   "class_name": orange
@@ -107,8 +107,7 @@ The low frequency message is generated for and by the ESN classification.
 ```
 
 - `esn`
-  - `input` - the time-window data matrix that is given to the classifier with an additional column containing the timestamp of each datapoint as vector of
-    size `#datapoints x (#inputs + 1)` (row-major)
+  - `input` - the columns of the time-window data matrix as well as the corresponding timestamp per datapoint
   - `probabilities` - the label probabilities per class as vector of legnth `#classes`
   - `class_index` - the index of the most probable class
   - `class_name` - the name of the most probable class

@@ -288,12 +288,13 @@ private:
     return nSamples_ >= window_.rows();
   }
 };
-*/
 
 Eigen::VectorXd secondOrderDerivative(const Eigen::MatrixXd& data, const Eigen::VectorXd& time) {
   Eigen::Vector2d derivative = (data.row(0) - data.row(2)) / (time(0) - time(2));
   return derivative;
 }
+
+*/
 
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
@@ -442,6 +443,7 @@ int main(int argc, char** argv) {
         break;
       case INSERTION: {
         double depth = (touchPose.get_position() - eeInRobot.get_position()).norm();
+        jsonLogger.addField(logger::MODEL, "depth", depth);
         if (depth > ITS.params["insertion"]["depth"].as<double>()) {
           ITS.zVelocity = 0;
           pauseTimer = std::chrono::system_clock::now();
@@ -505,10 +507,6 @@ int main(int argc, char** argv) {
       ITS.ctrl.angular_stiffness,
       ITS.ctrl.angular_damping
     }));
-
-    if (touchPoseSet) {
-      jsonLogger.addField(logger::MODEL, "depth", (eeInRobot - touchPose).get_position().z());
-    }
 
     jsonLogger.write();
 

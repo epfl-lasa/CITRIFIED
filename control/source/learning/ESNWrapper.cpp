@@ -102,6 +102,8 @@ void ESNWrapper::calculateDerivatives() {
   }
 
   dataBufferCopy_.block(1, inputDimensions_ - n, bufferSize_ - 2, n) = (signals.block(2, 0, bufferSize_ - 2, n) - signals.block(0, 0, bufferSize_ - 2, n)) / (2 * dt);
+  dataBufferCopy_.block(0, inputDimensions_ - n, 1, n) = dataBufferCopy_.block(1, inputDimensions_ - n, 1, n);
+  dataBufferCopy_.block(bufferSize_ - 1, inputDimensions_ - n, 1, n) = dataBufferCopy_.block(bufferSize_ - 2, inputDimensions_ - n, 1, n);
 }
 
 bool ESNWrapper::dataBufferReady() const {

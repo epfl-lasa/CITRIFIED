@@ -107,7 +107,7 @@ The low frequency message is generated for and by the ESN classification.
 
 ```json
 "esn": {
-  "input": {"time": [], "A": [], "B": [], ...},
+  "input": {"time": [], "input_0": [], "input_1": [], ...},
   "probabilities": [], 
   "class_index": 1,
   "class_name": orange

@@ -45,7 +45,15 @@ public:
       ringDS(CartesianPose::Identity("center", "task")),
       ctrl(1, 1, 1, 1) {
 
-    params = YAML::LoadFile(std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml");
+    std::string filepath = std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml";
+    params = YAML::LoadFile(filepath);
+
+    std::ifstream filestream(filepath);
+    if (filestream.is_open()) {
+      std::stringstream buf;
+      buf << filestream.rdbuf();
+      yamlContent = buf.str();
+    }
 
     // Configure linear dynamical system
     CartesianPose center("center", "task");
@@ -188,6 +196,7 @@ public:
   // properties
   YAML::Node params;
   std::string trialName;
+  std::string yamlContent;
 
   dynamical_systems::Linear<CartesianState> pointDS;
   dynamical_systems::Ring ringDS;
@@ -206,9 +215,8 @@ int main(int argc, char** argv) {
   IncisionTrialSystem ITS;
 
   // set up logger
-  logger::JSONLogger jsonLogger;
-  jsonLogger.addMetaData(ITS.trialName, "details"); //TODO: Copy yaml configuration as string into details
-  jsonLogger.write();
+  logger::JSONLogger jsonLogger(ITS.trialName);
+  jsonLogger.addMetaData(ITS.trialName, ITS.yamlContent);
 
   // set up optitrack
   sensors::RigidBodyTracker optitracker;
@@ -219,19 +227,20 @@ int main(int argc, char** argv) {
       .centerOfMass = Eigen::Vector3d(0, 0, 0.02),
       .mass = 0.07
   };
-  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.89", 100, tool);
+  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
 
   // set up ESN classifier
-  const std::vector<std::string> esnInputFields = {"velocity_x", "velocity_z", "force_x", "force_z", "force_derivative_x", "force_derivative_z"};
-  const std::string esnConfigFile = std::string(TRIAL_CONFIGURATION_DIR) + "ESN_february591.txt";
+  const std::vector<std::string> esnInputFields = {"depth", "velocity_x", "velocity_z", "force_x", "force_z", "force_derivative_x", "force_derivative_z"};
+  const std::string esnConfigFile = std::string(TRIAL_CONFIGURATION_DIR) + "test_esn.yaml";
   const int esnBufferSize = 50;
+  int esnSkip = 2;
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "inputs", esnInputFields);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "config_file", esnConfigFile);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "buffer_size", esnBufferSize);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "sampling_frequency", 500.0);
-  Eigen::Vector4d esnInputSample;
+  Eigen::VectorXd esnInputSample(5);
   learning::ESNWrapper esn(esnConfigFile, 50);
-  esn.setDerivativeCalculationIndices({2, 3});
+  esn.setDerivativeCalculationIndices({3, 4});
 
   // set up filters
   filter::DigitalButterworth twistFilter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 6);
@@ -257,7 +266,7 @@ int main(int argc, char** argv) {
   bool touchPoseSet = false;
 
   filter::DigitalButterworth filter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 4);
-  Eigen::Vector4d filterInput = Eigen::Vector4d::Zero();
+  auto filterInput = Eigen::VectorXd::Zero(4);
 
   // wait for optitrack data
   std::cout << "Waiting for optitrack robot base and task base state..." << std::endl;
@@ -265,6 +274,10 @@ int main(int argc, char** argv) {
       || !optitracker.getState(taskInOptitrack, RB_ID_TASK_BASE)) {}
 
   std::cout << "Optitrack ready" << std::endl;
+
+  jsonLogger.addBody(logger::MessageType::STATIC, robotInOptitrack);
+  jsonLogger.addBody(logger::MessageType::STATIC, taskInOptitrack);
+  jsonLogger.write();
 
   // start main control loop
   int iterations = 0;
@@ -344,42 +357,34 @@ int main(int argc, char** argv) {
           std::cout << "### PAUSING - INCISION DEPTH REACHED" << std::endl;
         }
 
-        // combine sample for esn input
-        esnInputSample << depth,
-            eeLocalTwistFilt.get_linear_velocity().x(),
-            eeLocalTwistFilt.get_linear_velocity().z(),
-            ftWrenchInRobotFilt.get_force().x(),
-            ftWrenchInRobotFilt.get_force().z();
+        esnSkip--;
+        if (esnSkip <= 0) {
+          // combine sample for esn input
+          esnInputSample << depth,
+              eeLocalTwistFilt.get_linear_velocity().x(),
+              eeLocalTwistFilt.get_linear_velocity().z(),
+              ftWrenchInRobotFilt.get_force().x(),
+              ftWrenchInRobotFilt.get_force().z();
 
-        esn.addSample(jsonLogger.getTime(), esnInputSample);
+          esn.addSample(jsonLogger.getTime(), esnInputSample);
+          esnSkip = 2;
+        }
         Eigen::MatrixXd timeBuffer, dataBuffer;
         if (auto prediction = esn.getLastPrediction(timeBuffer, dataBuffer)) {
-          std::vector<double> probabilities;
-          Eigen::Map<Eigen::VectorXd>(probabilities.data(), 1, prediction->predictions.size()) = prediction->predictions;
+          std::vector<double> probabilities(prediction->predictions.data(), prediction->predictions.data() + prediction->predictions.size());
           jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
           jsonLogger.addField(logger::MessageType::ESN, "class_index", prediction->classIndex);
           jsonLogger.addField(logger::MessageType::ESN, "class_name", prediction->className);
 
           // TODO: add utility to jsonlogger or esnwrapper to make casting Eigen to json objects easier
-          std::vector<double> times;
-          Eigen::Map<Eigen::MatrixXd>(times.data(), timeBuffer.rows(), 1) = timeBuffer;
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "time", times);
-
-          std::vector<double> data;
-          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(0);
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "depth", data);
-          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(1);
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_x", data);
-          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(2);
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_z", data);
-          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(3);
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_x", data);
-          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(4);
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_z", data);
-          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(5);
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_x", data);
-          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(6);
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_z", data);
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "time", std::vector<double>(timeBuffer.data(), timeBuffer.data() + timeBuffer.size()));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "depth", std::vector<double>(dataBuffer.row(0).data(), dataBuffer.row(0).data() + dataBuffer.cols()));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_x", std::vector<double>(dataBuffer.row(1).data(), dataBuffer.row(1).data() + dataBuffer.cols()));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_z", std::vector<double>(dataBuffer.row(2).data(), dataBuffer.row(2).data() + dataBuffer.cols()));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_x", std::vector<double>(dataBuffer.row(3).data(), dataBuffer.row(3).data() + dataBuffer.cols()));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_z", std::vector<double>(dataBuffer.row(4).data(), dataBuffer.row(4).data() + dataBuffer.cols()));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_x", std::vector<double>(dataBuffer.row(5).data(), dataBuffer.row(5).data() + dataBuffer.cols()));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_z", std::vector<double>(dataBuffer.row(6).data(), dataBuffer.row(6).data() + dataBuffer.cols()));
         }
         break;
       }

@@ -114,6 +114,16 @@ The low frequency message is generated for and by the ESN classification.
 
 ## Datatypes and conventions
 
+### Task Phases
+The phases of the task are the following:
+- `approach`: the approach of the fruit (no contact)
+- `calibration`: the calibration of the FT sensor
+- `touch`: the approach of the fruit (until contact)
+- `insertion`: the insertion of the fruit to a certain depth or force threshold
+- `pause`: the pause between insertion and cut (if cut is desired)
+- `cut`: the cut of the fruit (if desired)
+- `retraction`: the removal of the knife from the fruit
+
 ### Body State
 The `<body_state>` object has the form:
 ```json

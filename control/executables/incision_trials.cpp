@@ -228,6 +228,7 @@ int main(int argc, char** argv) {
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "inputs", esnInputFields);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "config_file", esnConfigFile);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "buffer_size", esnBufferSize);
+  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "sampling_frequency", 500.0);
   Eigen::Vector4d esnInputSample;
   learning::ESNWrapper esn(esnConfigFile, 50);
   esn.setDerivativeCalculationIndices({2, 3});
@@ -255,7 +256,6 @@ int main(int argc, char** argv) {
   CartesianPose touchPose = eeInRobot;
   bool touchPoseSet = false;
 
-  Eigen::Matrix<double, 3, 7> esnSignalsWithTime = Eigen::Matrix<double, 3, 7>::Zero();
   filter::DigitalButterworth filter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 4);
   Eigen::Vector4d filterInput = Eigen::Vector4d::Zero();
 
@@ -294,12 +294,6 @@ int main(int argc, char** argv) {
     eeLocalTwistFilt.set_twist(twistFilter.computeFilterOutput(eeLocalTwist.get_twist()));
     ftWrenchInRobotFilt.set_wrench(wrenchFilter.computeFilterOutput(ftWrenchInRobot.get_wrench()));
 
-    // combine sample for esn input
-    esnInputSample << eeLocalTwistFilt.get_linear_velocity().x(),
-        eeLocalTwistFilt.get_linear_velocity().z(),
-        ftWrenchInRobotFilt.get_force().x(),
-        ftWrenchInRobotFilt.get_force().z();
-
     if (ftWrenchInRobot.get_force().norm() > ITS.params["default"]["max_force"].as<double>()) {
       std::cout << "Max force exceeded" << std::endl;
       ITS.setRetractionPhase(eeInTask);
@@ -334,9 +328,6 @@ int main(int argc, char** argv) {
           ITS.setInsertionPhase();
           trialState = INSERTION;
           std::cout << "### STARTING INSERTION PHASE" << std::endl;
-          ITS.setRetractionPhase(eeInTask);
-          trialState = RETRACTION;
-          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }
         break;
       case INSERTION: {
@@ -353,10 +344,42 @@ int main(int argc, char** argv) {
           std::cout << "### PAUSING - INCISION DEPTH REACHED" << std::endl;
         }
 
+        // combine sample for esn input
+        esnInputSample << depth,
+            eeLocalTwistFilt.get_linear_velocity().x(),
+            eeLocalTwistFilt.get_linear_velocity().z(),
+            ftWrenchInRobotFilt.get_force().x(),
+            ftWrenchInRobotFilt.get_force().z();
+
         esn.addSample(jsonLogger.getTime(), esnInputSample);
         Eigen::MatrixXd timeBuffer, dataBuffer;
         if (auto prediction = esn.getLastPrediction(timeBuffer, dataBuffer)) {
-          //TODO: put prediction and buffered data into ESN field of json logger
+          std::vector<double> probabilities;
+          Eigen::Map<Eigen::VectorXd>(probabilities.data(), 1, prediction->predictions.size()) = prediction->predictions;
+          jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
+          jsonLogger.addField(logger::MessageType::ESN, "class_index", prediction->classIndex);
+          jsonLogger.addField(logger::MessageType::ESN, "class_name", prediction->className);
+
+          // TODO: add utility to jsonlogger or esnwrapper to make casting Eigen to json objects easier
+          std::vector<double> times;
+          Eigen::Map<Eigen::MatrixXd>(times.data(), timeBuffer.rows(), 1) = timeBuffer;
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "time", times);
+
+          std::vector<double> data;
+          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(0);
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "depth", data);
+          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(1);
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_x", data);
+          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(2);
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_z", data);
+          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(3);
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_x", data);
+          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(4);
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_z", data);
+          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(5);
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_x", data);
+          Eigen::Map<Eigen::MatrixXd>(data.data(), dataBuffer.rows(), 1) = dataBuffer.row(6);
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_z", data);
         }
         break;
       }

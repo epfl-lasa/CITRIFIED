@@ -44,13 +44,12 @@ These fields will generally only be present in the first log line.
   "version": 1.0,
   "datetime": "...",
   "trial": "...",
-  "details": "..."
-}
-"esn": {
-  "inputs": [],
-  "config_file": "...",
-  "buffer_size": "...",
-  "sampling_frequency": 500      
+  "details": "...",
+  "esn": {
+    "inputs": [],
+    "config_file": "...",
+    "buffer_size": "...",
+    "sampling_frequency": 500      
   }
 },
 "static": {
@@ -63,11 +62,11 @@ These fields will generally only be present in the first log line.
   - `datetime` - the ISO 8601 current time using UTC timezone, for example "2021-01-23T11:22:33Z"
   - `trial` - the brief identifier code (for example, "apple_01")
   - `details` - the verbose description (the full trial yaml configuration as string)
-- `esn` 
-  - `inputs` - the names of the input signals
-  - `config_file` - the path of the ESN config file
-  - `buffer_size` - the number of data points per prediction
-  - `sampling_frequency` - the estimated sampling frequency
+  - `esn` 
+    - `inputs` - the names of the input signals
+    - `config_file` - the path of the ESN config file
+    - `buffer_size` - the number of data points per prediction
+    - `sampling_frequency` - the estimated sampling frequency
 - `static`
   - `bodies` - an array of [body states](#body-state) that define frame positions
 

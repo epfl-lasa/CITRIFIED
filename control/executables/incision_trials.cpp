@@ -378,13 +378,13 @@ int main(int argc, char** argv) {
 
           // TODO: add utility to jsonlogger or esnwrapper to make casting Eigen to json objects easier
           jsonLogger.addSubfield(logger::MessageType::ESN, "input", "time", std::vector<double>(timeBuffer.data(), timeBuffer.data() + timeBuffer.size()));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "depth", std::vector<double>(dataBuffer.row(0).data(), dataBuffer.row(0).data() + dataBuffer.cols()));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_x", std::vector<double>(dataBuffer.row(1).data(), dataBuffer.row(1).data() + dataBuffer.cols()));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_z", std::vector<double>(dataBuffer.row(2).data(), dataBuffer.row(2).data() + dataBuffer.cols()));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_x", std::vector<double>(dataBuffer.row(3).data(), dataBuffer.row(3).data() + dataBuffer.cols()));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_z", std::vector<double>(dataBuffer.row(4).data(), dataBuffer.row(4).data() + dataBuffer.cols()));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_x", std::vector<double>(dataBuffer.row(5).data(), dataBuffer.row(5).data() + dataBuffer.cols()));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_z", std::vector<double>(dataBuffer.row(6).data(), dataBuffer.row(6).data() + dataBuffer.cols()));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "depth", std::vector<double>(dataBuffer.col(0).data(), dataBuffer.col(0).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_x", std::vector<double>(dataBuffer.col(1).data(), dataBuffer.col(1).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_z", std::vector<double>(dataBuffer.col(2).data(), dataBuffer.col(2).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_x", std::vector<double>(dataBuffer.col(3).data(), dataBuffer.col(3).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_z", std::vector<double>(dataBuffer.col(4).data(), dataBuffer.col(4).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_x", std::vector<double>(dataBuffer.col(5).data(), dataBuffer.col(5).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_z", std::vector<double>(dataBuffer.col(6).data(), dataBuffer.col(6).data() + esnBufferSize));
         }
         break;
       }

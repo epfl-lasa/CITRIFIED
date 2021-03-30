@@ -44,7 +44,12 @@ These fields will generally only be present in the first log line.
   "version": 1.0,
   "datetime": "...",
   "trial": "...", 
-  "details": "..."
+  "details": "...",
+  "esn": {
+    "inputs": [],
+    "config_file": "...",
+    "buffer_size": "..."
+  }
 },
 "static": {
   "bodies": [<body_state>, ...]
@@ -55,8 +60,11 @@ These fields will generally only be present in the first log line.
   - `version` - the formatting version of the log (so that parsers can be made forwards and backwards compatible)
   - `datetime` - the ISO 8601 current time using UTC timezone, for example "2021-01-23T11:22:33Z"
   - `trial` - the brief identifier code (for example, "apple_01")
-  - `details` - the verbose description (optional). This could include a full copy of a yaml configuration
-or any other noteworthy details.
+  - `details` - the verbose description (the full trial yaml configuration as string)
+  - `esn` 
+    - `inputs` - the names of the input signals
+    - `config_file` - the path of the ESN config file
+    - `buffer_size` - the number of datapoints per prediction
 - `static`
   - `bodies` - an array of [body states](#body-state) that define frame positions
 

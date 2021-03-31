@@ -10,7 +10,7 @@
 #include "filters/DigitalButterworth.h"
 #include "network/interfaces.h"
 #include "logger/JSONLogger.h"
-#include "learning/ESN.h"
+#include "learning/ESNWrapper.h"
 
 #define RB_ID_ROBOT_BASE 1
 #define RB_ID_TASK_BASE 2
@@ -45,7 +45,15 @@ public:
       ringDS(CartesianPose::Identity("center", "task")),
       ctrl(1, 1, 1, 1) {
 
-    params = YAML::LoadFile(std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml");
+    std::string filepath = std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml";
+    params = YAML::LoadFile(filepath);
+
+    std::ifstream filestream(filepath);
+    if (filestream.is_open()) {
+      std::stringstream buf;
+      buf << filestream.rdbuf();
+      yamlContent = buf.str();
+    }
 
     // Configure linear dynamical system
     CartesianPose center("center", "task");
@@ -188,6 +196,7 @@ public:
   // properties
   YAML::Node params;
   std::string trialName;
+  std::string yamlContent;
 
   dynamical_systems::Linear<CartesianState> pointDS;
   dynamical_systems::Ring ringDS;
@@ -198,103 +207,6 @@ public:
   bool cut = false;
 };
 
-/*
-class ESNWrapper {
-public:
-  explicit ESNWrapper(const std::string& file) :
-      esn_(file),
-      window_(Eigen::Matrix<double, 50, 6>::Zero()),
-      windowCopy_(window_) {
-    labels.insert_or_assign(0, "None");
-    labels.insert_or_assign(1, "Air");
-    labels.insert_or_assign(2, "Apple");
-    labels.insert_or_assign(3, "Banana");
-    labels.insert_or_assign(4, "Orange");
-  }
-
-  void start() {
-    keepAlive_ = true;
-    esnThread_ = std::thread([this] { runClassifier(); });
-  }
-
-  void stop() {
-    keepAlive_ = false;
-    esnThread_.join();
-  }
-  int classifyOnce() {
-    return esn_.test_esn(window_, window_.cols());
-  }
-
-  int getLabel() {
-    if (ready()) {
-      return label;
-    }
-    return 0;
-  }
-
-  void addSample(const Eigen::VectorXd& sample) {
-    // shift the sample observations up one row, and append the most recent sample to the end
-    esnMutex_.lock();
-    window_.block<49, 6>(0, 0) = Eigen::Matrix<double, 49, 6>(window_.block<49, 6>(1, 0));
-    window_.row(window_.rows() - 1) = sample;
-    esnMutex_.unlock();
-
-    if (nSamples_ < window_.rows()) {
-      ++nSamples_;
-    }
-  }
-
-  bool ready() {
-    return samplesReady() && labelReady_;
-  }
-
-  int checkTick() {
-    if (eval_) {
-      eval_ = false;
-      return 1;
-    }
-    return 0;
-  }
-
-  int label = 0;
-private:
-  std::map<int, std::string> labels;
-  bool keepAlive_ = false;
-  bool labelReady_ = false;
-  bool eval_ = false;
-  std::thread esnThread_;
-  std::mutex esnMutex_;
-  learning::ESN esn_;
-  Eigen::Matrix<double, 50, 6> window_, windowCopy_;
-  int nSamples_ = 0;
-
-  void runClassifier() {
-    while (keepAlive_) {
-      if (samplesReady()) {
-        esnMutex_.lock();
-        windowCopy_ = window_;
-        esnMutex_.unlock();
-        label = esn_.test_esn(windowCopy_, windowCopy_.cols());
-        labelReady_ = true;
-        eval_ = true;
-        if (labels.count(label)) {
-//          std::cout << labels.at(label) << std::endl;
-        }
-      }
-    }
-  }
-
-  bool samplesReady() {
-    return nSamples_ >= window_.rows();
-  }
-};
-
-Eigen::VectorXd secondOrderDerivative(const Eigen::MatrixXd& data, const Eigen::VectorXd& time) {
-  Eigen::Vector2d derivative = (data.row(0) - data.row(2)) / (time(0) - time(2));
-  return derivative;
-}
-
-*/
 
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
@@ -303,9 +215,8 @@ int main(int argc, char** argv) {
   IncisionTrialSystem ITS;
 
   // set up logger
-  logger::JSONLogger jsonLogger;
-  jsonLogger.addMetaData(ITS.trialName, "details"); //TODO: Copy yaml configuration as string into details
-  jsonLogger.write();
+  logger::JSONLogger jsonLogger(ITS.trialName);
+  jsonLogger.addMetaData(ITS.trialName, ITS.yamlContent);
 
   // set up optitrack
   sensors::RigidBodyTracker optitracker;
@@ -316,13 +227,20 @@ int main(int argc, char** argv) {
       .centerOfMass = Eigen::Vector3d(0, 0, 0.02),
       .mass = 0.07
   };
-  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.89", 100, tool);
+  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
 
-/*
   // set up ESN classifier
-  ESNWrapper esn(std::string(TRIAL_CONFIGURATION_DIR) + "ESN_february591.txt");
-  esn.start();
-*/
+  const std::vector<std::string> esnInputFields = {"depth", "velocity_x", "velocity_z", "force_x", "force_z", "force_derivative_x", "force_derivative_z"};
+  const std::string esnConfigFile = std::string(TRIAL_CONFIGURATION_DIR) + "test_esn.yaml";
+  const int esnBufferSize = 50;
+  int esnSkip = 2;
+  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "inputs", esnInputFields);
+  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "config_file", esnConfigFile);
+  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "buffer_size", esnBufferSize);
+  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "sampling_frequency", 500.0);
+  Eigen::VectorXd esnInputSample(5);
+  learning::ESNWrapper esn(esnConfigFile, 50);
+  esn.setDerivativeCalculationIndices({3, 4});
 
   // set up filters
   filter::DigitalButterworth twistFilter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 6);
@@ -347,9 +265,8 @@ int main(int argc, char** argv) {
   CartesianPose touchPose = eeInRobot;
   bool touchPoseSet = false;
 
-  Eigen::Matrix<double, 3, 7> esnSignalsWithTime = Eigen::Matrix<double, 3, 7>::Zero();
   filter::DigitalButterworth filter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 4);
-  Eigen::Vector4d filterInput = Eigen::Vector4d::Zero();
+  auto filterInput = Eigen::VectorXd::Zero(4);
 
   // wait for optitrack data
   std::cout << "Waiting for optitrack robot base and task base state..." << std::endl;
@@ -358,12 +275,14 @@ int main(int argc, char** argv) {
 
   std::cout << "Optitrack ready" << std::endl;
 
+  jsonLogger.addBody(logger::MessageType::STATIC, robotInOptitrack);
+  jsonLogger.addBody(logger::MessageType::STATIC, taskInOptitrack);
+  jsonLogger.write();
+
   // start main control loop
   int iterations = 0;
-  auto start = std::chrono::system_clock::now();
-  auto frequencyTimer = start;
-  auto esnTimer = start;
-  auto pauseTimer = start;
+  auto frequencyTimer = std::chrono::system_clock::now();
+  auto pauseTimer = std::chrono::system_clock::now();
   TrialState trialState = TrialState::APPROACH;
   while (franka.receive(state)) {
 
@@ -388,24 +307,6 @@ int main(int argc, char** argv) {
     eeLocalTwistFilt.set_twist(twistFilter.computeFilterOutput(eeLocalTwist.get_twist()));
     ftWrenchInRobotFilt.set_wrench(wrenchFilter.computeFilterOutput(ftWrenchInRobot.get_wrench()));
 
-/*
-    // filter data for ESN
-    Eigen::Vector3d velocityExpressedInEEFrame = eeInRobot.get_orientation().toRotationMatrix()
-        * Eigen::Vector3d(frankalwi::proto::vec3DToArray(state.eeTwist.linear).data());
-    filterInput =
-        Eigen::Vector4d(velocityExpressedInEEFrame.x(), velocityExpressedInEEFrame.z(), ftWrenchInRobot.get_force().x(),
-                        ftWrenchInRobot.get_force().z());
-    esnSignalsWithTime.topRows(2) = esnSignalsWithTime.bottomRows(2);
-    esnSignalsWithTime.row(2).head(4) = filter.computeFilterOutput(filterInput);
-    std::chrono::duration<double> deltaT = std::chrono::system_clock::now() - esnTimer;
-    esnSignalsWithTime.row(2)(6) = deltaT.count();
-    esnSignalsWithTime.row(2).segment(4, 2) =
-        secondOrderDerivative(esnSignalsWithTime.block<3, 2>(0, 2), esnSignalsWithTime.col(6));
-    esnTimer = std::chrono::system_clock::now();
-
-    // update ESN data
-    esn.addSample(esnSignalsWithTime.block<1, 6>(2, 0));
-*/
     if (ftWrenchInRobot.get_force().norm() > ITS.params["default"]["max_force"].as<double>()) {
       std::cout << "Max force exceeded" << std::endl;
       ITS.setRetractionPhase(eeInTask);
@@ -433,12 +334,13 @@ int main(int argc, char** argv) {
           std::cout << "Surface detected at position " << eeInRobot.get_position().transpose() << std::endl;
           touchPose = eeInRobot;
           touchPoseSet = true;
-//          ITS.setInsertionPhase();
-//          trialState = INSERTION;
-//          std::cout << "### STARTING INSERTION PHASE" << std::endl;
-          ITS.setRetractionPhase(eeInTask);
-          trialState = RETRACTION;
-          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+
+          std::cout << "Starting ESN thread" << std::endl;
+          esn.start();
+
+          ITS.setInsertionPhase();
+          trialState = INSERTION;
+          std::cout << "### STARTING INSERTION PHASE" << std::endl;
         }
         break;
       case INSERTION: {
@@ -446,9 +348,43 @@ int main(int argc, char** argv) {
         jsonLogger.addField(logger::MODEL, "depth", depth);
         if (depth > ITS.params["insertion"]["depth"].as<double>()) {
           ITS.zVelocity = 0;
+
+          std::cout << "Stopping ESN thread" << std::endl;
+          esn.stop();
+
           pauseTimer = std::chrono::system_clock::now();
           trialState = PAUSE;
           std::cout << "### PAUSING - INCISION DEPTH REACHED" << std::endl;
+        }
+
+        esnSkip--;
+        if (esnSkip <= 0) {
+          // combine sample for esn input
+          esnInputSample << depth,
+              eeLocalTwistFilt.get_linear_velocity().x(),
+              eeLocalTwistFilt.get_linear_velocity().z(),
+              ftWrenchInRobotFilt.get_force().x(),
+              ftWrenchInRobotFilt.get_force().z();
+
+          esn.addSample(jsonLogger.getTime(), esnInputSample);
+          esnSkip = 2;
+        }
+        Eigen::MatrixXd timeBuffer, dataBuffer;
+        if (auto prediction = esn.getLastPrediction(timeBuffer, dataBuffer)) {
+          std::vector<double> probabilities(prediction->predictions.data(), prediction->predictions.data() + prediction->predictions.size());
+          jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
+          jsonLogger.addField(logger::MessageType::ESN, "class_index", prediction->classIndex);
+          jsonLogger.addField(logger::MessageType::ESN, "class_name", prediction->className);
+
+          // TODO: add utility to jsonlogger or esnwrapper to make casting Eigen to json objects easier
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "time", std::vector<double>(timeBuffer.data(), timeBuffer.data() + timeBuffer.size()));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "depth", std::vector<double>(dataBuffer.col(0).data(), dataBuffer.col(0).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_x", std::vector<double>(dataBuffer.col(1).data(), dataBuffer.col(1).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_z", std::vector<double>(dataBuffer.col(2).data(), dataBuffer.col(2).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_x", std::vector<double>(dataBuffer.col(3).data(), dataBuffer.col(3).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_z", std::vector<double>(dataBuffer.col(4).data(), dataBuffer.col(4).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_x", std::vector<double>(dataBuffer.col(5).data(), dataBuffer.col(5).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_z", std::vector<double>(dataBuffer.col(6).data(), dataBuffer.col(6).data() + esnBufferSize));
         }
         break;
       }
@@ -486,8 +422,6 @@ int main(int argc, char** argv) {
 
     frankalwi::utils::fromJointTorque(jacobian.transpose() * commandWrenchInRobot, command);
     franka.send(command);
-
-    std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - start;
 
     jsonLogger.addTime();
     jsonLogger.addBody(logger::RAW, eeInRobot);

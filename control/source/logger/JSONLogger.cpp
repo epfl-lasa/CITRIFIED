@@ -120,9 +120,13 @@ void JSONLogger::clear() {
 }
 
 void JSONLogger::addTime() {
+  object["time"] = getTime();
+}
+
+double JSONLogger::getTime() const {
   auto now = std::chrono::steady_clock::now();
   std::chrono::duration<double> delta = now - startTime_;
-  object["time"] = delta.count();
+  return delta.count();
 }
 
 void JSONLogger::addMetaData(const std::string& trialID, const std::string& details) {

@@ -1,0 +1,41 @@
+experiment_prefix: 'YYYYMMDD_'
+surface: 'test_01'
+
+# The attractor center position and orientation during the hold phase
+attractor:
+  position:
+    x: 0.0
+    y: 0.0
+    z: 0.1
+  orientation:
+    w: 0.0
+    x: 0.0
+    y: 1.0
+    z: 0.0
+  gains:
+    linear: 50.0
+    angular: 10.0
+
+grid:
+  resolution: 8
+  x_range: 0.1
+  y_range: 0.1
+
+default:
+  d1: 100   # principle linear damping
+  d2: 100   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+  max_linear_velocity: 0.5  # clamp linear twist command to this magnitude
+  max_angular_velocity: 1.0 # clamp angular twist command to this magnitude
+  max_control_force: 50.0   # clamp wrench force command to this magnitude
+  max_control_torque: 50.0  # clamp wrench torque command to this magnitude
+  max_force: 15             # force magnitude to trigger retraction
+
+touch:
+  d1: 100   # principle linear damping
+  d2: 100   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+  speed: 0.05 # speed of touch approach
+  touch_force: 0.5  # force magnitude to register surface

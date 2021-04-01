@@ -11,4 +11,4 @@ SIGNAL = 'filtered'; % raw, filtered
 % Function outputs - phase, esn, force_raw, force_filt, ...
 % ... vel_raw, vel_filt, pos_raw, t
 
-[t] = data_visualization(filename,TYPE,SIGNAL);
+[phase,esn,t] = data_visualization(filename,TYPE,SIGNAL);

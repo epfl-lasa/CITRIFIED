@@ -1,25 +1,25 @@
-experiment_prefix: 'YYYYMMDD_'
-surface: 'test_01'
+experiment_prefix: '20210401_'
+surface: 'orange_02'
 
 # The attractor center position and orientation during the hold phase
 attractor:
   position:
-    x: 0.0
-    y: 0.0
-    z: 0.1
+    x: -0.01
+    y: 0.01
+    z: 0.08
   orientation:
-    w: 0.0
+    w: 0.13
     x: 0.0
-    y: 1.0
+    y: 0.99
     z: 0.0
   gains:
     linear: 50.0
     angular: 10.0
 
 grid:
-  resolution: 8
-  x_range: 0.1
-  y_range: 0.1
+  resolution: 10
+  x_range: 0.02
+  y_range: 0.02
 
 default:
   d1: 100   # principle linear damping

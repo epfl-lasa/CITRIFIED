@@ -11,14 +11,16 @@
 #include "logger/JSONLogger.h"
 
 #define RB_ID_ROBOT_BASE 1
-#define RB_ID_TASK_BASE 2
+#define RB_ID_TASK_BASE 5
 
 using namespace state_representation;
 
 enum ProbeState {
   APPROACH,
+  PAUSE,
   CALIBRATION,
   TOUCH,
+  RETRACT,
   FINISH
 };
 
@@ -53,6 +55,7 @@ int main(int argc, char** argv) {
   // set up logger
   logger::JSONLogger jsonLogger(params["experiment_prefix"].as<std::string>() + params["surface"].as<std::string>() + "_surface.json");
   jsonLogger.addMetaData(params["surface"].as<std::string>());
+  std::cout << params["experiment_prefix"].as<std::string>() + params["surface"].as<std::string>() + "_surface.json" << std::endl;
 
   // set up optitrack
   sensors::RigidBodyTracker optitracker;
@@ -96,15 +99,15 @@ int main(int argc, char** argv) {
   // set up touch grid
   std::vector<double> x_offsets, y_offsets;
   int x_index = 0, y_index = 0;
-  for (int iteration = 0; iteration < params["grid"]["resolution"].as<double>(); ++iteration) {
-    double weight = (iteration / (params["grid"]["resolution"].as<double>() - 1));
+  const int resolution = params["grid"]["resolution"].as<double>();
+  for (int iteration = 0; iteration < resolution; ++iteration) {
+    double weight = (static_cast<double>(iteration) / (resolution - 1));
     x_offsets.push_back(weight * params["grid"]["x_range"].as<double>() - (1 - weight) * params["grid"]["x_range"].as<double>());
     y_offsets.push_back(weight * params["grid"]["y_range"].as<double>() - (1 - weight) * params["grid"]["y_range"].as<double>());
   }
 
   // start main control loop
-  int iterations = 0;
-  auto frequencyTimer = std::chrono::system_clock::now();
+  bool firstTime = true;
   auto pauseTimer = std::chrono::system_clock::now();
   ProbeState probeState = ProbeState::APPROACH;
   while (franka.receive(state)) {
@@ -132,20 +135,29 @@ int main(int argc, char** argv) {
 
       probeState = FINISH;
       std::cout << "### FINISHING" << std::endl;
-      break;
     }
 
     // get the current grid position
     CartesianPose attractor = center;
     Eigen::Vector3d gridPosition = attractor.get_position();
-    gridPosition.x() += x_offsets[x_index];
-    gridPosition.y() += y_offsets[y_index];
-    attractor.set_position(gridPosition);
-    pointDS.set_attractor(attractor);
+    if (!firstTime) {
+      gridPosition.x() += x_offsets[x_index];
+      gridPosition.y() += y_offsets[y_index];
+      attractor.set_position(gridPosition);
+      pointDS.set_attractor(attractor);
+    }
 
     switch (probeState) {
       case APPROACH:
         if ((eeInTask.get_position() - gridPosition).norm() < 0.01) {
+          pauseTimer = std::chrono::system_clock::now();
+          probeState = PAUSE;
+          std::cout << "### PAUSING" << std::endl;
+        }
+        break;
+      case PAUSE: {
+        std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
+        if (elapsed_seconds.count() > 1.0f) {
           if (!ft_sensor.biasOK()) {
             probeState = CALIBRATION;
             std::cout << "### STARTING CALIBRATION PHASE" << std::endl;
@@ -161,10 +173,12 @@ int main(int argc, char** argv) {
           ctrl.angular_stiffness = params["touch"]["ak"].as<double>();
           ctrl.angular_damping = params["touch"]["ad"].as<double>();
 
+          printf("Grid position %i, %i (%i / %i)\n", x_index, y_index, y_index * resolution + x_index + 1, resolution * resolution);
           probeState = TOUCH;
           std::cout << "### STARTING TOUCH PHASE" << std::endl;
         }
         break;
+      }
       case CALIBRATION:
         if (ft_sensor.computeBias(eeInRobot.get_orientation().toRotationMatrix(), 2000)) {
 
@@ -177,6 +191,7 @@ int main(int argc, char** argv) {
           ctrl.angular_stiffness = params["touch"]["ak"].as<double>();
           ctrl.angular_damping = params["touch"]["ad"].as<double>();
 
+          printf("Going to center\n");
           probeState = TOUCH;
           std::cout << "### STARTING TOUCH PHASE" << std::endl;
         }
@@ -187,21 +202,11 @@ int main(int argc, char** argv) {
 
           jsonLogger.addTime();
           jsonLogger.addBody(logger::RAW, eeInRobot);
-          jsonLogger.addField(logger::MessageType::CONTROL, "touch", true);
+          jsonLogger.addField(logger::CONTROL, "touch_position", std::vector<double>({eeInRobot.get_position().x(),
+                                                                                      eeInRobot.get_position().y(),
+                                                                                      eeInRobot.get_position().z()}));
+          jsonLogger.addField(logger::CONTROL, "touch", true);
           jsonLogger.write();
-
-          ++x_index;
-          if (x_index >= params["grid"]["resolution"].as<double>()) {
-            x_index = 0;
-            ++y_index;
-            if (y_index >= params["grid"]["resolution"].as<double>()) {
-              y_index = 0;
-
-              probeState = FINISH;
-              std::cout << "### FINSHING" << std::endl;
-              break;
-            }
-          }
 
           gains[2] = gains[1];
           pointDS.set_gain(gains);
@@ -212,11 +217,38 @@ int main(int argc, char** argv) {
           ctrl.angular_stiffness = params["default"]["ak"].as<double>();
           ctrl.angular_damping = params["default"]["ad"].as<double>();
 
+          probeState = RETRACT;
+          std::cout << "### RETRACTING" << std::endl;
+        }
+        break;
+      case RETRACT:
+        if ((eeInTask.get_position() - gridPosition).norm() < 0.01) {
+          if (!firstTime) {
+            ++x_index;
+            if (x_index >= resolution) {
+              x_index = 0;
+              ++y_index;
+              if (y_index >= resolution) {
+                y_index = 0;
+
+                probeState = FINISH;
+                std::cout << "### FINSHING" << std::endl;
+                break;
+              }
+            }
+          } else {
+            firstTime = false;
+          }
+
+          pauseTimer = std::chrono::system_clock::now();
           probeState = APPROACH;
-          std::cout << "### STARTING TOUCH PHASE" << std::endl;
+          std::cout << "### APPROACHING NEXT POINT" << std::endl;
         }
         break;
       case FINISH:
+        command.jointTorque.data = {0, 0, 0, 0, 0, 0, 0};
+        franka.send(command);
+        optitracker.stop();
         return 0;
     }
 
@@ -234,26 +266,5 @@ int main(int argc, char** argv) {
 
     frankalwi::utils::fromJointTorque(jacobian.transpose() * commandWrenchInRobot, command);
     franka.send(command);
-
-    jsonLogger.addTime();
-    jsonLogger.addBody(logger::RAW, eeInRobot);
-    jsonLogger.addBody(logger::RAW, taskInRobot);
-    jsonLogger.addBody(logger::RAW, ftWrenchInRobot);
-
-    jsonLogger.addBody(logger::FILTERED, eeInRobot);
-    jsonLogger.addBody(logger::FILTERED, ftWrenchInRobotFilt);
-
-    jsonLogger.addCommand(commandTwistInRobot, commandWrenchInRobot);
-
-    jsonLogger.write();
-
-    // frequency
-    ++iterations;
-    if (iterations > 1000) {
-      std::chrono::duration<double> delta = std::chrono::system_clock::now() - frequencyTimer;
-      std::cout << double(1000) / delta.count() << " Hz" << std::endl;
-      frequencyTimer = std::chrono::system_clock::now();
-      iterations = 0;
-    }
   }
 }

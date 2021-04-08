@@ -18,7 +18,7 @@ int main(int, char**) {
   state_representation::CartesianState attractor("attractor", "optitrack");
   state_representation::CartesianPose robotInOptitrack("robot_base", "optitrack");
   state_representation::CartesianState robot_ee("robot_ee", "robot_base");
-  state_representation::Jacobian jacobian("robot", 7);
+  state_representation::Jacobian jacobian("franka", 7, "robot_ee", "robot_base");
 
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> DS(state_representation::CartesianState("attractor", "robot_base"), gains);

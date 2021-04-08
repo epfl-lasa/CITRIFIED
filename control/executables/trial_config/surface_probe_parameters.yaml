@@ -1,0 +1,46 @@
+experiment_prefix: 'YYYYMMDD_'
+surface: 'fruit_00'
+
+# CHECKLIST
+# check the prefix YYYYMMDD_
+# check the surface code fruit_00
+# make sure the center position is aligned with the object
+
+# The attractor center position and orientation during the hold phase
+attractor:
+  position:
+    x: -0.01
+    y: 0.01
+    z: 0.08
+  orientation:
+    w: 0.13
+    x: 0.0
+    y: 0.99
+    z: 0.0
+  gains:
+    linear: 50.0
+    angular: 10.0
+
+grid:
+  resolution: 10
+  x_range: 0.02
+  y_range: 0.02
+
+default:
+  d1: 100   # principle linear damping
+  d2: 100   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+  max_linear_velocity: 0.5  # clamp linear twist command to this magnitude
+  max_angular_velocity: 1.0 # clamp angular twist command to this magnitude
+  max_control_force: 50.0   # clamp wrench force command to this magnitude
+  max_control_torque: 50.0  # clamp wrench torque command to this magnitude
+  max_force: 15             # force magnitude to trigger retraction
+
+touch:
+  d1: 100   # principle linear damping
+  d2: 100   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+  speed: 0.05 # speed of touch approach
+  touch_force: 0.4  # force magnitude to register surface

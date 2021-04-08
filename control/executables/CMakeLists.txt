@@ -19,3 +19,7 @@ target_link_libraries(mocap_point_attractor sensors motion_generators local_cont
 add_executable(incision_trials incision_trials.cpp)
 target_compile_definitions(incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(incision_trials dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)
+
+add_executable(surface_prober surface_prober.cpp)
+target_compile_definitions(surface_prober PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(surface_prober dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)

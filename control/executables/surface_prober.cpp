@@ -11,7 +11,7 @@
 #include "logger/JSONLogger.h"
 
 #define RB_ID_ROBOT_BASE 1
-#define RB_ID_TASK_BASE 5
+#define RB_ID_TASK_BASE 2
 
 using namespace state_representation;
 
@@ -197,7 +197,7 @@ int main(int argc, char** argv) {
         }
         break;
       case TOUCH:
-        if (abs(ftWrenchInRobotFilt.get_force().z()) > params["touch"]["touch_force"].as<double>()) {
+        if (ftWrenchInRobotFilt.get_force().norm() > params["touch"]["touch_force"].as<double>()) {
           std::cout << "Surface detected at position " << eeInRobot.get_position().transpose() << std::endl;
 
           jsonLogger.addTime();
@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
                 y_index = 0;
 
                 probeState = FINISH;
-                std::cout << "### FINSHING" << std::endl;
+                std::cout << "### FINISHING" << std::endl;
                 break;
               }
             }

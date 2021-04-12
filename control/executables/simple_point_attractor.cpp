@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 
   state_representation::CartesianPose attractor("attractor", "franka");
   state_representation::CartesianState robot("end-effector", "franka");
-  state_representation::Jacobian jacobian("franka", 7);
+  state_representation::Jacobian jacobian("franka", 7, "end-effector", "franka");
 
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> DS(attractor, gains);

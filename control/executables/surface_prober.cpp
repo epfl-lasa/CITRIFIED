@@ -34,10 +34,12 @@ int main(int argc, char** argv) {
   center.set_position(params["attractor"]["position"]["x"].as<double>(),
                       params["attractor"]["position"]["y"].as<double>(),
                       params["attractor"]["position"]["z"].as<double>());
-  center.set_orientation(Eigen::Quaterniond(params["attractor"]["orientation"]["w"].as<double>(),
-                                            params["attractor"]["orientation"]["x"].as<double>(),
-                                            params["attractor"]["orientation"]["y"].as<double>(),
-                                            params["attractor"]["orientation"]["z"].as<double>()));
+  Eigen::Quaterniond orientation(0, 0, 1, 0);
+  orientation = Eigen::AngleAxis<double>(params["attractor"]["pitch_angle"].as<double>() * M_PI / 180.0,
+                                         -Eigen::Vector3d::UnitY()) * orientation;
+  orientation = Eigen::AngleAxis<double>(params["attractor"]["yaw_angle"].as<double>() * M_PI / 180.0,
+                                         Eigen::Vector3d::UnitZ()) * orientation;
+  center.set_orientation(orientation);
   auto linearGain = params["attractor"]["gains"]["linear"].as<double>();
   auto angularGain = params["attractor"]["gains"]["angular"].as<double>();
   std::vector<double> gains = {linearGain, linearGain, linearGain, angularGain, angularGain, angularGain};

@@ -39,7 +39,6 @@ int main(int argc, char** argv) {
                                          -Eigen::Vector3d::UnitY()) * orientation;
   orientation = Eigen::AngleAxis<double>(params["attractor"]["yaw_angle"].as<double>() * M_PI / 180.0,
                                          Eigen::Vector3d::UnitZ()) * orientation;
-  std::cout << orientation.coeffs().transpose() << std::endl;
   center.set_orientation(orientation);
   auto linearGain = params["attractor"]["gains"]["linear"].as<double>();
   auto angularGain = params["attractor"]["gains"]["angular"].as<double>();

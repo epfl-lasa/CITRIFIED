@@ -13,7 +13,7 @@ attractor:
     y: 0.01
     z: 0.08
   yaw_angle: 0     # degrees to rotate the initial knife orientation, counter-clockwise from above
-  pitch_angle: 15  # degrees to tilt the knife forward
+  pitch_angle: 15  # degrees to tilt the knife forward, positive around the knife -Y axis
   gains:
     linear: 50.0
     angular: 10.0

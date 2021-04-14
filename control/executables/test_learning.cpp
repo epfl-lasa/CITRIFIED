@@ -1,7 +1,5 @@
 #include <iostream>
-#include <cstdio>
-
-#include <franka_lwi/franka_lwi_communication_protocol.h>
+#include <array>
 
 #include "network/interfaces.h"
 
@@ -12,12 +10,12 @@ int main(int argc, char** argv) {
   // Set up franka ZMQ
   network::Interface gpr(network::InterfaceType::GPR);
 
-  double test = 1;
-  double response;
+  std::array<double, 2> test = {0, 1};
+  std::array<double, 2> response;
   while (true) {
     gpr.send(test);
     if (gpr.poll(response)) {
-      std::cout << response << std::endl;
+      std::cout << response[0] << ", " << response[1] << std::endl;
     }
   }
 }

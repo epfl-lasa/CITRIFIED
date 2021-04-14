@@ -27,8 +27,8 @@ PORT_SSH=2222
 PORT_STATE=5550
 PORT_COMMAND=5551
 PORT_OPTITRACK=5511
-PORT_GPR_STATE=7770
-PORT_GPR_PRED=7771
+PORT_GPR_PRED=7770
+PORT_GPR_STATE=7771
 
 if [ "$REBUILD" -eq 1 ]; then
   DOCKER_BUILDKIT=1 docker build --no-cache --target project-dependencies -f ../Dockerfile --tag $IMAGE_NAME ..

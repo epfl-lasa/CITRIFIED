@@ -11,11 +11,12 @@ done
 shift "$(( OPTIND - 1 ))"
 
 NAME=citrified/learning/runtime
+TAG="latest"
 
-BUILD_FLAGS=(-t "${NAME}")
+BUILD_FLAGS=(-t "${NAME}:${TAG}")
 
 if [ "$REBUILD" -eq 1 ]; then
     BUILD_FLAGS+=(--no-cache)
 fi
 
-DOCKER_BUILDKIT=1 docker build "${BUILD_FLAGS[@]}"  .
+DOCKER_BUILDKIT=1 docker build "${BUILD_FLAGS[@]}" .

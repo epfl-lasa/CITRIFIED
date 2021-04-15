@@ -59,18 +59,6 @@ RUN git clone https://github.com/jbeder/yaml-cpp.git \
 RUN wget https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp \
   && mv json.hpp /usr/local/include
 
-# install limbo
-RUN wget http://members.loria.fr/JBMouret/mirrors/nlopt-2.4.2.tar.gz \
-  && tar -zxvf nlopt-2.4.2.tar.gz \
-  && cd nlopt-2.4.2 \
-  && ./configure -with-cxx --enable-shared --without-python --without-matlab --without-octave \
-  && make install \
-  && ldconfig
-
-RUN git clone -b release-2.1 --single-branch https://github.com/resibots/limbo.git \
-  && mkdir -p /opt/limbo \
-  && cp -r limbo/src /opt/limbo
-
 # install gtest
 RUN mkdir -p /tmp/gtest_build \
   && cd /tmp/gtest_build \
@@ -81,6 +69,7 @@ RUN mkdir -p /tmp/gtest_build \
 # clean up installation artefacts
 WORKDIR /
 RUN rm -rf /tmp/*
+RUN ldconfig
 
 # tag a new build stage that copies the project source files
 FROM project-dependencies as project-sources

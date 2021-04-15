@@ -144,4 +144,8 @@ int ESN::inputDimensions() const {
   return nbInputs_;
 }
 
+std::vector<std::string> ESN::classNames() const {
+  return classNames_;
+}
+
 }

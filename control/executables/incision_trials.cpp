@@ -70,6 +70,8 @@ int main(int argc, char** argv) {
   Eigen::VectorXd esnInputSample(5);
   learning::ESNWrapper esn(esnConfigFile, 50);
   esn.setDerivativeCalculationIndices({3, 4});
+  std::vector<learning::esnPrediction> esnPredictionCollection;
+  std::string classifiedClassName;
   std::cout << "ESN ready" << std::endl;
 
   // set up filters
@@ -218,8 +220,8 @@ int main(int argc, char** argv) {
           esn.stop();
 
           pauseTimer = std::chrono::system_clock::now();
-          trialState = PAUSE;
-          std::cout << "### PAUSING - INCISION DEPTH REACHED" << std::endl;
+          trialState = CLASSIFICATION;
+          std::cout << "### CLASSIFYING - INCISION DEPTH REACHED" << std::endl;
         }
 
         esnSkip--;
@@ -236,6 +238,11 @@ int main(int argc, char** argv) {
         }
         Eigen::MatrixXd timeBuffer, dataBuffer;
         if (auto prediction = esn.getLastPrediction(timeBuffer, dataBuffer)) {
+          std::vector<double> probabilities
+              (prediction->predictions.data(), prediction->predictions.data() + prediction->predictions.size());
+        auto prediction = esn.getLastPrediction(timeBuffer, dataBuffer);
+        if (prediction && esnPredictionCollection.size() < 3) {
+          esnPredictionCollection.emplace_back(*prediction);
           std::vector<double> probabilities
               (prediction->predictions.data(), prediction->predictions.data() + prediction->predictions.size());
           jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
@@ -281,6 +288,19 @@ int main(int argc, char** argv) {
                                  "force_derivative_z",
                                  std::vector<double>(dataBuffer.col(6).data(),
                                                      dataBuffer.col(6).data() + esnBufferSize));
+        }
+        break;
+      }
+      case CLASSIFICATION: {
+        if (auto className = esn.majorityVote(esnPredictionCollection)) {
+          classifiedClassName = *className;
+          trialState = PAUSE;
+          std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
+        } else {
+          std::cout << "Classification failed!" << std::endl;
+          ITS.setRetractionPhase(eeInTask);
+          trialState = RETRACTION;
+          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }
         break;
       }

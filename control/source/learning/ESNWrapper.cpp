@@ -4,9 +4,11 @@
 
 namespace learning {
 
-ESNWrapper::ESNWrapper(const std::string& esnConfigFile, int bufferSize) :
+ESNWrapper::ESNWrapper(const std::string& esnConfigFile, int bufferSize, double minMillisecondsBetweenTimeWindows) :
     esn_(esnConfigFile),
-    bufferSize_(bufferSize) {
+    bufferSize_(bufferSize),
+    minSecondsBetweenTimeWindows_(minMillisecondsBetweenTimeWindows / 1000),
+    lastPredictionTriggered_(std::chrono::system_clock::now()) {
   inputDimensions_ = esn_.inputDimensions();
   dataBuffer_ = Eigen::MatrixXd(bufferSize_, inputDimensions_);
   dataBuffer_.setZero();
@@ -64,13 +66,15 @@ void ESNWrapper::addSample(double time, const Eigen::VectorXd& sample) {
 }
 
 std::optional<esnPrediction> ESNWrapper::classify() {
-  if (!dataBufferReady()) {
+  std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - lastPredictionTriggered_;
+  if (!dataBufferReady() || elapsed_seconds.count() < minSecondsBetweenTimeWindows_) {
     return {};
   }
 
   esnMutex_.lock();
   dataBufferCopy_ = dataBuffer_;
   timeBufferCopy_ = timeBuffer_;
+  lastPredictionTriggered_ = std::chrono::system_clock::now();
   esnMutex_.unlock();
 
   calculateDerivatives();

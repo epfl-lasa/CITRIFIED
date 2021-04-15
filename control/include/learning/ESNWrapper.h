@@ -24,6 +24,8 @@ public:
 
   std::optional<esnPrediction> classify();
 
+  std::optional<std::string> majorityVote(const std::vector<learning::esnPrediction>& predictionCollection);
+
   int predictionSplits = 3;
 
 private:

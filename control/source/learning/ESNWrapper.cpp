@@ -127,7 +127,7 @@ std::optional<std::string> ESNWrapper::majorityVote(const std::vector<learning::
     sumOfProbabilities += prediction.predictions;
   }
   for (const auto& group : indexMap) {
-    if (group.second > 1) {
+    if (group.second > (predictionCollection.size() / 2)) {
       return group.first;
     }
   }

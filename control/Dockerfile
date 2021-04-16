@@ -71,6 +71,15 @@ RUN git clone -b release-2.1 --single-branch https://github.com/resibots/limbo.g
   && mkdir -p /opt/limbo \
   && cp -r limbo/src /opt/limbo
 
+# #install fast-gmm
+# RUN git clone --single-branch git@github.com:epfl-lasa/mathlib.git \
+#   && cd fast-gmm \
+#   && mkdir build \
+#   && cd build \
+#   && cmake .. \
+#   && make \
+#   && make install
+
 # install gtest
 RUN mkdir -p /tmp/gtest_build \
   && cd /tmp/gtest_build \

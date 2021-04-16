@@ -22,3 +22,9 @@ add_subdirectory(learning)
 
 add_library(logger STATIC "")
 add_subdirectory(logger)
+
+add_library(fast_gmm STATIC "")
+add_subdirectory(fast_gmm)
+
+add_library(mathlib STATIC "")
+add_subdirectory(mathlib)

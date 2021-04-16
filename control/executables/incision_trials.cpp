@@ -404,6 +404,21 @@ int main(int argc, char** argv) {
         break;
       }
       case CUT: {
+//        if (prediction.classIndex==1){
+//          double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
+//          double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
+//          if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {
+//            ITS.setRetractionPhase(eeInTask);
+//            trialState = RETRACTION;
+//            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+//          }
+//        }else if (prediction.classIndex==2){
+//
+//        }else if (prediction.classIndex==3){
+//
+//        }else if (prediction.classIndex==4){
+//
+//        }
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
         double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
         if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {

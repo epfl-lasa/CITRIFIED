@@ -115,24 +115,11 @@ bool ESNWrapper::dataBufferReady() const {
   return bufferedSamples_ >= bufferSize_;
 }
 
-std::optional<std::string> ESNWrapper::majorityVote(const std::vector<learning::esnPrediction>& predictionCollection) {
-  if (predictionCollection.size() != 3) {
-    std::cout << "[ESNWrapper::majorityVote] This function was implemented for an input size of 3 only!" << std::endl;
-    return {};
-  }
-  std::unordered_map<std::string, int> indexMap;
+std::string ESNWrapper::getFinalClass(const std::vector<learning::esnPrediction>& predictionCollection) {
   Eigen::VectorXd sumOfProbabilities = Eigen::VectorXd::Zero(predictionCollection.at(0).predictions.size());
   for (const auto& prediction : predictionCollection) {
-    indexMap[prediction.className]++;
     sumOfProbabilities += prediction.predictions;
   }
-  for (const auto& group : indexMap) {
-    if (group.second > (predictionCollection.size() / 2)) {
-      return group.first;
-    }
-  }
-  std::cout << "[ESNWrapper::majorityVote] Each class was predicted once, looking at the probabilities now..."
-            << std::endl;
   Eigen::MatrixXd::Index maxIndex;
   sumOfProbabilities.maxCoeff(&maxIndex);
   std::string className = esn_.classNames().at(maxIndex);

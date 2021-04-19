@@ -38,6 +38,8 @@ private:
 
   esnPrediction classify(const Eigen::MatrixXd& outputSeq, const int& nbSplits) const;
 
+  esnPrediction classify_softmax(const Eigen::MatrixXd& outputSeq, const int& nbSplits) const;
+
   int nbForgetPoints_;
   int nbInternalUnits_;
   int nbInputs_;

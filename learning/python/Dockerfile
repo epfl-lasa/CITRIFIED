@@ -4,7 +4,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /gpr
 
-COPY ./source ./
-RUN pip install ./interface
+COPY ./source ./source
+RUN pip install source/interface
+RUN pip install source/gpr
+
+COPY ./scripts ./scripts
+WORKDIR /gpr/scripts
 
 ENTRYPOINT ["bash"]

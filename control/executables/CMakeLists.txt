@@ -25,4 +25,4 @@ target_compile_definitions(surface_prober PRIVATE TRIAL_CONFIGURATION_DIR="${CMA
 target_link_libraries(surface_prober dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)
 
 add_executable(test_learning test_learning.cpp)
-target_link_libraries(test_learning cppzmq)
+target_link_libraries(test_learning learning cppzmq)

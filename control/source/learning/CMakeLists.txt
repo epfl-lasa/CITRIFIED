@@ -2,6 +2,7 @@ target_sources(learning
     PUBLIC
     ESN.cpp
     ESNWrapper.cpp
+    GPR.cpp
     )
 target_include_directories(learning PUBLIC)
 target_link_libraries(learning Eigen3::Eigen yaml-cpp pthread)

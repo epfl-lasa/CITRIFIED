@@ -1,21 +1,18 @@
 #include <iostream>
 #include <array>
 
-#include "network/interfaces.h"
+#include "learning/GPR.h"
 
-int main(int argc, char** argv) {
-
-  std::cout << std::fixed << std::setprecision(3);
-
-  // Set up franka ZMQ
-  network::Interface gpr(network::InterfaceType::GPR);
-
-  std::array<double, 2> test = {0, 1};
-  std::array<double, 2> response;
-  while (true) {
-    gpr.send(test);
-    if (gpr.poll(response)) {
-      std::cout << response[0] << ", " << response[1] << std::endl;
+int main(int, char**) {
+  learning::GPR gpr(2);
+  std::string fruit = "orange";
+  gpr.initialize(fruit);
+  gpr.initialize(fruit);
+  for (std::size_t i = 0; i < 15; ++i) {
+    std::array<double, 2> request = {static_cast<double>(i), static_cast<double>(i)};
+    gpr.predict(request);
+    if (auto prediction = gpr.latestPrediction()) {
+      std::cout << "mean: " << prediction->mean << ", std: " << prediction->sigma << std::endl;
     }
   }
 }

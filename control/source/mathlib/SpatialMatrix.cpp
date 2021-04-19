@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "SpatialMatrix.h"
+#include "mathlib/SpatialMatrix.h"
 
 
 

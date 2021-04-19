@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "MathLib.h"
+#include "mathlib/MathLib.h"
 //#define MYMAIN
 #ifdef MYMAIN
 

@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "SpatialVector.h"
+#include "mathlib/SpatialVector.h"
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;
 #endif

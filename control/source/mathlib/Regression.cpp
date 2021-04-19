@@ -14,9 +14,9 @@
  * Public License for more details
  */
 
-#include "Regression.h"
+#include "mathlib/Regression.h"
 #include <fstream>
-#include "Vector.h"
+#include "mathlib/Vector.h"
 
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;

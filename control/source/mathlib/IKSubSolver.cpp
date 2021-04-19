@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "IKSubSolver.h"
+#include "mathlib/IKSubSolver.h"
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;
 #endif

@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "ReferenceFrame.h"
+#include "mathlib/ReferenceFrame.h"
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;
 #endif

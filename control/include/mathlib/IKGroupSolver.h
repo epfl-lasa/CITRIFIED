@@ -17,8 +17,8 @@
 #ifndef IKGROUPSOLVER_H_
 #define IKGROUPSOLVER_H_
 
-#include "MathLib.h"
-#include "IKSubSolver.h"
+#include "mathlib/MathLib.h"
+#include "mathlib/IKSubSolver.h"
 
 //#include "RobotLib/ForwardDynamics.h"
 //#include "RobotLib/InverseDynamics.h"

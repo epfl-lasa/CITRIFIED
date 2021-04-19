@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "Vector3.h"
+#include "mathlib/Vector3.h"
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;
 #endif

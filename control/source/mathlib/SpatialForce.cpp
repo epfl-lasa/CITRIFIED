@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "SpatialForce.h"
+#include "mathlib/SpatialForce.h"
 
 
 

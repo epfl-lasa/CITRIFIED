@@ -2,7 +2,7 @@
 // Created by wr on 2021/4/13.
 //
 
-//#include <yaml-cpp/yaml.h>
+#include <yaml-cpp/yaml.h>
 //#include <dynamical_systems/Linear.hpp>
 //#include <dynamical_systems/Ring.hpp>
 //#include "controllers/TwistController.h"
@@ -18,50 +18,38 @@
 
 using namespace state_representation;
 
-bool coupledDSMotionGenerator::InitializeDS() {
-
-//-----------for SEDS-------------
-  if (Priors_.size() != K_gmm_) {
-    ROS_ERROR_STREAM("InitializeDS: " << K_gmm_ << " priors is expected while " << Priors_.size() << " is provided.");
-    return false;
-  }
-
-  if (Mu_.size() != K_gmm_ * dim_) {
-    ROS_ERROR_STREAM(
-            "InitializeDS: " << K_gmm_ * dim_ << " elements in Mu is expected while " << Mu_.size() << " is provided.");
-    return false;
-  }
-
-  if (Sigma_.size() != K_gmm_ * dim_ * dim_) {
-    ROS_ERROR_STREAM(
-            "InitializeDS: " << K_gmm_ * dim_ * dim_ << " elements in Sigma is expected while " << Sigma_.size()
-                             << " is provided.");
-    return false;
-  }
-
-  if (attractor_.size() != 6) {
-    ROS_ERROR_STREAM(
-            "InitializeDS: Please provide 6 elements for the attractor. It has " << attractor_.size() << " elements.");
-    return false;
-  }
-
-  /* Scale Mu and Sigma given scaling factor, default1=, but some models can have really high numbers */
-  for (int i = 0; i < K_gmm_ * dim_; i++) {
-    Mu_[i] = Mu_[i] * Mu_scale_;
-  }
-
-  for (int i = 0; i < K_gmm_ * dim_ * dim_; i++) {
-    Sigma_[i] = Sigma_[i] * Sigma_scale_;
-  }
-
-  SED_GMM_.reset(new GMRDynamics(K_gmm_, dim_, dt_, Priors_, Mu_, Sigma_));
-  SED_GMM_->initGMR(0, 2, 3, 5); //get the input and output Mu and sigma
-}
-
 int main(int, char**){
+
+  double frequency=256,Mu_scale=1, Sigma_scale=1;
+//----- SEDS
+  std::string filepath = std::string(TRIAL_CONFIGURATION_DIR) + "SEDS_parameters.yaml";
+  YAML::Node params = YAML::LoadFile(filepath);
+  auto K_gmm = params["K"].as<int>();
+  auto dim = params["dim"].as<int>();
+  auto Priors = params["Priors"].as<std::vector<double>>();
+  auto Mu = params["Mu"].as<std::vector<double>>();
+  auto Sigma = params["Sigma"].as<std::vector<double>>();
+  auto attractor = params["attractor"].as<std::vector<double>>();
+
   double x=0.1,y=0.1,z=0.1;
   CartesianState eeInRobot = CartesianState::Random("ee","robot");
   eeInRobot.set_position(x,y,z);
   std::cerr<<"eeInRobot: "<<eeInRobot<<std::endl;
+
+  coupledDSMotionGenerator coupledDSMotionGenerator(frequency,
+          //----- SEDS
+                                             K_gmm, dim, Priors, Mu, Sigma,
+                                             Mu_scale, Sigma_scale,
+                                             attractor,
+                                             //----- velocity calculate
+                                              eeInRobot);
+
+  if (!coupledDSMotionGenerator.Init()) {
+    return -1;
+  }
+  else {
+    coupledDSMotionGenerator.Run();
+  };
+
   return 0;
 }

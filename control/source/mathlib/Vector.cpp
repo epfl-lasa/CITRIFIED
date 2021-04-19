@@ -14,8 +14,8 @@
  * Public License for more details
  */
 
-#include "Vector.h"
-#include "Matrix.h"
+#include "mathlib/Vector.h"
+#include "mathlib/Matrix.h"
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;
 #endif

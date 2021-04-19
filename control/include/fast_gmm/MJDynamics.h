@@ -8,7 +8,7 @@
 #ifndef MZDYNAMICS_H_
 #define MZDYNAMICS_H_
 
-#include "MathLib.h"
+#include "mathlib/MathLib.h"
 
 using namespace MathLib;
 

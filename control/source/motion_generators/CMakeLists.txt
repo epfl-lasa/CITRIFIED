@@ -6,7 +6,8 @@ target_sources(motion_generators
         RingDS.cpp
             PointAttractorDS.cpp)
 target_include_directories(motion_generators PUBLIC)
-target_link_libraries(motion_generators Eigen3::Eigen cppzmq state_representation dynamical_systems)
+target_link_libraries(motion_generators Eigen3::Eigen cppzmq state_representation dynamical_systems mathlib fast_gmm)
+target_compile_definitions(motion_generators PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 
 if(BUILD_TESTING)
     file(GLOB_RECURSE MODULE_TEST_SOURCES tests test_*.cpp)

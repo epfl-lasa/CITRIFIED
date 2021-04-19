@@ -17,7 +17,7 @@
 #ifndef IKSUBSOLVER_H_
 #define IKSUBSOLVER_H_
 
-#include "MathLib.h"
+#include "mathlib/MathLib.h"
 
 #ifdef USE_MATHLIB_NAMESPACE
 namespace MathLib {

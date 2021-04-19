@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "Matrix3.h"
+#include "mathlib/Matrix3.h"
 #include <math.h>
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;

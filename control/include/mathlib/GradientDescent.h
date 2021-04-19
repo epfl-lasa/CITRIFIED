@@ -20,7 +20,7 @@
 #include <stdlib.h>
 
 #define GDESCENT_ERROR 1e10
-#include "MathLib.h"
+#include "mathlib/MathLib.h"
 
 #ifdef USE_MATHLIB_NAMESPACE
 namespace MathLib {

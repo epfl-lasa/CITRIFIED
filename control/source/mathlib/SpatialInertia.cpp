@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "SpatialInertia.h"
+#include "mathlib/SpatialInertia.h"
 
 
 

@@ -14,9 +14,9 @@
  * Public License for more details
  */
 
-#include "Differentiator.h"
+#include "mathlib/Differentiator.h"
 
-#include "Macros.h"
+#include "mathlib/Macros.h"
 
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;

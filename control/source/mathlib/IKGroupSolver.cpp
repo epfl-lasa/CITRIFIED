@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "IKGroupSolver.h"
+#include "mathlib/IKGroupSolver.h"
 
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;

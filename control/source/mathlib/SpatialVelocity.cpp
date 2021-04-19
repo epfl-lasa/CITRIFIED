@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "SpatialVelocity.h"
+#include "mathlib/SpatialVelocity.h"
 
 
 

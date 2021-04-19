@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+RUN sudo apt-get update && sudo apt-get install -y liblapack-dev libblas-dev libboost-dev libarmadillo-dev
+
 WORKDIR /tmp
 # get cppzmq bindings
 RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.tar.gz \
@@ -70,15 +72,6 @@ RUN wget http://members.loria.fr/JBMouret/mirrors/nlopt-2.4.2.tar.gz \
 RUN git clone -b release-2.1 --single-branch https://github.com/resibots/limbo.git \
   && mkdir -p /opt/limbo \
   && cp -r limbo/src /opt/limbo
-
-# #install fast-gmm
-# RUN git clone --single-branch git@github.com:epfl-lasa/mathlib.git \
-#   && cd fast-gmm \
-#   && mkdir build \
-#   && cd build \
-#   && cmake .. \
-#   && make \
-#   && make install
 
 # install gtest
 RUN mkdir -p /tmp/gtest_build \

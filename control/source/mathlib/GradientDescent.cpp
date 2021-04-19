@@ -14,7 +14,7 @@
  * Public License for more details
  */
 
-#include "GradientDescent.h"
+#include "mathlib/GradientDescent.h"
 
 #ifdef USE_MATHLIB_NAMESPACE
 using namespace MathLib;

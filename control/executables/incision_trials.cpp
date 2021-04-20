@@ -108,7 +108,7 @@ public:
     std::cout << trialName << std::endl;
 
     esnFilename = params["esn"]["filename"].as<std::string>();
-    esnBufferSize = params["es"]["buffer_size"].as<int>();
+    esnBufferSize = params["esn"]["buffer_size"].as<int>();
     esnMinTimeBetweenPredictions = params["esn"]["min_time_between_predictions"].as<double>();
   }
 

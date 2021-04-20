@@ -86,6 +86,7 @@ The high frequency fields are the main part of the log. These fields will genera
  "gains": [d0, d1, ak, ad]
 },
 "model": {
+  "surface_point": [x, y, z]
   "depth": 0.0,
   "gpr": {...}
 }
@@ -101,6 +102,7 @@ The high frequency fields are the main part of the log. These fields will genera
   - `gains` - an array of controller gains (principle linear damping, orthogonal linear damping,
 angular stiffness, angular damping)
 - `model` - predictions or estimates for signals that are not directly measurable
+  - `surface_point` - occasional x, y, z position expressed **in task frame** from the surface probe measurement. 
   - `depth` - the heuristic estimate of contact depth, triggered by the force sensor on contact and measured as
 as subsequent travel distance along the tool axis. This value is NaN or negative when not defined,
 and positive when defined as inside the surface.

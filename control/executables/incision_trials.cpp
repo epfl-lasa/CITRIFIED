@@ -27,7 +27,7 @@ enum TrialState {
   RETRACTION
 };
 
-static const std::map<TrialState, std::string> trialStateMap {
+static const std::map<TrialState, std::string> trialStateMap{
     {APPROACH, "approach"},
     {CALIBRATION, "calibration"},
     {TOUCH, "touch"},
@@ -77,12 +77,13 @@ public:
     // Configure circular dynamical system
     center.set_orientation(Eigen::Quaterniond::Identity());
     ringDS.set_center(center);
-    ringDS.set_radius(params["circle"]["radius"].as<double>());
-    ringDS.set_width(params["circle"]["width"].as<double>());
-    ringDS.set_speed(params["circle"]["speed"].as<double>());
-    ringDS.set_field_strength(params["circle"]["field_strength"].as<double>());
-    ringDS.set_normal_gain(params["circle"]["normal_gain"].as<double>());
-    ringDS.set_angular_gain(params["circle"]["angular_gain"].as<double>());
+    ringDS.set_radius(params["cut"]["radius"].as<double>());
+    ringDS.set_width(params["cut"]["width"].as<double>());
+    ringDS.set_speed(params["cut"]["speed"].as<double>());
+    ringDS.set_field_strength(params["cut"]["field_strength"].as<double>());
+    ringDS.set_normal_gain(params["cut"]["normal_gain"].as<double>());
+    ringDS.set_angular_gain(params["cut"]["angular_gain"].as<double>());
+    ringDS.set_base_frame(CartesianState::Identity("task", "task"));
 
     // default pose at circle 0 angle (when local Y = 0 and local X > 0)
     //   has the knife X axis pointing along the world Y axis, with Z pointing down
@@ -107,7 +108,9 @@ public:
     std::cout << trialName << std::endl;
   }
 
-  CartesianTwist getTwistCommand(const CartesianState& eeInTask, const CartesianState& taskInRobot, TrialState trialState) {
+  CartesianTwist getTwistCommand(const CartesianState& eeInTask,
+                                 const CartesianState& taskInRobot,
+                                 TrialState trialState) {
     CartesianTwist twistInTask("ee", "task");
     if (trialState == CUT) {
       twistInTask = ringDS.evaluate(eeInTask);
@@ -174,16 +177,16 @@ public:
     ringDS.set_center(centerpose);
 
     // set the controller to specific insertion phase gains
-    ctrl.set_linear_damping(params["circle"]["d1"].as<double>(), params["circle"]["d2"].as<double>());
-    ctrl.angular_stiffness = params["circle"]["ak"].as<double>();
-    ctrl.angular_damping = params["circle"]["ad"].as<double>();
+    ctrl.set_linear_damping(params["cut"]["d1"].as<double>(), params["cut"]["d2"].as<double>());
+    ctrl.angular_stiffness = params["cut"]["ak"].as<double>();
+    ctrl.angular_damping = params["cut"]["ad"].as<double>();
   }
 
-  void setRetractionPhase(const CartesianPose& eeInTask) {
+  void setRetractionPhase(const CartesianPose& eeInTask, double offset = 0.1) {
     // set the point attractor right above the current pose
     auto targetPose = eeInTask;
     auto targetPosition = targetPose.get_position();
-    targetPosition.z() += 0.1;
+    targetPosition.z() += offset;
     targetPose.set_position(targetPosition);
 
     // reset the point attractor DS gains to respect Z axis
@@ -215,18 +218,20 @@ public:
 class CutProber : public IncisionTrialSystem {
 public:
   CutProber() : dt_(1) {
-
+    stepCount = params["probe"]["ms_per_step"].as<int>();
   }
 
   void reset() {
     xy_ = Eigen::MatrixX2d::Zero(2, 0);
     z_ = Eigen::VectorXd::Zero(0);
     dist_ = 0;
+    ang_ = 0;
     full = false;
   }
 
   // starting point for the forward integration
   void setStart(const CartesianPose& eeInTask) {
+    startPose_ = eeInTask;
     poseInTask_ = eeInTask;
     setCutPhase(poseInTask_);
     zVelocity = 0;
@@ -250,22 +255,31 @@ public:
   }
 
   // get a surface height estimate for an XY position in the task frame
-  double estimateHeightInTask(const CartesianPose& eeInTask) {
-    Eigen::MatrixXd dist = xy_.colwise() - Eigen::Vector2d(eeInTask.get_position().x(), eeInTask.get_position().y());
+  double estimateHeightInTask(const CartesianPose& eeInTask) const {
+    Eigen::VectorXd dist =
+        (xy_.colwise() - Eigen::Vector2d(eeInTask.get_position().x(), eeInTask.get_position().y())).colwise().norm();
     // TODO: if any dist is < tol, then just return the z value of that index. Otherwise, calculate weighted average
 
-    Eigen::MatrixXd weights = xy_.cwiseInverse().cwiseAbs2();
+    Eigen::VectorXd weights = dist.cwiseInverse().cwiseAbs2();
     weights /= weights.sum();
 
     return weights.dot(z_);
   }
 
-  int count() {
+  CartesianPose getStart() const {
+    return startPose_;
+  }
+
+  int count() const {
     return z_.size();
   }
 
-  double dist() {
+  double dist() const {
     return dist_;
+  }
+
+  double angle() const {
+    return ang_;
   }
 
   int stepCount = 100;
@@ -276,14 +290,17 @@ private:
     CartesianTwist twistInTask = ringDS.evaluate(poseInTask_);
     auto diff = dt_ * twistInTask;
     dist_ += diff.get_position().norm();
-    poseInTask_ = poseInTask_ + dt_ * twistInTask;
+    ang_ += diff.get_orientation().angularDistance(Eigen::Quaterniond::Identity());
+    poseInTask_ = dt_ * twistInTask + poseInTask_;
   }
 
+  CartesianPose startPose_;
   CartesianPose poseInTask_;
   Eigen::Matrix2Xd xy_;
   Eigen::VectorXd z_;
   std::chrono::milliseconds dt_;
   double dist_ = 0;
+  double ang_ = 0;
 };
 
 int main(int argc, char** argv) {
@@ -320,7 +337,8 @@ int main(int argc, char** argv) {
 
   // set up ESN classifier
   std::cout << "Initializing ESN..." << std::endl;
-  const std::vector<std::string> esnInputFields = {"depth", "velocity_x", "velocity_z", "force_x", "force_z", "force_derivative_x", "force_derivative_z"};
+  const std::vector<std::string> esnInputFields =
+      {"depth", "velocity_x", "velocity_z", "force_x", "force_z", "force_derivative_x", "force_derivative_z"};
   const std::string esnConfigFile = std::string(TRIAL_CONFIGURATION_DIR) + "ESN_march30_0.43000.1.yaml";
   const int esnBufferSize = 50;
   int esnSkip = 2;
@@ -365,6 +383,7 @@ int main(int argc, char** argv) {
 
   std::cout << "Ready to begin trial!" << std::endl;
   // start main control loop
+  bool finished = false;
   int iterations = 0;
   auto frequencyTimer = std::chrono::system_clock::now();
   auto pauseTimer = std::chrono::system_clock::now();
@@ -401,48 +420,65 @@ int main(int argc, char** argv) {
 
     if (ftWrenchInRobot.get_force().norm() > ITS.params["default"]["max_force"].as<double>()) {
       std::cout << "Max force exceeded" << std::endl;
+      CP.full = true;
       ITS.setRetractionPhase(eeInTask);
+      finished = true;
       trialState = RETRACTION;
-      std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+      std::cout << "### ENTERING FINAL RETRACTION PHASE" << std::endl;
       break;
     }
 
     switch (trialState) {
       case APPROACH:
         if ((eeInTask.get_position() - ITS.pointDS.get_attractor().get_position()).norm() < 0.02) {
-          if (!ft_sensor.biasOK()) {
-            trialState = CALIBRATION;
-            std::cout << "### STARTING CALIBRATION PHASE" << std::endl;
-          } else {
+          pauseTimer = std::chrono::system_clock::now();
+          trialState = CALIBRATION;
+          std::cout << "### STARTING CALIBRATION PHASE" << std::endl;
+        }
+        break;
+      case CALIBRATION: {
+        std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
+        if (elapsed_seconds.count() > 2.0f) {
+          if (ft_sensor.computeBias(eeInRobot.get_orientation().toRotationMatrix(), 2000)) {
             ITS.setTouchPhase();
             trialState = TOUCH;
             std::cout << "### STARTING TOUCH PHASE" << std::endl;
           }
         }
         break;
-      case CALIBRATION:
-        if (ft_sensor.computeBias(eeInRobot.get_orientation().toRotationMatrix(), 2000)) {
-          ITS.setTouchPhase();
-          trialState = TOUCH;
-          std::cout << "### STARTING TOUCH PHASE" << std::endl;
-        }
-        break;
+      }
       case TOUCH:
-        if (!touchPoseSet && abs(ftWrenchInRobotFilt.get_force().z()) > ITS.params["touch"]["touch_force"].as<double>()) {
+        if (abs(ftWrenchInRobotFilt.get_force().z()) > ITS.params["touch"]["touch_force"].as<double>()) {
           std::cout << "Surface detected at position " << eeInRobot.get_position().transpose() << std::endl;
-          touchPose = eeInRobot;
-          touchPoseSet = true;
 
           // if we need more touch points, record this one and go back to approach the next one
-          if (CP.count() < 10 && CP.dist() < ITS.params["circle"]["cut_distance"].as<double>()) {
+          if (!CP.full && ITS.cut) {
+            printf("Adding touch position to cut prober (total samples: %i)\n", CP.count());
             CP.addPoint(eeInTask);
-            ITS.setRetractionPhase(eeInTask);
+            jsonLogger.addField(logger::MODEL, "touch_position", std::vector<double>({
+                                                                                         eeInTask.get_position().x(),
+                                                                                         eeInTask.get_position().y(),
+                                                                                         eeInTask.get_position().z()
+                                                                                     }));
+
+            if (CP.count() < ITS.params["probe"]["samples"].as<int>()
+                && CP.angle() < ITS.params["cut"]["arc_angle"].as<double>() * 180 / M_PI
+                && CP.dist() < ITS.params["cut"]["cut_distance"].as<double>()) {
+              ITS.setRetractionPhase(eeInTask, 0.0);
+            } else {
+              CP.full = true;
+              ITS.setRetractionPhase(eeInTask);
+            }
+
             trialState = RETRACTION;
             std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+
           } else {
-            CP.full = true;
             std::cout << "Starting ESN thread" << std::endl;
             esn.start();
+
+            touchPose = eeInRobot;
+            touchPoseSet = true;
 
             ITS.setInsertionPhase();
             trialState = INSERTION;
@@ -478,25 +514,57 @@ int main(int argc, char** argv) {
         }
         Eigen::MatrixXd timeBuffer, dataBuffer;
         if (auto prediction = esn.getLastPrediction(timeBuffer, dataBuffer)) {
-          std::vector<double> probabilities(prediction->predictions.data(), prediction->predictions.data() + prediction->predictions.size());
+          std::vector<double> probabilities
+              (prediction->predictions.data(), prediction->predictions.data() + prediction->predictions.size());
           jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
           jsonLogger.addField(logger::MessageType::ESN, "class_index", prediction->classIndex);
           jsonLogger.addField(logger::MessageType::ESN, "class_name", prediction->className);
 
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "time", std::vector<double>(timeBuffer.data(), timeBuffer.data() + timeBuffer.size()));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "depth", std::vector<double>(dataBuffer.col(0).data(), dataBuffer.col(0).data() + esnBufferSize));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_x", std::vector<double>(dataBuffer.col(1).data(), dataBuffer.col(1).data() + esnBufferSize));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_z", std::vector<double>(dataBuffer.col(2).data(), dataBuffer.col(2).data() + esnBufferSize));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_x", std::vector<double>(dataBuffer.col(3).data(), dataBuffer.col(3).data() + esnBufferSize));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_z", std::vector<double>(dataBuffer.col(4).data(), dataBuffer.col(4).data() + esnBufferSize));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_x", std::vector<double>(dataBuffer.col(5).data(), dataBuffer.col(5).data() + esnBufferSize));
-          jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_z", std::vector<double>(dataBuffer.col(6).data(), dataBuffer.col(6).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN,
+                                 "input",
+                                 "time",
+                                 std::vector<double>(timeBuffer.data(), timeBuffer.data() + timeBuffer.size()));
+          jsonLogger.addSubfield(logger::MessageType::ESN,
+                                 "input",
+                                 "depth",
+                                 std::vector<double>(dataBuffer.col(0).data(),
+                                                     dataBuffer.col(0).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN,
+                                 "input",
+                                 "velocity_x",
+                                 std::vector<double>(dataBuffer.col(1).data(),
+                                                     dataBuffer.col(1).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN,
+                                 "input",
+                                 "velocity_z",
+                                 std::vector<double>(dataBuffer.col(2).data(),
+                                                     dataBuffer.col(2).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN,
+                                 "input",
+                                 "force_x",
+                                 std::vector<double>(dataBuffer.col(3).data(),
+                                                     dataBuffer.col(3).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN,
+                                 "input",
+                                 "force_z",
+                                 std::vector<double>(dataBuffer.col(4).data(),
+                                                     dataBuffer.col(4).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN,
+                                 "input",
+                                 "force_derivative_x",
+                                 std::vector<double>(dataBuffer.col(5).data(),
+                                                     dataBuffer.col(5).data() + esnBufferSize));
+          jsonLogger.addSubfield(logger::MessageType::ESN,
+                                 "input",
+                                 "force_derivative_z",
+                                 std::vector<double>(dataBuffer.col(6).data(),
+                                                     dataBuffer.col(6).data() + esnBufferSize));
         }
         break;
       }
       case PAUSE: {
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
-        if (elapsed_seconds.count() > 2.0f) {
+        if (elapsed_seconds.count() > 1.0f) {
           if (ITS.cut) {
             ITS.setCutPhase(eeInTask);
             trialState = CUT;
@@ -512,23 +580,35 @@ int main(int argc, char** argv) {
       case CUT: {
         auto center = ITS.ringDS.get_center();
         auto position = center.get_position();
-        position.z() = CP.estimateHeightInTask(eeInTask) - ITS.params["circle"]["depth"].as<double>();
+        position.z() = CP.estimateHeightInTask(eeInTask);
+        jsonLogger.addField(logger::MODEL, "depth", position.z() - eeInRobot.get_position().z());
+        position.z() -= ITS.params["cut"]["depth"].as<double>();
         center.set_position(position);
         ITS.ringDS.set_center(center);
+
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
         double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
-        if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > ITS.params["circle"]["cut_distance"].as<double>()) {
+        if (angle > ITS.params["cut"]["arc_angle"].as<double>()
+            || distance > ITS.params["cut"]["cut_distance"].as<double>()) {
           ITS.setRetractionPhase(eeInTask);
+          finished = true;
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }
         break;
       }
       case RETRACTION:
-        if ((eeInTask.get_position() - ITS.pointDS.get_attractor().get_position()).norm() < 0.02) {
+        if (!finished && (eeInTask.get_position() - ITS.pointDS.get_attractor().get_position()).norm() < 0.02) {
           // check if there are more touch points to record
           if (!CP.full) {
-            ITS.pointDS.set_attractor(CP.getNextPointInTask());
+            auto nextPoint = CP.getNextPointInTask();
+            std::cout << "Next touch point in task: " << std::endl;
+            std::cout << nextPoint << std::endl;
+            ITS.pointDS.set_attractor(nextPoint);
+            trialState = TrialState::APPROACH;
+            std::cout << "### STARTING APPROACH PHASE" << std::endl;
+          } else {
+            ITS.pointDS.set_attractor(CP.getStart());
             trialState = TrialState::APPROACH;
             std::cout << "### STARTING APPROACH PHASE" << std::endl;
           }
@@ -543,23 +623,26 @@ int main(int argc, char** argv) {
     franka.send(command);
 
     jsonLogger.addTime();
-    jsonLogger.addBody(logger::RAW, eeInRobot);
-    jsonLogger.addBody(logger::RAW, eeLocalTwist);
-    jsonLogger.addBody(logger::RAW, taskInRobot);
-    jsonLogger.addBody(logger::RAW, ftWrenchInRobot);
-
-    jsonLogger.addBody(logger::FILTERED, eeInRobotFilt);
-    jsonLogger.addBody(logger::FILTERED, eeLocalTwistFilt);
-    jsonLogger.addBody(logger::FILTERED, ftWrenchInRobotFilt);
-
-    jsonLogger.addCommand(commandTwistInRobot, commandWrenchInRobot);
     jsonLogger.addField(logger::CONTROL, "phase", trialStateMap.at(trialState));
-    jsonLogger.addField(logger::CONTROL, "gains", std::vector<double>({
-      ITS.ctrl.get_linear_damping(0),
-      ITS.ctrl.get_linear_damping(1),
-      ITS.ctrl.angular_stiffness,
-      ITS.ctrl.angular_damping
-    }));
+    if (trialState == INSERTION || trialState == CUT) {
+      jsonLogger.addBody(logger::RAW, eeInRobot);
+      jsonLogger.addBody(logger::RAW, eeInTask);
+      jsonLogger.addBody(logger::RAW, eeLocalTwist);
+      jsonLogger.addBody(logger::RAW, taskInRobot);
+      jsonLogger.addBody(logger::RAW, ftWrenchInRobot);
+
+      jsonLogger.addBody(logger::FILTERED, eeInRobotFilt);
+      jsonLogger.addBody(logger::FILTERED, eeLocalTwistFilt);
+      jsonLogger.addBody(logger::FILTERED, ftWrenchInRobotFilt);
+      jsonLogger.addCommand(commandTwistInRobot, commandWrenchInRobot);
+
+      jsonLogger.addField(logger::CONTROL, "gains", std::vector<double>({
+                                                                            ITS.ctrl.get_linear_damping(0),
+                                                                            ITS.ctrl.get_linear_damping(1),
+                                                                            ITS.ctrl.angular_stiffness,
+                                                                            ITS.ctrl.angular_damping
+                                                                        }));
+    }
 
     jsonLogger.write();
 

@@ -1,55 +1,128 @@
 #pragma once
 
 #include <string>
-#include <vector>
-#include <eigen3/Eigen/Core>
+#include <array>
+#include <mutex>
+#include <thread>
+#include <unistd.h>
 #include <iostream>
 
 #include "network/interfaces.h"
 
 namespace learning {
 
+struct gprInitMessage {
+  int header = 0;
+  int classIndex;
+};
+
+template<int inputDim>
+struct gprStateMessage {
+  int header = 3;
+  std::array<double, inputDim> state;
+};
+
 struct gprPrediction {
   double mean = 99;
   double sigma = 99;
 };
 
+template<int inputDim>
 class GPR {
 public:
-  explicit GPR(const int& inputDim);
+  GPR() = default;
 
   ~GPR() = default;
 
-  bool initialize(const std::string& className);
+  bool start(const int& classIndex);
+  void stop();
 
-  template<std::size_t inputDim>
-  bool predict(const std::array<double, inputDim>& state);
+  bool updateState(const std::array<double, inputDim>& state);
 
-  std::optional<gprPrediction> latestPrediction();
+  std::optional<gprPrediction> predict();
+
+  std::optional<gprPrediction> getLastPrediction();
 
 private:
-  const int inputDim_;
-  network::Interface interface_;
-  bool ready_ = false;
-  bool received_ = false;
+  int inputDim_ = 0;
+  network::Interface interface_ = network::Interface(network::InterfaceType::GPR);
+  gprStateMessage<inputDim> state_;
+
+  std::thread gprThread_;
+  std::mutex gprMutex_;
+  bool keepAlive_ = false;
+
+  bool stateReady_ = false;
+  bool predictionReady_ = false;
   gprPrediction prediction_;
+
+  void runPredictor();
 };
 
-template<std::size_t inputDim>
-bool GPR::predict(const std::array<double, inputDim>& state) {
-  if (!ready_) {
-    std::cout << "initialize first" << std::endl;
-    return false;
+template<int inputDim>
+bool GPR<inputDim>::start(const int& classIndex) {
+  inputDim_ = inputDim;
+  gprInitMessage message{0, classIndex};
+  interface_.send(message);
+  bool success = false;
+  interface_.receive(success);
+  if (success) {
+    keepAlive_ = true;
+    gprThread_ = std::thread([this] { runPredictor(); });
   }
+  return success;
+}
+
+template<int inputDim>
+void GPR<inputDim>::stop() {
+  keepAlive_ = false;
+  gprThread_.join();
+}
+
+template<int inputDim>
+void GPR<inputDim>::runPredictor() {
+  while (keepAlive_) {
+    predict();
+    usleep(1000);
+  }
+}
+
+template<int inputDim>
+std::optional<gprPrediction> GPR<inputDim>::getLastPrediction() {
+  if (!predictionReady_) {
+    return {};
+  }
+  predictionReady_ = false;
+  return prediction_;
+}
+
+template<int inputDim>
+bool GPR<inputDim>::updateState(const std::array<double, inputDim>& state) {
   if (state.size() != inputDim_) {
-    std::cout << "state has wrong size" << std::endl;
+    std::cout << "[GPR::updateState] The input has a wrong size: " << state.size() << "!=" << inputDim_ << std::endl;
     return false;
   }
-  interface_.send(state);
+  gprMutex_.lock();
+  state_.state = state;
+  stateReady_ = true;
+  gprMutex_.unlock();
+  return true;
+}
+
+template<int inputDim>
+std::optional<gprPrediction> GPR<inputDim>::predict() {
+  if (!stateReady_) {
+    return {};
+  }
+  interface_.send(state_);
   gprPrediction prediction;
-  received_ = interface_.receive(prediction);
-  prediction_ = prediction;
-  return received_;
+  predictionReady_ = interface_.receive(prediction);
+  if (predictionReady_) {
+    prediction_ = prediction;
+    return prediction_;
+  } else {
+    return {};
+  }
 }
 
 }

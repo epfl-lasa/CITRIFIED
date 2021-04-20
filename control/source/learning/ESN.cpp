@@ -100,7 +100,7 @@ esnPrediction ESN::predict(const Eigen::MatrixXd& data, const int& nbPredictionS
   Eigen::MatrixXd outputSequence = stateCollectionMatrix * outputWeights_.transpose();
   outputSequence = (outputSequence.rowwise() - teacherShift_.transpose()) * invTeacherScalingMatrix_;
 
-  return classify_softmax(outputSequence, nbPredictionSplits);
+  return classify(outputSequence, nbPredictionSplits);
 }
 
 Eigen::MatrixXd ESN::collectStates(const Eigen::MatrixXd& signal) {

@@ -41,35 +41,24 @@ class ZMQInterface(object):
         if datatype == 'd':
             encoded_state = b"".join([struct.pack('d', msg[i]) for i in range(len(msg))])
         elif datatype == '?':
-            encoded_state = b"".join([struct.pack('?', True)])
+            encoded_state = b"".join([struct.pack('?', msg)])
         else:
             encoded_state = []
-            print("This datatype could not be encoded.")
+            print("[ZMQInterface::send] This datatype could not be encoded.")
             exit(1)
         res = self._socket.send(encoded_state, flags=0)
         return res is not None
 
-    def receive(self, datatype='d', flags=0):
+    def receive_raw(self, flags=0):
         """
         Receive message from ZMQ socket.
-        :param datatype: expected datatype
         :param flags: ZMQ flags
-        :type datatype: char
         :type flags: int
-        :return: Message if message was received, False if there was an error
+        :return: Raw message if message was received, False if there was an error
         """
         try:
-            if datatype == 'd':
-                res = self._socket.recv(flags=flags)
-                return [struct.unpack('d', res[i:i + 8])[0] for i in
-                        range(0, len(res), 8)] if res is not None else False
-            elif datatype == 's':
-                res = self._socket.recv_string(flags=flags)
-                return res if res is not None else False
-            else:
-                print("This datatype could not be decoded.")
-                return False
+            return self._socket.recv(flags=flags)
         except zmq.ZMQError as e:
             if e.errno is not zmq.EAGAIN:
                 traceback.print_exc()
-            return False
+            return None

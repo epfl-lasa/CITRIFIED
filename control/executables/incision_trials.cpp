@@ -212,12 +212,87 @@ public:
   bool cut = false;
 };
 
+class CutProber : public IncisionTrialSystem {
+public:
+  CutProber() : dt_(1) {
+
+  }
+
+  void reset() {
+    xy_ = Eigen::MatrixX2d::Zero(2, 0);
+    z_ = Eigen::VectorXd::Zero(0);
+    dist_ = 0;
+    full = false;
+  }
+
+  // starting point for the forward integration
+  void setStart(const CartesianPose& eeInTask) {
+    poseInTask_ = eeInTask;
+    setCutPhase(poseInTask_);
+    zVelocity = 0;
+  }
+
+  // integrate the position to find and return the next probe point
+  CartesianPose getNextPointInTask() {
+    for (int ms = 0; ms < stepCount; ++ms) {
+      step();
+    }
+    return poseInTask_;
+  }
+
+  // add a surface height sample at an XY position in the task frame
+  void addPoint(const CartesianPose& eeInTask) {
+    xy_.conservativeResize(Eigen::NoChange, xy_.cols() + 1);
+    xy_.col(xy_.cols() - 1) = Eigen::Vector2d(eeInTask.get_position().x(), eeInTask.get_position().y());
+
+    z_.conservativeResize(z_.rows() + 1, Eigen::NoChange);
+    z_(z_.size() - 1) = eeInTask.get_position().z();
+  }
+
+  // get a surface height estimate for an XY position in the task frame
+  double estimateHeightInTask(const CartesianPose& eeInTask) {
+    Eigen::MatrixXd dist = xy_.colwise() - Eigen::Vector2d(eeInTask.get_position().x(), eeInTask.get_position().y());
+    // TODO: if any dist is < tol, then just return the z value of that index. Otherwise, calculate weighted average
+
+    Eigen::MatrixXd weights = xy_.cwiseInverse().cwiseAbs2();
+    weights /= weights.sum();
+
+    return weights.dot(z_);
+  }
+
+  int count() {
+    return z_.size();
+  }
+
+  double dist() {
+    return dist_;
+  }
+
+  int stepCount = 100;
+  bool full = false;
+
+private:
+  void step() {
+    CartesianTwist twistInTask = ringDS.evaluate(poseInTask_);
+    auto diff = dt_ * twistInTask;
+    dist_ += diff.get_position().norm();
+    poseInTask_ = poseInTask_ + dt_ * twistInTask;
+  }
+
+  CartesianPose poseInTask_;
+  Eigen::Matrix2Xd xy_;
+  Eigen::VectorXd z_;
+  std::chrono::milliseconds dt_;
+  double dist_ = 0;
+};
 
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // set up control system
   IncisionTrialSystem ITS;
+  CutProber CP;
+  CP.setStart(ITS.pointDS.get_attractor());
 
   // set up logger
   logger::JSONLogger jsonLogger(ITS.trialName);
@@ -334,9 +409,15 @@ int main(int argc, char** argv) {
 
     switch (trialState) {
       case APPROACH:
-        if ((eeInTask.get_position() - ITS.pointDS.get_attractor().get_position()).norm() < 0.05) {
-          trialState = CALIBRATION;
-          std::cout << "### STARTING CALIBRATION PHASE" << std::endl;
+        if ((eeInTask.get_position() - ITS.pointDS.get_attractor().get_position()).norm() < 0.02) {
+          if (!ft_sensor.biasOK()) {
+            trialState = CALIBRATION;
+            std::cout << "### STARTING CALIBRATION PHASE" << std::endl;
+          } else {
+            ITS.setTouchPhase();
+            trialState = TOUCH;
+            std::cout << "### STARTING TOUCH PHASE" << std::endl;
+          }
         }
         break;
       case CALIBRATION:
@@ -352,12 +433,21 @@ int main(int argc, char** argv) {
           touchPose = eeInRobot;
           touchPoseSet = true;
 
-          std::cout << "Starting ESN thread" << std::endl;
-          esn.start();
+          // if we need more touch points, record this one and go back to approach the next one
+          if (CP.count() < 10 && CP.dist() < ITS.params["circle"]["cut_distance"].as<double>()) {
+            CP.addPoint(eeInTask);
+            ITS.setRetractionPhase(eeInTask);
+            trialState = RETRACTION;
+            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+          } else {
+            CP.full = true;
+            std::cout << "Starting ESN thread" << std::endl;
+            esn.start();
 
-          ITS.setInsertionPhase();
-          trialState = INSERTION;
-          std::cout << "### STARTING INSERTION PHASE" << std::endl;
+            ITS.setInsertionPhase();
+            trialState = INSERTION;
+            std::cout << "### STARTING INSERTION PHASE" << std::endl;
+          }
         }
         break;
       case INSERTION: {
@@ -420,9 +510,14 @@ int main(int argc, char** argv) {
         break;
       }
       case CUT: {
+        auto center = ITS.ringDS.get_center();
+        auto position = center.get_position();
+        position.z() = CP.estimateHeightInTask(eeInTask) - ITS.params["circle"]["depth"].as<double>();
+        center.set_position(position);
+        ITS.ringDS.set_center(center);
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
         double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
-        if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {
+        if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > ITS.params["circle"]["cut_distance"].as<double>()) {
           ITS.setRetractionPhase(eeInTask);
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;
@@ -430,6 +525,14 @@ int main(int argc, char** argv) {
         break;
       }
       case RETRACTION:
+        if ((eeInTask.get_position() - ITS.pointDS.get_attractor().get_position()).norm() < 0.02) {
+          // check if there are more touch points to record
+          if (!CP.full) {
+            ITS.pointDS.set_attractor(CP.getNextPointInTask());
+            trialState = TrialState::APPROACH;
+            std::cout << "### STARTING APPROACH PHASE" << std::endl;
+          }
+        }
         break;
     }
 

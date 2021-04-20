@@ -68,4 +68,5 @@ circle:
   field_strength: 2
   normal_gain: 10
   angular_gain: 10
-  arc_angle: 90  # cut distance in degrees
+  arc_angle: 90     # max cut distance in degrees
+  cut_distance: 0.07  # max cut distance in meters

@@ -1,7 +1,6 @@
 #include "learning/ESNWrapper.h"
 
 #include <unistd.h>
-#include <iostream>
 
 namespace learning {
 

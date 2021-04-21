@@ -18,13 +18,15 @@ struct gprInitMessage {
 
 template<int inputDim>
 struct gprStateMessage {
-  int header = 3;
+  int header = 1;
   std::array<double, inputDim> state;
 };
 
 struct gprPrediction {
   double mean = 99;
   double sigma = 99;
+
+  std::vector<double> data() { return std::vector<double>{mean, sigma}; };
 };
 
 template<int inputDim>

@@ -24,7 +24,7 @@ public:
 
   std::optional<esnPrediction> classify();
 
-  std::string getFinalClass(const std::vector<learning::esnPrediction>& predictionCollection);
+  [[nodiscard]] esnPrediction getFinalClass(const std::vector<learning::esnPrediction>& predictionCollection) const;
 
   int predictionSplits = 3;
 

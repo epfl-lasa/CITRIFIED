@@ -114,15 +114,15 @@ bool ESNWrapper::dataBufferReady() const {
   return bufferedSamples_ >= bufferSize_;
 }
 
-std::string ESNWrapper::getFinalClass(const std::vector<learning::esnPrediction>& predictionCollection) {
+esnPrediction ESNWrapper::getFinalClass(const std::vector<learning::esnPrediction>& predictionCollection) const {
   Eigen::VectorXd sumOfProbabilities = Eigen::VectorXd::Zero(predictionCollection.at(0).predictions.size());
   for (const auto& prediction : predictionCollection) {
     sumOfProbabilities += prediction.predictions;
   }
   Eigen::MatrixXd::Index maxIndex;
   sumOfProbabilities.maxCoeff(&maxIndex);
-  std::string className = esn_.classNames().at(maxIndex);
-  return className;
+  esnPrediction prediction = {esn_.classNames().at(maxIndex), static_cast<int>(maxIndex), sumOfProbabilities};
+  return prediction;
 }
 
 }

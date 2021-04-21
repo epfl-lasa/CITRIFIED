@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
   learning::ESNWrapper esn(esnConfigFile, ITS.esnBufferSize, ITS.esnMinTimeBetweenPredictions);
   esn.setDerivativeCalculationIndices({3, 4});
   std::vector<learning::esnPrediction> esnPredictionCollection;
-  std::string classifiedClassName;
+  learning::esnPrediction finalPrediction;
   std::cout << "ESN ready" << std::endl;
 
   // set up filters
@@ -497,10 +497,10 @@ int main(int argc, char** argv) {
         if (esnPredictionCollection.size() < 3) {
           std::cout << "less than 3 predictions available!" << std::endl;
         }
-        classifiedClassName = esn.getFinalClass(esnPredictionCollection);
+        finalPrediction = esn.getFinalClass(esnPredictionCollection);
         trialState = PAUSE;
         std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
-        std::cout << classifiedClassName << std::endl;
+        std::cout << finalPrediction.className << std::endl;
         break;
       }
       case PAUSE: {

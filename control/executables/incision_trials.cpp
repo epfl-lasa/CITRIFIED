@@ -1,9 +1,8 @@
 #include <yaml-cpp/yaml.h>
 
-#include <dynamical_systems/Linear.hpp>
-#include <dynamical_systems/Ring.hpp>
+#include "controllers/IncisionTrialSystem.h"
+#include "controllers/CutProber.h"
 
-#include "controllers/TwistController.h"
 #include "sensors/ForceTorqueSensor.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "sensors/RigidBodyTracker.h"
@@ -17,303 +16,22 @@
 
 using namespace state_representation;
 
-enum TrialState {
-  APPROACH,
-  CALIBRATION,
-  TOUCH,
-  INSERTION,
-  PAUSE,
-  CUT,
-  RETRACTION
-};
-
-static const std::map<TrialState, std::string> trialStateMap{
-    {APPROACH, "approach"},
-    {CALIBRATION, "calibration"},
-    {TOUCH, "touch"},
-    {INSERTION, "insertion"},
-    {PAUSE, "pause"},
-    {CUT, "cut"},
-    {RETRACTION, "retraction"}
-};
-
-class IncisionTrialSystem {
-public:
-  IncisionTrialSystem() :
-      pointDS(CartesianPose::Identity("center", "task")),
-      ringDS(CartesianPose::Identity("center", "task")),
-      ctrl(1, 1, 1, 1) {
-
-    std::string filepath = std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml";
-    params = YAML::LoadFile(filepath);
-
-    std::ifstream filestream(filepath);
-    if (filestream.is_open()) {
-      std::stringstream buf;
-      buf << filestream.rdbuf();
-      yamlContent = buf.str();
-    }
-
-    // Configure linear dynamical system
-    CartesianPose center("center", "task");
-    center.set_position(params["attractor"]["position"]["x"].as<double>(),
-                        params["attractor"]["position"]["y"].as<double>(),
-                        params["attractor"]["position"]["z"].as<double>());
-    Eigen::Quaterniond orientation(0, 0, 1, 0);
-    orientation = Eigen::AngleAxis<double>(params["attractor"]["pitch_angle"].as<double>() * M_PI / 180.0,
-                                           -Eigen::Vector3d::UnitY()) * orientation;
-    orientation = Eigen::AngleAxis<double>(params["attractor"]["yaw_angle"].as<double>() * M_PI / 180.0,
-                                           Eigen::Vector3d::UnitZ()) * orientation;
-    center.set_orientation(orientation);
-
-    auto linearGain = params["attractor"]["gains"]["linear"].as<double>();
-    auto angularGain = params["attractor"]["gains"]["angular"].as<double>();
-    DSgains = {linearGain, linearGain, linearGain, angularGain, angularGain, angularGain};
-
-    pointDS.set_attractor(center);
-    pointDS.set_gain(DSgains);
-    pointDS.set_base_frame(CartesianState::Identity("task", "task"));
-
-    // Configure circular dynamical system
-    center.set_orientation(Eigen::Quaterniond::Identity());
-    ringDS.set_center(center);
-    ringDS.set_radius(params["cut"]["radius"].as<double>());
-    ringDS.set_width(params["cut"]["width"].as<double>());
-    ringDS.set_speed(params["cut"]["speed"].as<double>());
-    ringDS.set_field_strength(params["cut"]["field_strength"].as<double>());
-    ringDS.set_normal_gain(params["cut"]["normal_gain"].as<double>());
-    ringDS.set_angular_gain(params["cut"]["angular_gain"].as<double>());
-    ringDS.set_base_frame(CartesianState::Identity("task", "task"));
-
-    // default pose at circle 0 angle (when local Y = 0 and local X > 0)
-    //   has the knife X axis pointing along the world Y axis, with Z pointing down
-    orientation = Eigen::Quaterniond(0, 1, 1, 0).normalized();
-    orientation = Eigen::AngleAxis<double>(params["attractor"]["pitch_angle"].as<double>() * M_PI / 180.0,
-                                           -Eigen::Vector3d::UnitX()) * orientation;
-    ringDS.set_rotation_offset(orientation);
-
-    // Configure controller
-    ctrl = controllers::TwistController(params["default"]["d1"].as<double>(),
-                                        params["default"]["d2"].as<double>(),
-                                        params["default"]["ak"].as<double>(),
-                                        params["default"]["ad"].as<double>());
-
-    cut = !params["insertion_only"].as<bool>();
-    trialName = params["trial_prefix"].as<std::string>();
-    if (cut) {
-      trialName += "cut_" + params["trial"].as<std::string>() + ".json";
-    } else {
-      trialName += "insertion_" + params["trial"].as<std::string>() + ".json";
-    }
-    std::cout << trialName << std::endl;
-  }
-
-  CartesianTwist getTwistCommand(const CartesianState& eeInTask,
-                                 const CartesianState& taskInRobot,
-                                 TrialState trialState) {
-    CartesianTwist twistInTask("ee", "task");
-    if (trialState == CUT) {
-      twistInTask = ringDS.evaluate(eeInTask);
-    } else if (trialState != PAUSE) {
-      twistInTask = pointDS.evaluate(eeInTask);
-    }
-
-    twistInTask.set_linear_velocity(twistInTask.get_linear_velocity() + Eigen::Vector3d(0, 0, zVelocity));
-    auto twistInRobot = CartesianTwist(taskInRobot * twistInTask);
-
-    twistInRobot.clamp(params["default"]["max_linear_velocity"].as<double>(),
-                       params["default"]["max_angular_velocity"].as<double>());
-
-    return twistInRobot;
-  }
-
-  CartesianWrench getWrenchCommand(const CartesianTwist& twistInRobot, const CartesianState& eeInRobot) {
-    CartesianWrench wrench = ctrl.compute_command(twistInRobot, eeInRobot);
-    wrench.clamp(params["default"]["max_control_force"].as<double>(),
-                 params["default"]["max_control_torque"].as<double>());
-    return wrench;
-  }
-
-  void setDSBaseFrame(const CartesianState& base) {
-    pointDS.set_base_frame(base);
-    ringDS.set_base_frame(base);
-  }
-
-  void setTouchPhase() {
-    // set the point attractor to ignore Z axis, and instead add constant Z velocity
-    DSgains[2] = 0;
-    pointDS.set_gain(DSgains);
-    zVelocity = -params["touch"]["speed"].as<double>();
-
-    // set the controller to specific insertion phase gains
-    ctrl.set_linear_damping(params["touch"]["d1"].as<double>(), params["touch"]["d2"].as<double>());
-    ctrl.angular_stiffness = params["touch"]["ak"].as<double>();
-    ctrl.angular_damping = params["touch"]["ad"].as<double>();
-  }
-
-  void setInsertionPhase() {
-    // set the point attractor to ignore Z axis, and instead add constant Z velocity
-    DSgains[2] = 0;
-    pointDS.set_gain(DSgains);
-    zVelocity = -params["insertion"]["speed"].as<double>();
-
-    // set the controller to specific insertion phase gains
-    ctrl.set_linear_damping(params["insertion"]["d1"].as<double>(), params["insertion"]["d2"].as<double>());
-    ctrl.angular_stiffness = params["insertion"]["ak"].as<double>();
-    ctrl.angular_damping = params["insertion"]["ad"].as<double>();
-  }
-
-  void setCutPhase(const CartesianPose& eeInTask) {
-    zVelocity = 0;
-    // set circle center from current pose (radial distance along negative Y of local knife orientation)
-    std::cout << "Current position: " << eeInTask.get_position().transpose() << std::endl;
-    Eigen::Vector3d center(0, -ringDS.get_radius(), 0);
-    center = eeInTask.get_orientation().toRotationMatrix() * center + eeInTask.get_position();
-    center.z() = eeInTask.get_position().z();
-    std::cout << "Estimated circle center at " << center.transpose() << std::endl;
-
-    auto centerpose = ringDS.get_center();
-    centerpose.set_position(center);
-    ringDS.set_center(centerpose);
-
-    // set the controller to specific insertion phase gains
-    ctrl.set_linear_damping(params["cut"]["d1"].as<double>(), params["cut"]["d2"].as<double>());
-    ctrl.angular_stiffness = params["cut"]["ak"].as<double>();
-    ctrl.angular_damping = params["cut"]["ad"].as<double>();
-  }
-
-  void setRetractionPhase(const CartesianPose& eeInTask, double offset = 0.1) {
-    // set the point attractor right above the current pose
-    auto targetPose = eeInTask;
-    auto targetPosition = targetPose.get_position();
-    targetPosition.z() += offset;
-    targetPose.set_position(targetPosition);
-
-    // reset the point attractor DS gains to respect Z axis
-    pointDS.set_attractor(targetPose);
-    DSgains[2] = DSgains[1];
-    pointDS.set_gain(DSgains);
-    zVelocity = 0;
-
-    // reset the controller to default damping values
-    ctrl.set_linear_damping(params["default"]["d1"].as<double>(), params["default"]["d2"].as<double>());
-    ctrl.angular_stiffness = params["default"]["ak"].as<double>();
-    ctrl.angular_damping = params["default"]["ad"].as<double>();
-  }
-
-  // properties
-  YAML::Node params;
-  std::string trialName;
-  std::string yamlContent;
-
-  dynamical_systems::Linear<CartesianState> pointDS;
-  dynamical_systems::Ring ringDS;
-  controllers::TwistController ctrl;
-  std::vector<double> DSgains;
-
-  double zVelocity = 0.0;
-  bool cut = false;
-};
-
-class CutProber : public IncisionTrialSystem {
-public:
-  CutProber() : dt_(1) {
-    stepCount = params["probe"]["ms_per_step"].as<int>();
-  }
-
-  void reset() {
-    xy_ = Eigen::MatrixX2d::Zero(2, 0);
-    z_ = Eigen::VectorXd::Zero(0);
-    dist_ = 0;
-    ang_ = 0;
-    full = false;
-  }
-
-  // starting point for the forward integration
-  void setStart(const CartesianPose& eeInTask) {
-    startPose_ = eeInTask;
-    poseInTask_ = eeInTask;
-    setCutPhase(poseInTask_);
-    zVelocity = 0;
-  }
-
-  // integrate the position to find and return the next probe point
-  CartesianPose getNextPointInTask() {
-    for (int ms = 0; ms < stepCount; ++ms) {
-      step();
-    }
-    return poseInTask_;
-  }
-
-  // add a surface height sample at an XY position in the task frame
-  void addPoint(const CartesianPose& eeInTask) {
-    xy_.conservativeResize(Eigen::NoChange, xy_.cols() + 1);
-    xy_.col(xy_.cols() - 1) = Eigen::Vector2d(eeInTask.get_position().x(), eeInTask.get_position().y());
-
-    z_.conservativeResize(z_.rows() + 1, Eigen::NoChange);
-    z_(z_.size() - 1) = eeInTask.get_position().z();
-  }
-
-  // get a surface height estimate for an XY position in the task frame
-  double estimateHeightInTask(const CartesianPose& eeInTask) const {
-    Eigen::VectorXd dist =
-        (xy_.colwise() - Eigen::Vector2d(eeInTask.get_position().x(), eeInTask.get_position().y())).colwise().norm();
-    // TODO: if any dist is < tol, then just return the z value of that index. Otherwise, calculate weighted average
-
-    Eigen::VectorXd weights = dist.cwiseInverse().cwiseAbs2();
-    weights /= weights.sum();
-
-    return weights.dot(z_);
-  }
-
-  CartesianPose getStart() const {
-    return startPose_;
-  }
-
-  int count() const {
-    return z_.size();
-  }
-
-  double dist() const {
-    return dist_;
-  }
-
-  double angle() const {
-    return ang_;
-  }
-
-  int stepCount = 100;
-  bool full = false;
-
-private:
-  void step() {
-    CartesianTwist twistInTask = ringDS.evaluate(poseInTask_);
-    auto diff = dt_ * twistInTask;
-    dist_ += diff.get_position().norm();
-    ang_ += diff.get_orientation().angularDistance(Eigen::Quaterniond::Identity());
-    poseInTask_ = dt_ * twistInTask + poseInTask_;
-  }
-
-  CartesianPose startPose_;
-  CartesianPose poseInTask_;
-  Eigen::Matrix2Xd xy_;
-  Eigen::VectorXd z_;
-  std::chrono::milliseconds dt_;
-  double dist_ = 0;
-  double ang_ = 0;
-};
-
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // set up control system
-  IncisionTrialSystem ITS;
-  CutProber CP;
+  auto configFile = std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml";
+  IncisionTrialSystem ITS(configFile);
+  CutProber CP(configFile);
   CP.setStart(ITS.pointDS.get_attractor());
+
+  std::cout << ITS.trialName << std::endl;
 
   // set up logger
   logger::JSONLogger jsonLogger(ITS.trialName);
   jsonLogger.addMetaData(ITS.trialName, ITS.yamlContent);
+  jsonLogger.addSubfield(logger::METADATA, "params", "insertion_depth", ITS.params["insertion"]["depth"].as<double>());
+  jsonLogger.addSubfield(logger::METADATA, "params", "cut_depth", ITS.params["cut"]["depth"].as<double>());
 
   // set up optitrack
   sensors::RigidBodyTracker optitracker;
@@ -581,7 +299,7 @@ int main(int argc, char** argv) {
         auto center = ITS.ringDS.get_center();
         auto position = center.get_position();
         position.z() = CP.estimateHeightInTask(eeInTask);
-        jsonLogger.addField(logger::MODEL, "depth", position.z() - eeInRobot.get_position().z());
+        jsonLogger.addField(logger::MODEL, "depth", position.z() - eeInTask.get_position().z());
         position.z() -= ITS.params["cut"]["depth"].as<double>();
         center.set_position(position);
         ITS.ringDS.set_center(center);

@@ -30,8 +30,11 @@ int main(int argc, char** argv) {
   // set up logger
   logger::JSONLogger jsonLogger(ITS.trialName);
   jsonLogger.addMetaData(ITS.trialName, ITS.yamlContent);
-  jsonLogger.addSubfield(logger::METADATA, "params", "insertion_depth", ITS.params["insertion"]["depth"].as<double>());
-  jsonLogger.addSubfield(logger::METADATA, "params", "cut_depth", ITS.params["cut"]["depth"].as<double>());
+  jsonLogger.addSubfield(logger::METADATA, "insertion", "depth", ITS.params["insertion"]["depth"].as<double>());
+  if (ITS.cut) {
+    jsonLogger.addSubfield(logger::METADATA, "cut", "depth", ITS.params["cut"]["depth"].as<double>());
+    jsonLogger.addSubfield(logger::METADATA, "cut", "radius", ITS.params["cut"]["radius"].as<double>());
+  }
 
   // set up optitrack
   sensors::RigidBodyTracker optitracker;
@@ -169,15 +172,16 @@ int main(int argc, char** argv) {
         if (abs(ftWrenchInRobotFilt.get_force().z()) > ITS.params["touch"]["touch_force"].as<double>()) {
           std::cout << "Surface detected at position " << eeInRobot.get_position().transpose() << std::endl;
 
+          jsonLogger.addField(logger::MODEL, "touch_position", std::vector<double>({
+                                                                                       eeInTask.get_position().x(),
+                                                                                       eeInTask.get_position().y(),
+                                                                                       eeInTask.get_position().z()
+                                                                                   }));
+
           // if we need more touch points, record this one and go back to approach the next one
           if (!CP.full && ITS.cut) {
             printf("Adding touch position to cut prober (total samples: %i)\n", CP.count());
             CP.addPoint(eeInTask);
-            jsonLogger.addField(logger::MODEL, "touch_position", std::vector<double>({
-                                                                                         eeInTask.get_position().x(),
-                                                                                         eeInTask.get_position().y(),
-                                                                                         eeInTask.get_position().z()
-                                                                                     }));
 
             if (CP.count() < ITS.params["probe"]["samples"].as<int>()
                 && CP.angle() < ITS.params["cut"]["arc_angle"].as<double>() * 180 / M_PI
@@ -342,7 +346,7 @@ int main(int argc, char** argv) {
 
     jsonLogger.addTime();
     jsonLogger.addField(logger::CONTROL, "phase", trialStateMap.at(trialState));
-    if (trialState == INSERTION || trialState == CUT) {
+    if (trialState == INSERTION || trialState == PAUSE || trialState == CUT) {
       jsonLogger.addBody(logger::RAW, eeInRobot);
       jsonLogger.addBody(logger::RAW, eeInTask);
       jsonLogger.addBody(logger::RAW, eeLocalTwist);

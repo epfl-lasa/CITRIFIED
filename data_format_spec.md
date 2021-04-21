@@ -45,11 +45,13 @@ These fields will generally only be present in the first log line.
   "datetime": "...",
   "trial": "...",
   "details": "...",
-  "params": {
-    "insertion_depth": 0.01,
-    "cut_depth": 0.01,
-    "cut_radius": 0.01,
-  }
+  "insertion": {
+    "depth": 0.01
+  },
+  "cut": {
+    "depth": 0.01,
+    "radius": 0.01,
+  },
   "esn": {
     "inputs": [],
     "config_file": "...",
@@ -67,10 +69,11 @@ These fields will generally only be present in the first log line.
   - `datetime` - the ISO 8601 current time using UTC timezone, for example "2021-01-23T11:22:33Z"
   - `trial` - the brief identifier code (for example, "apple_01")
   - `details` - the verbose description (the full trial yaml configuration as string)
-  - `params` - the parameters for the insertion and cut interactions
-    - `insertion_depth` - the desired insertion depth in meters
-    - `cut_depth` - the desired cut depth in meters
-    - `cut_radius` - the desired cut radius in meters
+  - `insertion` - the parameters for the insertion interaction
+    - `depth` - the desired insertion depth in meters
+  - `cut` - the parameters for the cut interaction
+    - `depth` - the desired cut depth in meters
+    - `radius` - the desired cut radius in meters
   - `esn` 
     - `inputs` - the names of the input signals
     - `config_file` - the path of the ESN config file

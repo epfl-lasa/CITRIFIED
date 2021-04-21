@@ -10,6 +10,7 @@
 #include "network/interfaces.h"
 #include "logger/JSONLogger.h"
 #include "learning/ESNWrapper.h"
+#include "learning/GPR.h"
 
 #define RB_ID_ROBOT_BASE 1
 #define RB_ID_TASK_BASE 2
@@ -73,6 +74,10 @@ int main(int argc, char** argv) {
   std::vector<learning::esnPrediction> esnPredictionCollection;
   learning::esnPrediction finalESNPrediction;
   std::cout << "ESN ready" << std::endl;
+
+  // set up GPR predictor
+  learning::GPR<2> gpr;
+  bool gprStarted = false;
 
   // set up filters
   filter::DigitalButterworth twistFilter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 6);
@@ -305,8 +310,9 @@ int main(int argc, char** argv) {
         break;
       }
       case PAUSE: {
+        if (!gprStarted) { gprStarted = gpr.start(1); }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
-        if (elapsed_seconds.count() > 1.0f) {
+        if (elapsed_seconds.count() > 2.0f && gprStarted) {
           if (ITS.cut) {
             ITS.setCutPhase(eeInTask);
             trialState = CUT;
@@ -316,6 +322,11 @@ int main(int argc, char** argv) {
             trialState = RETRACTION;
             std::cout << "### STARTING RETRACTION PHASE" << std::endl;
           }
+        }
+        else if (elapsed_seconds.count() > 2.0f && !gprStarted) {
+          ITS.setRetractionPhase(eeInTask);
+          trialState = RETRACTION;
+          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }
         break;
       }
@@ -328,12 +339,19 @@ int main(int argc, char** argv) {
         center.set_position(position);
         ITS.ringDS.set_center(center);
 
+        std::array<double, 2> request = {0.005, eeInRobot.get_linear_velocity().x()};
+        gpr.updateState(request);
+        if (auto prediction = gpr.getLastPrediction()) {
+          std::cout << "mean: " << prediction->mean << ", std: " << prediction->sigma << std::endl;
+          jsonLogger.addField(logger::MODEL, "gpr", prediction->data());
+        }
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
         double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
         if (angle > ITS.params["cut"]["arc_angle"].as<double>()
             || distance > ITS.params["cut"]["cut_distance"].as<double>()) {
           ITS.setRetractionPhase(eeInTask);
           finished = true;
+          gpr.stop();
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }

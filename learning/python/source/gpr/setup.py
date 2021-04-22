@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setuptools.setup(
     name="gpr",
     version="0.1",
-    description="This package implements a GPR evaluation",
+    description="This package implements a GPR evaluation with a ZMQ interface",
     long_description=long_description,
     long_description_content_type="text/markdown",
     # url="https://github.com/pypa/sampleproject",
@@ -17,6 +17,7 @@ setuptools.setup(
         "Operating System :: Unix",
     ],
     install_requires=[
+        "zmq==0.0.0",
         "sklearn",
         "scikit-learn==0.23.2"
     ],

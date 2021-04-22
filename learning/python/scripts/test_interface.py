@@ -1,8 +1,7 @@
 import os
 import struct
 
-from gpr import GPR
-from interface import ZMQInterface
+from gpr import GPR, ZMQInterface
 
 if __name__ == "__main__":
     # create interface with default state_uri and command_uri

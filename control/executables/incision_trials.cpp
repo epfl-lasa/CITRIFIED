@@ -310,7 +310,9 @@ int main(int argc, char** argv) {
         break;
       }
       case PAUSE: {
-        if (!gprStarted) { gprStarted = gpr.start(1); }
+        if (!gprStarted) {
+          gprStarted = gpr.start(1);
+        }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
         if (elapsed_seconds.count() > 2.0f && gprStarted) {
           if (ITS.cut) {
@@ -322,8 +324,7 @@ int main(int argc, char** argv) {
             trialState = RETRACTION;
             std::cout << "### STARTING RETRACTION PHASE" << std::endl;
           }
-        }
-        else if (elapsed_seconds.count() > 2.0f && !gprStarted) {
+        } else if (elapsed_seconds.count() > 2.0f && !gprStarted) {
           ITS.setRetractionPhase(eeInTask);
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;

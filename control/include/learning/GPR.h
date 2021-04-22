@@ -49,7 +49,6 @@ private:
   int inputDim_ = 0;
   network::Interface interface_ = network::Interface(network::InterfaceType::GPR);
   gprStateMessage<inputDim> state_;
-  gprStateMessage<inputDim> stateCopy_;
 
   std::thread gprThread_;
   std::mutex gprMutex_;
@@ -118,9 +117,9 @@ std::optional<gprPrediction> GPR<inputDim>::predict() {
     return {};
   }
   gprMutex_.lock();
-  stateCopy_ = state_;
+  gprStateMessage<inputDim> stateCopy = state_;
   gprMutex_.unlock();
-  interface_.send(stateCopy_);
+  interface_.send(stateCopy);
   gprPrediction prediction;
   predictionReady_ = interface_.receive(prediction);
   if (predictionReady_) {

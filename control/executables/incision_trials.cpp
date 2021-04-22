@@ -498,6 +498,11 @@ int main(int argc, char** argv) {
           std::cout << "less than 3 predictions available!" << std::endl;
         }
         finalPrediction = esn.getFinalClass(esnPredictionCollection);
+        std::vector<double> probabilities(finalPrediction.predictions.data(),
+                                          finalPrediction.predictions.data() + finalPrediction.predictions.size());
+        jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
+        jsonLogger.addField(logger::MessageType::ESN, "class_index", finalPrediction.classIndex);
+        jsonLogger.addField(logger::MessageType::ESN, "class_name", finalPrediction.className);
         trialState = PAUSE;
         std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
         std::cout << finalPrediction.className << std::endl;

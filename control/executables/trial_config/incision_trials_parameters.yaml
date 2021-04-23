@@ -1,8 +1,22 @@
-trial_prefix: 'YYYYMMDD_test_'
+# CHECKLIST:
+# update the fruit number
+# update the trial number
+# change the position / orientation
+# check the insertion depth
+# check the cut radius
+
+# TIPS:
+# The -X direction in optitrack is the +X direction in the robot. -X moves forward (away from the robot)
+# The -Y direction in optitrack is the +Y direction in the robot. -Y moves left
+#
+# Set the cut radius to 1m for a practically straight line cut
+# Set the cut radius to 0.02 for small circle
+
+trial_prefix: 'YYYYMMDD_fruit_00_'
 trial: '00'
 
 # set false to cut after insertion
-insertion_only: true
+insertion_only: false
 
 # The attractor position and orientation during the hold phase
 attractor:
@@ -10,11 +24,8 @@ attractor:
     x: 0.0
     y: 0.0
     z: 0.1
-  orientation:
-    w: 0.0
-    x: 0.0
-    y: 1.0
-    z: 0.0
+  yaw_angle: 0     # degrees to rotate the initial knife orientation, counter-clockwise from above
+  pitch_angle: 15  # degrees to tilt the knife forward, positive around the knife -Y axis
   gains:
     linear: 50.0
     angular: 10.0
@@ -44,17 +55,17 @@ insertion:
   ak: 4     # angular stiffness
   ad: 4     # angular damping
   speed: 0.075
-  depth: 0.005
+  depth: 0.007
 
 circle:
   d1: 200   # principle linear damping
   d2: 150   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping
-  radius: 1.02
+  radius: 0.02
   width: 0.005
   speed: 0.05
   field_strength: 2
   normal_gain: 10
   angular_gain: 10
-  arc_angle: 120  # cut distance in degrees
+  arc_angle: 90  # cut distance in degrees

@@ -159,7 +159,7 @@ int main(int argc, char** argv) {
   frankalwi::proto::CommandMessage<7> command{};
 
   state_representation::CartesianState robot_ee("end-effector", "robot");
-  state_representation::Jacobian jacobian("robot", 7);
+  state_representation::Jacobian jacobian("franka", 7, "end-effector", "robot");
 
   while (franka.receive(state)) {
     frankalwi::utils::toCartesianState(state, robot_ee);

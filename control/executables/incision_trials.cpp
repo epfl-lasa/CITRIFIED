@@ -14,7 +14,6 @@
 
 #define RB_ID_ROBOT_BASE 1
 #define RB_ID_TASK_BASE 2
-#define RB_ID_SURFACE_PROBE 3
 
 using namespace state_representation;
 
@@ -60,10 +59,13 @@ public:
     center.set_position(params["attractor"]["position"]["x"].as<double>(),
                         params["attractor"]["position"]["y"].as<double>(),
                         params["attractor"]["position"]["z"].as<double>());
-    center.set_orientation(Eigen::Quaterniond(params["attractor"]["orientation"]["w"].as<double>(),
-                                              params["attractor"]["orientation"]["x"].as<double>(),
-                                              params["attractor"]["orientation"]["y"].as<double>(),
-                                              params["attractor"]["orientation"]["z"].as<double>()));
+    Eigen::Quaterniond orientation(0, 0, 1, 0);
+    orientation = Eigen::AngleAxis<double>(params["attractor"]["pitch_angle"].as<double>() * M_PI / 180.0,
+                                           -Eigen::Vector3d::UnitY()) * orientation;
+    orientation = Eigen::AngleAxis<double>(params["attractor"]["yaw_angle"].as<double>() * M_PI / 180.0,
+                                           Eigen::Vector3d::UnitZ()) * orientation;
+    center.set_orientation(orientation);
+
     auto linearGain = params["attractor"]["gains"]["linear"].as<double>();
     auto angularGain = params["attractor"]["gains"]["angular"].as<double>();
     DSgains = {linearGain, linearGain, linearGain, angularGain, angularGain, angularGain};
@@ -84,7 +86,10 @@ public:
 
     // default pose at circle 0 angle (when local Y = 0 and local X > 0)
     //   has the knife X axis pointing along the world Y axis, with Z pointing down
-    ringDS.set_rotation_offset(Eigen::Quaterniond(0.0, 0.707, 0.707, 0.0).normalized());
+    orientation = Eigen::Quaterniond(0, 1, 1, 0).normalized();
+    orientation = Eigen::AngleAxis<double>(params["attractor"]["pitch_angle"].as<double>() * M_PI / 180.0,
+                                           -Eigen::Vector3d::UnitX()) * orientation;
+    ringDS.set_rotation_offset(orientation);
 
     // Configure controller
     ctrl = controllers::TwistController(params["default"]["d1"].as<double>(),
@@ -229,9 +234,19 @@ int main(int argc, char** argv) {
   };
   sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
 
+  CartesianState taskInOptitrack("task", "optitrack");
+  CartesianState robotInOptitrack("robot", "optitrack");
+  // wait for optitrack data
+  std::cout << "Waiting for optitrack robot base and task base state..." << std::endl;
+  while (!optitracker.getState(robotInOptitrack, RB_ID_ROBOT_BASE)
+      || !optitracker.getState(taskInOptitrack, RB_ID_TASK_BASE)) {}
+
+  std::cout << "Optitrack ready" << std::endl;
+
   // set up ESN classifier
+  std::cout << "Initializing ESN..." << std::endl;
   const std::vector<std::string> esnInputFields = {"depth", "velocity_x", "velocity_z", "force_x", "force_z", "force_derivative_x", "force_derivative_z"};
-  const std::string esnConfigFile = std::string(TRIAL_CONFIGURATION_DIR) + "test_esn.yaml";
+  const std::string esnConfigFile = std::string(TRIAL_CONFIGURATION_DIR) + "ESN_march30_0.43000.1.yaml";
   const int esnBufferSize = 50;
   int esnSkip = 2;
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "inputs", esnInputFields);
@@ -241,10 +256,12 @@ int main(int argc, char** argv) {
   Eigen::VectorXd esnInputSample(5);
   learning::ESNWrapper esn(esnConfigFile, 50);
   esn.setDerivativeCalculationIndices({3, 4});
+  std::cout << "ESN ready" << std::endl;
 
   // set up filters
   filter::DigitalButterworth twistFilter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 6);
   filter::DigitalButterworth wrenchFilter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 6);
+  filter::DigitalButterworth stateFilter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 13);
 
   // set up robot connection
   network::Interface franka(network::InterfaceType::FRANKA_LWI);
@@ -253,14 +270,13 @@ int main(int argc, char** argv) {
 
   // prepare all state objects
   CartesianState eeInRobot("ee", "robot");
-  CartesianState taskInOptitrack("task", "optitrack");
-  CartesianState robotInOptitrack("robot", "optitrack");
+  CartesianState eeInRobotFilt = eeInRobot;
   CartesianWrench ftWrenchInRobot("ft_sensor", "robot");
   CartesianTwist eeLocalTwist("ee", "ee");
   CartesianTwist eeLocalTwistFilt = eeLocalTwist;
   CartesianWrench ftWrenchInRobotFilt = ftWrenchInRobot;
 
-  state_representation::Jacobian jacobian("robot", 7, "ee", "robot");
+  state_representation::Jacobian jacobian("franka", 7, "ee", "robot");
 
   CartesianPose touchPose = eeInRobot;
   bool touchPoseSet = false;
@@ -268,17 +284,11 @@ int main(int argc, char** argv) {
   filter::DigitalButterworth filter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 4);
   auto filterInput = Eigen::VectorXd::Zero(4);
 
-  // wait for optitrack data
-  std::cout << "Waiting for optitrack robot base and task base state..." << std::endl;
-  while (!optitracker.getState(robotInOptitrack, RB_ID_ROBOT_BASE)
-      || !optitracker.getState(taskInOptitrack, RB_ID_TASK_BASE)) {}
-
-  std::cout << "Optitrack ready" << std::endl;
-
   jsonLogger.addBody(logger::MessageType::STATIC, robotInOptitrack);
   jsonLogger.addBody(logger::MessageType::STATIC, taskInOptitrack);
   jsonLogger.write();
 
+  std::cout << "Ready to begin trial!" << std::endl;
   // start main control loop
   int iterations = 0;
   auto frequencyTimer = std::chrono::system_clock::now();
@@ -303,7 +313,14 @@ int main(int argc, char** argv) {
       ft_sensor.readContactWrench(ftWrenchInRobot, eeInRobot.get_orientation().toRotationMatrix());
     }
 
-    // filter data
+    // filter data: robot state
+    Eigen::Matrix<double, 13, 1> stateVector;
+    stateVector << eeInRobot.get_pose(), eeInRobot.get_twist();
+    auto stateFilt = stateFilter.computeFilterOutput(stateVector);
+    eeInRobotFilt.set_pose(stateFilt.head(7));
+    eeInRobotFilt.set_twist(stateFilt.tail(6));
+
+    // filter data: localised twist and force
     eeLocalTwistFilt.set_twist(twistFilter.computeFilterOutput(eeLocalTwist.get_twist()));
     ftWrenchInRobotFilt.set_wrench(wrenchFilter.computeFilterOutput(ftWrenchInRobot.get_wrench()));
 
@@ -376,7 +393,6 @@ int main(int argc, char** argv) {
           jsonLogger.addField(logger::MessageType::ESN, "class_index", prediction->classIndex);
           jsonLogger.addField(logger::MessageType::ESN, "class_name", prediction->className);
 
-          // TODO: add utility to jsonlogger or esnwrapper to make casting Eigen to json objects easier
           jsonLogger.addSubfield(logger::MessageType::ESN, "input", "time", std::vector<double>(timeBuffer.data(), timeBuffer.data() + timeBuffer.size()));
           jsonLogger.addSubfield(logger::MessageType::ESN, "input", "depth", std::vector<double>(dataBuffer.col(0).data(), dataBuffer.col(0).data() + esnBufferSize));
           jsonLogger.addSubfield(logger::MessageType::ESN, "input", "velocity_x", std::vector<double>(dataBuffer.col(1).data(), dataBuffer.col(1).data() + esnBufferSize));
@@ -444,7 +460,7 @@ int main(int argc, char** argv) {
     jsonLogger.addBody(logger::RAW, taskInRobot);
     jsonLogger.addBody(logger::RAW, ftWrenchInRobot);
 
-    jsonLogger.addBody(logger::FILTERED, eeInRobot);
+    jsonLogger.addBody(logger::FILTERED, eeInRobotFilt);
     jsonLogger.addBody(logger::FILTERED, eeLocalTwistFilt);
     jsonLogger.addBody(logger::FILTERED, ftWrenchInRobotFilt);
 

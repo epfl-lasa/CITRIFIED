@@ -107,17 +107,14 @@ public:
             std::vector<double> Sigma,
             double Mu_scale,
             double Sigma_scale,
-            std::vector<double> attractor,
-            CartesianState eeInRobot
+            std::vector<double> attractor
     );
 
     ~coupledDSMotionGenerator(void);
 
     bool Init();
 
-    void Run();
-
-    void ComputeDesiredVelocity();
+    MathLib::Vector ComputeDesiredVelocity(const CartesianState& eeInRobot_);
 
 private:
 

@@ -17,8 +17,7 @@ coupledDSMotionGenerator::coupledDSMotionGenerator(
         std::vector<double> Sigma,
         double Mu_scale,
         double Sigma_scale,
-        std::vector<double> attractor,
-        CartesianState eeInRobot)
+        std::vector<double> attractor)
         :
 //-----SEDS
         K_gmm_(K_gmm),
@@ -28,8 +27,7 @@ coupledDSMotionGenerator::coupledDSMotionGenerator(
         Sigma_(Sigma),
         Mu_scale_(Mu_scale),
         Sigma_scale_(Sigma_scale),
-        attractor_(attractor),
-        eeInRobot_(eeInRobot){
+        attractor_(attractor){
 }
 
 coupledDSMotionGenerator *coupledDSMotionGenerator::me = NULL;
@@ -125,18 +123,15 @@ bool coupledDSMotionGenerator::InitializeDS() {
 }
 //}
 
-void coupledDSMotionGenerator::Run() {
-  ComputeDesiredVelocity();
-}
-
-void coupledDSMotionGenerator::ComputeDesiredVelocity() {
+MathLib::Vector coupledDSMotionGenerator::ComputeDesiredVelocity(const CartesianState& eeInRobot_) {
   Trans_pose.Resize(3);
   Trans_pose(0)=eeInRobot_.get_position().x();
   Trans_pose(1)=eeInRobot_.get_position().y();
   Trans_pose(2)=eeInRobot_.get_position().z();
 
   desired_velocity_ = SED_GMM_->getVelocity(Trans_pose);
-  std::cerr<<"desired_velocity_"<<desired_velocity_<<std::endl;
+  return desired_velocity_;
+
 }
 
 coupledDSMotionGenerator::~coupledDSMotionGenerator(){

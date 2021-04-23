@@ -25,6 +25,10 @@ add_executable(rui_test rui_test.cpp)
 target_compile_definitions(rui_test PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(rui_test dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger motion_generators)
 
+add_executable(rui_incision_trials rui_incision_trials.cpp)
+target_compile_definitions(rui_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(rui_incision_trials dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger motion_generators)
+
 add_executable(surface_prober surface_prober.cpp)
 target_compile_definitions(surface_prober PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(surface_prober dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)

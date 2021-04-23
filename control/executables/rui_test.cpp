@@ -31,25 +31,32 @@ int main(int, char**){
   auto Sigma = params["Sigma"].as<std::vector<double>>();
   auto attractor = params["attractor"].as<std::vector<double>>();
 
-  double x=0.1,y=0.1,z=0.1;
+  double x=0.1,y=0.1,z=2;
   CartesianState eeInRobot = CartesianState::Random("ee","robot");
-  eeInRobot.set_position(x,y,z);
-  std::cerr<<"eeInRobot: "<<eeInRobot<<std::endl;
+//  std::cerr<<"eeInRobot: "<<eeInRobot<<std::endl;
+
+  MathLib::Vector desired_velocity;
 
   coupledDSMotionGenerator coupledDSMotionGenerator(frequency,
           //----- SEDS
                                              K_gmm, dim, Priors, Mu, Sigma,
                                              Mu_scale, Sigma_scale,
-                                             attractor,
-                                             //----- velocity calculate
-                                              eeInRobot);
+                                             attractor);
 
   if (!coupledDSMotionGenerator.Init()) {
     return -1;
   }
   else {
-    coupledDSMotionGenerator.Run();
+    while (z>0){
+      z=z-0.01;
+      eeInRobot.set_position(x,y,z);
+      desired_velocity = coupledDSMotionGenerator.ComputeDesiredVelocity(eeInRobot);
+      std::cerr<<"desired_velocity"<<desired_velocity<<std::endl;
+    }
+
   };
+
+
 
   return 0;
 }

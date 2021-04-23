@@ -60,16 +60,18 @@ int main(int argc, char** argv) {
   std::cout << "Initializing ESN..." << std::endl;
   const std::vector<std::string> esnInputFields =
       {"depth", "velocity_x", "velocity_z", "force_x", "force_z", "force_derivative_x", "force_derivative_z"};
-  const std::string esnConfigFile = std::string(TRIAL_CONFIGURATION_DIR) + "ESN_march30_0.43000.1.yaml";
-  const int esnBufferSize = 50;
+  const std::string esnConfigFile = std::string(TRIAL_CONFIGURATION_DIR) + ITS.esnFilename;
   int esnSkip = 2;
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "inputs", esnInputFields);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "config_file", esnConfigFile);
-  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "buffer_size", esnBufferSize);
+  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "buffer_size", ITS.esnBufferSize);
+  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "min_time_between_predictions", ITS.esnMinTimeBetweenPredictions);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "sampling_frequency", 500.0);
   Eigen::VectorXd esnInputSample(5);
-  learning::ESNWrapper esn(esnConfigFile, 50);
+  learning::ESNWrapper esn(esnConfigFile, ITS.esnBufferSize, ITS.esnMinTimeBetweenPredictions);
   esn.setDerivativeCalculationIndices({3, 4});
+  std::vector<learning::esnPrediction> esnPredictionCollection;
+  learning::esnPrediction finalPrediction;
   std::cout << "ESN ready" << std::endl;
 
   // set up filters
@@ -218,8 +220,8 @@ int main(int argc, char** argv) {
           esn.stop();
 
           pauseTimer = std::chrono::system_clock::now();
-          trialState = PAUSE;
-          std::cout << "### PAUSING - INCISION DEPTH REACHED" << std::endl;
+          trialState = CLASSIFICATION;
+          std::cout << "### CLASSIFYING - INCISION DEPTH REACHED" << std::endl;
         }
 
         esnSkip--;
@@ -235,7 +237,9 @@ int main(int argc, char** argv) {
           esnSkip = 2;
         }
         Eigen::MatrixXd timeBuffer, dataBuffer;
-        if (auto prediction = esn.getLastPrediction(timeBuffer, dataBuffer)) {
+        auto prediction = esn.getLastPrediction(timeBuffer, dataBuffer);
+        if (prediction && esnPredictionCollection.size() < 3) {
+          esnPredictionCollection.emplace_back(*prediction);
           std::vector<double> probabilities
               (prediction->predictions.data(), prediction->predictions.data() + prediction->predictions.size());
           jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
@@ -250,38 +254,53 @@ int main(int argc, char** argv) {
                                  "input",
                                  "depth",
                                  std::vector<double>(dataBuffer.col(0).data(),
-                                                     dataBuffer.col(0).data() + esnBufferSize));
+                                                     dataBuffer.col(0).data() + ITS.esnBufferSize));
           jsonLogger.addSubfield(logger::MessageType::ESN,
                                  "input",
                                  "velocity_x",
                                  std::vector<double>(dataBuffer.col(1).data(),
-                                                     dataBuffer.col(1).data() + esnBufferSize));
+                                                     dataBuffer.col(1).data() + ITS.esnBufferSize));
           jsonLogger.addSubfield(logger::MessageType::ESN,
                                  "input",
                                  "velocity_z",
                                  std::vector<double>(dataBuffer.col(2).data(),
-                                                     dataBuffer.col(2).data() + esnBufferSize));
+                                                     dataBuffer.col(2).data() + ITS.esnBufferSize));
           jsonLogger.addSubfield(logger::MessageType::ESN,
                                  "input",
                                  "force_x",
                                  std::vector<double>(dataBuffer.col(3).data(),
-                                                     dataBuffer.col(3).data() + esnBufferSize));
+                                                     dataBuffer.col(3).data() + ITS.esnBufferSize));
           jsonLogger.addSubfield(logger::MessageType::ESN,
                                  "input",
                                  "force_z",
                                  std::vector<double>(dataBuffer.col(4).data(),
-                                                     dataBuffer.col(4).data() + esnBufferSize));
+                                                     dataBuffer.col(4).data() + ITS.esnBufferSize));
           jsonLogger.addSubfield(logger::MessageType::ESN,
                                  "input",
                                  "force_derivative_x",
                                  std::vector<double>(dataBuffer.col(5).data(),
-                                                     dataBuffer.col(5).data() + esnBufferSize));
+                                                     dataBuffer.col(5).data() + ITS.esnBufferSize));
           jsonLogger.addSubfield(logger::MessageType::ESN,
                                  "input",
                                  "force_derivative_z",
                                  std::vector<double>(dataBuffer.col(6).data(),
-                                                     dataBuffer.col(6).data() + esnBufferSize));
+                                                     dataBuffer.col(6).data() + ITS.esnBufferSize));
         }
+        break;
+      }
+      case CLASSIFICATION: {
+        if (esnPredictionCollection.size() < 3) {
+          std::cout << "less than 3 predictions available!" << std::endl;
+        }
+        finalPrediction = esn.getFinalClass(esnPredictionCollection);
+        std::vector<double> probabilities(finalPrediction.predictions.data(),
+                                          finalPrediction.predictions.data() + finalPrediction.predictions.size());
+        jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
+        jsonLogger.addField(logger::MessageType::ESN, "class_index", finalPrediction.classIndex);
+        jsonLogger.addField(logger::MessageType::ESN, "class_name", finalPrediction.className);
+        trialState = PAUSE;
+        std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
+        std::cout << finalPrediction.className << std::endl;
         break;
       }
       case PAUSE: {

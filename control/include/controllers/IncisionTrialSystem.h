@@ -8,7 +8,7 @@
 #include "controllers/TwistController.h"
 
 enum TrialState {
-  APPROACH, CALIBRATION, TOUCH, INSERTION, PAUSE, CUT, RETRACTION
+  APPROACH, CALIBRATION, TOUCH, INSERTION, CLASSIFICATION, PAUSE, CUT, RETRACTION
 };
 
 static const std::map<TrialState, std::string> trialStateMap
@@ -16,6 +16,7 @@ static const std::map<TrialState, std::string> trialStateMap
      {CALIBRATION, "calibration"},
      {TOUCH, "touch"},
      {INSERTION, "insertion"},
+     {CLASSIFICATION, "classification"},
      {PAUSE, "pause"},
      {CUT, "cut"},
      {RETRACTION, "retraction"}};
@@ -53,4 +54,8 @@ public:
 
   double zVelocity = 0.0;
   bool cut = false;
+
+  std::string esnFilename;
+  int esnBufferSize = 50;
+  double esnMinTimeBetweenPredictions = 0;
 };

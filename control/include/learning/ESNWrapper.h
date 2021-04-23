@@ -3,6 +3,7 @@
 #include <optional>
 #include <thread>
 #include <mutex>
+#include <chrono>
 
 #include "learning/ESN.h"
 
@@ -10,7 +11,7 @@ namespace learning {
 
 class ESNWrapper {
 public:
-  explicit ESNWrapper(const std::string& esnConfigFile, int bufferSize);
+  explicit ESNWrapper(const std::string& esnConfigFile, int bufferSize, double minMillisecondsBetweenTimeWindows = 0);
   void setDerivativeCalculationIndices(const std::vector<int>& indices);
 
   void start();
@@ -22,6 +23,8 @@ public:
   void addSample(double time, const Eigen::VectorXd& sample);
 
   std::optional<esnPrediction> classify();
+
+  [[nodiscard]] esnPrediction getFinalClass(const std::vector<learning::esnPrediction>& predictionCollection) const;
 
   int predictionSplits = 3;
 
@@ -40,6 +43,9 @@ private:
   int inputDimensions_;
   int bufferSize_;
   int bufferedSamples_ = 0;
+
+  double minSecondsBetweenTimeWindows_;
+  std::chrono::time_point<std::chrono::system_clock> lastPredictionTriggered_;
 
   void runClassifier();
 

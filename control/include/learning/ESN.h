@@ -25,6 +25,8 @@ public:
 
   int inputDimensions() const;
 
+  std::vector<std::string> classNames() const;
+
 private:
   static void readInt(const YAML::Node& params, const std::string& paramName, int& var);
 
@@ -35,6 +37,8 @@ private:
   Eigen::MatrixXd collectStates(const Eigen::MatrixXd& data);
 
   esnPrediction classify(const Eigen::MatrixXd& outputSeq, const int& nbSplits) const;
+
+  esnPrediction classify_softmax(const Eigen::MatrixXd& outputSeq, const int& nbSplits) const;
 
   int nbForgetPoints_;
   int nbInternalUnits_;

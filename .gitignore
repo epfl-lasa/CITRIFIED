@@ -8,3 +8,6 @@
 /rviz_visualization/ros_ws/devel/
 /rviz_visualization/ros_ws/src/CMakeLists.txt
 /rviz_visualization/ros_ws/.catkin_workspace
+
+*.mat
+*.jpg

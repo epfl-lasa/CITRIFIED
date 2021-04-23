@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
   learning::ESNWrapper esn(esnConfigFile, ITS.esnBufferSize, ITS.esnMinTimeBetweenPredictions);
   esn.setDerivativeCalculationIndices({3, 4});
   std::vector<learning::esnPrediction> esnPredictionCollection;
-  learning::esnPrediction finalPrediction;
+  learning::esnPrediction finalESNPrediction;
   std::cout << "ESN ready" << std::endl;
 
   // set up filters
@@ -237,14 +237,14 @@ int main(int argc, char** argv) {
           esnSkip = 2;
         }
         Eigen::MatrixXd timeBuffer, dataBuffer;
-        auto prediction = esn.getLastPrediction(timeBuffer, dataBuffer);
-        if (prediction && esnPredictionCollection.size() < 3) {
-          esnPredictionCollection.emplace_back(*prediction);
+        auto esnPrediction = esn.getLastPrediction(timeBuffer, dataBuffer);
+        if (esnPrediction && esnPredictionCollection.size() < 3) {
+          esnPredictionCollection.emplace_back(*esnPrediction);
           std::vector<double> probabilities
-              (prediction->predictions.data(), prediction->predictions.data() + prediction->predictions.size());
+              (esnPrediction->predictions.data(), esnPrediction->predictions.data() + esnPrediction->predictions.size());
           jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
-          jsonLogger.addField(logger::MessageType::ESN, "class_index", prediction->classIndex);
-          jsonLogger.addField(logger::MessageType::ESN, "class_name", prediction->className);
+          jsonLogger.addField(logger::MessageType::ESN, "class_index", esnPrediction->classIndex);
+          jsonLogger.addField(logger::MessageType::ESN, "class_name", esnPrediction->className);
 
           jsonLogger.addSubfield(logger::MessageType::ESN,
                                  "input",
@@ -292,15 +292,16 @@ int main(int argc, char** argv) {
         if (esnPredictionCollection.size() < 3) {
           std::cout << "less than 3 predictions available!" << std::endl;
         }
-        finalPrediction = esn.getFinalClass(esnPredictionCollection);
-        std::vector<double> probabilities(finalPrediction.predictions.data(),
-                                          finalPrediction.predictions.data() + finalPrediction.predictions.size());
+        finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
+        std::vector<double> probabilities(finalESNPrediction.predictions.data(),
+                                          finalESNPrediction.predictions.data() + finalESNPrediction.predictions.size());
         jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
-        jsonLogger.addField(logger::MessageType::ESN, "class_index", finalPrediction.classIndex);
-        jsonLogger.addField(logger::MessageType::ESN, "class_name", finalPrediction.className);
+        jsonLogger.addField(logger::MessageType::ESN, "class_index", finalESNPrediction.classIndex);
+        jsonLogger.addField(logger::MessageType::ESN, "class_name", finalESNPrediction.className);
+        esn.stop();
         trialState = PAUSE;
         std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
-        std::cout << finalPrediction.className << std::endl;
+        std::cout << finalESNPrediction.className << std::endl;
         break;
       }
       case PAUSE: {

@@ -346,7 +346,7 @@ int main(int argc, char** argv) {
 
     jsonLogger.addTime();
     jsonLogger.addField(logger::CONTROL, "phase", trialStateMap.at(trialState));
-    if (trialState == INSERTION || trialState == PAUSE || trialState == CUT) {
+    if (!ITS.cut || CP.full) {
       jsonLogger.addBody(logger::RAW, eeInRobot);
       jsonLogger.addBody(logger::RAW, eeInTask);
       jsonLogger.addBody(logger::RAW, eeLocalTwist);

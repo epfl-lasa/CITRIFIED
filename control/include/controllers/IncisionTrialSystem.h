@@ -12,8 +12,14 @@ enum TrialState {
 };
 
 static const std::map<TrialState, std::string> trialStateMap
-    {{APPROACH, "approach"}, {CALIBRATION, "calibration"}, {TOUCH, "touch"}, {INSERTION, "insertion"},
-     {CLASSIFICATION, "classification"}, {PAUSE, "pause"}, {CUT, "cut"}, {RETRACTION, "retraction"}};
+    {{APPROACH, "approach"},
+     {CALIBRATION, "calibration"},
+     {TOUCH, "touch"},
+     {INSERTION, "insertion"},
+     {CLASSIFICATION, "classification"},
+     {PAUSE, "pause"},
+     {CUT, "cut"},
+     {RETRACTION, "retraction"}};
 
 class IncisionTrialSystem {
 public:

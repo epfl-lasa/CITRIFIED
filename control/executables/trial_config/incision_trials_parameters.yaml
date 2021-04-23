@@ -31,8 +31,8 @@ attractor:
     angular: 10.0
 
 default:
-  d1: 100   # principle linear damping
-  d2: 100   # secondary linear damping
+  d1: 50   # principle linear damping
+  d2: 50   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping
   max_linear_velocity: 0.5  # clamp linear twist command to this magnitude
@@ -47,7 +47,7 @@ touch:
   ak: 4     # angular stiffness
   ad: 4     # angular damping
   speed: 0.05 # speed of touch approach
-  touch_force: 0.5  # force magnitude to register surface
+  touch_force: 0.4  # force magnitude to register surface
 
 insertion:
   d1: 210   # principle linear damping
@@ -55,17 +55,24 @@ insertion:
   ak: 4     # angular stiffness
   ad: 4     # angular damping
   speed: 0.075
-  depth: 0.007
+  depth: 0.0075
 
-circle:
+cut:
+  depth: 0.0075
   d1: 200   # principle linear damping
   d2: 150   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping
-  radius: 0.02
+  radius: 1.00
   width: 0.005
   speed: 0.05
   field_strength: 2
   normal_gain: 10
   angular_gain: 10
-  arc_angle: 90  # cut distance in degrees
+  arc_angle: 90     # max cut distance in degrees
+  cut_distance: 0.07  # max cut distance in meters
+
+probe:
+  samples: 10  # maximum number of surface samples to collect
+  ms_per_step: 100 # integration interval in milliseconds between each probe sample
+

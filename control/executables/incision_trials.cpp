@@ -66,7 +66,10 @@ int main(int argc, char** argv) {
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "inputs", esnInputFields);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "config_file", esnConfigFile);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "buffer_size", ITS.esnBufferSize);
-  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "min_time_between_predictions", ITS.esnMinTimeBetweenPredictions);
+  jsonLogger.addSubfield(logger::MessageType::METADATA,
+                         "esn",
+                         "min_time_between_predictions",
+                         ITS.esnMinTimeBetweenPredictions);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "sampling_frequency", 500.0);
   Eigen::VectorXd esnInputSample(5);
   learning::ESNWrapper esn(esnConfigFile, ITS.esnBufferSize, ITS.esnMinTimeBetweenPredictions);
@@ -245,8 +248,8 @@ int main(int argc, char** argv) {
         auto esnPrediction = esn.getLastPrediction(timeBuffer, dataBuffer);
         if (esnPrediction && esnPredictionCollection.size() < 3) {
           esnPredictionCollection.emplace_back(*esnPrediction);
-          std::vector<double> probabilities
-              (esnPrediction->predictions.data(), esnPrediction->predictions.data() + esnPrediction->predictions.size());
+          std::vector<double> probabilities(esnPrediction->predictions.data(),
+                                            esnPrediction->predictions.data() + esnPrediction->predictions.size());
           jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
           jsonLogger.addField(logger::MessageType::ESN, "class_index", esnPrediction->classIndex);
           jsonLogger.addField(logger::MessageType::ESN, "class_name", esnPrediction->className);
@@ -340,12 +343,14 @@ int main(int argc, char** argv) {
         center.set_position(position);
         ITS.ringDS.set_center(center);
 
-        std::array<double, 2> request = {0.005, eeInRobot.get_linear_velocity().x()};
-        gpr.updateState(request);
-        if (auto prediction = gpr.getLastPrediction()) {
-          std::cout << "mean: " << prediction->mean << ", std: " << prediction->sigma << std::endl;
-          jsonLogger.addField(logger::MODEL, "gpr", prediction->data());
+        std::array<double, 2>
+            gprRequest = {position.z() - eeInTask.get_position().z(), eeInRobotFilt.get_linear_velocity().x()};
+        gpr.updateState(gprRequest);
+        if (auto gprPrediction = gpr.getLastPrediction()) {
+          std::cout << "mean: " << gprPrediction->mean << ", std: " << gprPrediction->sigma << std::endl;
+          jsonLogger.addField(logger::MODEL, "gpr", gprPrediction->data());
         }
+
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
         double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
         if (angle > ITS.params["cut"]["arc_angle"].as<double>()

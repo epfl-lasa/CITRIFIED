@@ -292,20 +292,19 @@ int main(int argc, char** argv) {
 
   // ----------- rui: define and run SEDS
   double frequency=256,Mu_scale=1, Sigma_scale=1;
-  bool SEDS_state;
+  bool SEDS_state=0;
   std::string filepath = std::string(TRIAL_CONFIGURATION_DIR) + "SEDS_parameters.yaml";
-  YAML::Node params = YAML::LoadFile(filepath);
-  auto K_gmm = params["K"].as<int>();
-  auto dim = params["dim"].as<int>();
-  auto Priors = params["Priors"].as<std::vector<double>>();
-  auto Mu = params["Mu"].as<std::vector<double>>();
-  auto Sigma = params["Sigma"].as<std::vector<double>>();
-  auto attractor = params["attractor"].as<std::vector<double>>();
-
+  YAML::Node SEDS_params = YAML::LoadFile(filepath);
+  auto K_gmm = SEDS_params["K"].as<int>();
+  auto dim = SEDS_params["dim"].as<int>();
+  auto Priors = SEDS_params["Priors"].as<std::vector<double>>();
+  auto Mu = SEDS_params["Mu"].as<std::vector<double>>();
+  auto Sigma = SEDS_params["Sigma"].as<std::vector<double>>();
+  auto attractor = SEDS_params["attractor"].as<std::vector<double>>();
   double x,y,z;
   MathLib::Vector desired_velocity;
   coupledDSMotionGenerator coupledDSMotionGenerator(frequency,
-          //----- SEDS
+                                                  //----- SEDS
                                                     K_gmm, dim, Priors, Mu, Sigma,
                                                     Mu_scale, Sigma_scale,
                                                     attractor);

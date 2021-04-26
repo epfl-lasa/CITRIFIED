@@ -291,6 +291,12 @@ int main(int argc, char** argv) {
   jsonLogger.write();
 
   // ----------- rui: define and run SEDS
+  // set a linear DS for fixed robot orientation
+  state_representation::CartesianPose attractor_ori("attractor", "robot");
+  // make a linear ds in 6 Cartesian degrees of freedom, but generate a twist only in the angular degrees
+  std::vector<double> gains = {0.0, 0.0, 0.0, 10.0, 10.0, 10.0};
+  dynamical_systems::Linear<state_representation::CartesianState> orientation_ds(attractor_ori, gains);
+  // set SEDS
   double frequency=256,Mu_scale=1, Sigma_scale=1;
   bool SEDS_state=0;
   std::string filepath = std::string(TRIAL_CONFIGURATION_DIR) + "SEDS_parameters.yaml";
@@ -302,6 +308,7 @@ int main(int argc, char** argv) {
   auto Sigma = SEDS_params["Sigma"].as<std::vector<double>>();
   auto attractor = SEDS_params["attractor"].as<std::vector<double>>();
   double x,y,z;
+
   MathLib::Vector desired_velocity;
   coupledDSMotionGenerator coupledDSMotionGenerator(frequency,
                                                   //----- SEDS
@@ -462,6 +469,11 @@ int main(int argc, char** argv) {
 //        }else if (prediction.classIndex==4){
 //
 //        }
+        //----- rui: run linear ds for fixed ori
+        attractor_ori.set_position(Eigen::Vector3d(attractor[0], attractor[1], attractor[2]));
+        attractor_ori.set_orientation(Eigen::Quaterniond(attractor[6], attractor[3], attractor[4], attractor[5]));
+        orientation_ds.set_attractor(attractor_ori);
+
         //-----rui: try run SEDS
         desired_velocity = coupledDSMotionGenerator.ComputeDesiredVelocity(eeInRobot);
         std::cerr<<"desired_velocity"<<desired_velocity<<std::endl;
@@ -481,6 +493,16 @@ int main(int argc, char** argv) {
 
     CartesianTwist commandTwistInRobot = ITS.getTwistCommand(eeInTask, taskInRobot, trialState);
     CartesianWrench commandWrenchInRobot = ITS.getWrenchCommand(commandTwistInRobot, eeInRobot);
+    if (trialState == CUT) {
+      commandTwistInRobot.set_linear_velocity(
+              Eigen::Vector3d(desired_velocity(0), desired_velocity(1), desired_velocity(2)) +
+              Eigen::Vector3d(0, 0, ITS.zVelocity));
+      commandTwistInRobot.clamp(ITS.params["default"]["max_linear_velocity"].as<double>(),
+                                ITS.params["default"]["max_angular_velocity"].as<double>());
+      // get twist command for just the orientation
+      state_representation::CartesianTwist orientation_twist = orientation_ds.evaluate(eeInRobot);
+      commandTwistInRobot.set_angular_velocity(orientation_twist.get_angular_velocity());
+    }
 
     frankalwi::utils::fromJointTorque(jacobian.transpose() * commandWrenchInRobot, command);
     franka.send(command);

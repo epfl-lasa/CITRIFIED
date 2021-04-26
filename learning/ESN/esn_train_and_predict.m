@@ -1,5 +1,6 @@
 function [trained_esn, predicted_train_output, predicted_test_output, test_time_mean, test_time_std] = ...
     esn_train_and_predict(esn, train_input, train_output, test_input, nb_forget_points)
+    
 
 disp('Training ESN ............');
 esn.internalWeights = esn.spectralRadius * esn.internalWeights_UnitSR;

@@ -122,7 +122,7 @@ Eigen::MatrixXd ESN::collectStates(const Eigen::MatrixXd& signal) {
 esnPrediction ESN::classify(const Eigen::MatrixXd& outputSeq, const int& nbSplits) const {
   int split = outputSeq.rows() / nbSplits;
   Eigen::MatrixXd averagePredictedOutput = Eigen::MatrixXd::Zero(nbSplits, nbOutputs_);
-  for (std::size_t i = 0; i < nbSplits - 1; ++i) {
+  for (int i = 0; i < nbSplits - 1; ++i) {
     averagePredictedOutput.row(i) = outputSeq.middleRows(i * split, split).colwise().mean();
   }
   averagePredictedOutput.row(nbSplits - 1) =
@@ -140,8 +140,36 @@ esnPrediction ESN::classify(const Eigen::MatrixXd& outputSeq, const int& nbSplit
   return result;
 }
 
+esnPrediction ESN::classify_softmax(const Eigen::MatrixXd& outputSeq, const int& nbSplits) const {
+  int split = outputSeq.rows() / nbSplits;
+  Eigen::MatrixXd averagePredictedOutput = Eigen::MatrixXd::Zero(nbSplits, nbOutputs_);
+  for (int i = 0; i < nbSplits - 1; ++i) {
+    averagePredictedOutput.row(i) = outputSeq.middleRows(i * split, split).colwise().mean();
+  }
+  averagePredictedOutput.row(nbSplits - 1) =
+      outputSeq.bottomRows(outputSeq.rows() - (nbSplits - 1) * split).colwise().mean();
+  Eigen::VectorXd sumOfAveragePredictedOutput = averagePredictedOutput.colwise().sum();
+  double softmaxSum = sumOfAveragePredictedOutput.unaryExpr(&exp).sum();
+  for (int i = 0; i < nbOutputs_; ++i) {
+    sumOfAveragePredictedOutput(i) = exp(sumOfAveragePredictedOutput(i)) / softmaxSum;
+  }
+
+  esnPrediction result;
+  Eigen::MatrixXd::Index maxIndex;
+  sumOfAveragePredictedOutput.maxCoeff(&maxIndex);
+  result.classIndex = maxIndex;
+  result.className = classNames_.at(maxIndex);
+  result.predictions = sumOfAveragePredictedOutput;
+
+  return result;
+}
+
 int ESN::inputDimensions() const {
   return nbInputs_;
+}
+
+std::vector<std::string> ESN::classNames() const {
+  return classNames_;
 }
 
 }

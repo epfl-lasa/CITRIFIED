@@ -1,4 +1,4 @@
-Format version `v1.0`
+Format version `v1.1`
 
 # CITRIFIED data logging format spec
 
@@ -41,10 +41,17 @@ These fields will generally only be present in the first log line.
 ```json
 
 "metadata": {
-  "version": 1.0,
+  "version": 1.1,
   "datetime": "...",
   "trial": "...",
   "details": "...",
+  "insertion": {
+    "depth": 0.01
+  },
+  "cut": {
+    "depth": 0.01,
+    "radius": 0.01,
+  },
   "esn": {
     "inputs": [],
     "config_file": "...",
@@ -62,6 +69,11 @@ These fields will generally only be present in the first log line.
   - `datetime` - the ISO 8601 current time using UTC timezone, for example "2021-01-23T11:22:33Z"
   - `trial` - the brief identifier code (for example, "apple_01")
   - `details` - the verbose description (the full trial yaml configuration as string)
+  - `insertion` - the parameters for the insertion interaction
+    - `depth` - the desired insertion depth in meters
+  - `cut` - the parameters for the cut interaction
+    - `depth` - the desired cut depth in meters
+    - `radius` - the desired cut radius in meters
   - `esn` 
     - `inputs` - the names of the input signals
     - `config_file` - the path of the ESN config file
@@ -86,6 +98,7 @@ The high frequency fields are the main part of the log. These fields will genera
  "gains": [d0, d1, ak, ad]
 },
 "model": {
+  "surface_point": [x, y, z]
   "depth": 0.0,
   "gpr": {...}
 }
@@ -101,9 +114,10 @@ The high frequency fields are the main part of the log. These fields will genera
   - `gains` - an array of controller gains (principle linear damping, orthogonal linear damping,
 angular stiffness, angular damping)
 - `model` - predictions or estimates for signals that are not directly measurable
-  - `depth` - the heuristic estimate of contact depth, triggered by the force sensor on contact and measured as
-as subsequent travel distance along the tool axis. This value is NaN or negative when not defined,
-and positive when defined as inside the surface.
+  - `surface_point` - occasional x, y, z position expressed **in task frame** from the surface probe measurement. 
+  - `depth` - the estimate of insertion or cut depth, measured along the task Z axis with respect to surface
+  measurements made with the FT sensor. This value is positive when inside the surface, and only available within
+  the INSERTION and CUT phases.
   - `gpr` - the prediction details of the continuous state model
 
 ## Low frequency message fields

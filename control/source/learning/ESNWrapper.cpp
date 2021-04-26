@@ -4,9 +4,11 @@
 
 namespace learning {
 
-ESNWrapper::ESNWrapper(const std::string& esnConfigFile, int bufferSize) :
+ESNWrapper::ESNWrapper(const std::string& esnConfigFile, int bufferSize, double minMillisecondsBetweenTimeWindows) :
     esn_(esnConfigFile),
-    bufferSize_(bufferSize) {
+    bufferSize_(bufferSize),
+    minSecondsBetweenTimeWindows_(minMillisecondsBetweenTimeWindows / 1000),
+    lastPredictionTriggered_(std::chrono::system_clock::now()) {
   inputDimensions_ = esn_.inputDimensions();
   dataBuffer_ = Eigen::MatrixXd(bufferSize_, inputDimensions_);
   dataBuffer_.setZero();
@@ -64,13 +66,15 @@ void ESNWrapper::addSample(double time, const Eigen::VectorXd& sample) {
 }
 
 std::optional<esnPrediction> ESNWrapper::classify() {
-  if (!dataBufferReady()) {
+  std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - lastPredictionTriggered_;
+  if (!dataBufferReady() || elapsed_seconds.count() < minSecondsBetweenTimeWindows_) {
     return {};
   }
 
   esnMutex_.lock();
   dataBufferCopy_ = dataBuffer_;
   timeBufferCopy_ = timeBuffer_;
+  lastPredictionTriggered_ = std::chrono::system_clock::now();
   esnMutex_.unlock();
 
   calculateDerivatives();
@@ -108,6 +112,17 @@ void ESNWrapper::calculateDerivatives() {
 
 bool ESNWrapper::dataBufferReady() const {
   return bufferedSamples_ >= bufferSize_;
+}
+
+esnPrediction ESNWrapper::getFinalClass(const std::vector<learning::esnPrediction>& predictionCollection) const {
+  Eigen::VectorXd sumOfProbabilities = Eigen::VectorXd::Zero(predictionCollection.at(0).predictions.size());
+  for (const auto& prediction : predictionCollection) {
+    sumOfProbabilities += prediction.predictions;
+  }
+  Eigen::MatrixXd::Index maxIndex;
+  sumOfProbabilities.maxCoeff(&maxIndex);
+  esnPrediction prediction = {esn_.classNames().at(maxIndex), static_cast<int>(maxIndex), sumOfProbabilities};
+  return prediction;
 }
 
 }

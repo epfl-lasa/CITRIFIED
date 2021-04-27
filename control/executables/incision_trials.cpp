@@ -348,7 +348,6 @@ int main(int argc, char** argv) {
             gprRequest = {position.z() - eeInTask.get_position().z(), eeInRobotFilt.get_linear_velocity().x()};
         gpr.updateState(gprRequest);
         if (auto gprPrediction = gpr.getLastPrediction()) {
-          std::cout << "mean: " << gprPrediction->mean << ", std: " << gprPrediction->sigma << std::endl;
           jsonLogger.addField(logger::MODEL, "gpr", gprPrediction->data());
         }
 

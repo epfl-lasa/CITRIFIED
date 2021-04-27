@@ -68,7 +68,7 @@ bool GPR<inputDim>::start(const int& classIndex) {
   interface_.send(message);
   bool success = false;
   interface_.receive(success);
-  if (success) {
+  if (success && !keepAlive_) {
     keepAlive_ = true;
     gprThread_ = std::thread([this] { runPredictor(); });
   }

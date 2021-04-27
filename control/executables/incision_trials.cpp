@@ -57,6 +57,12 @@ int main(int argc, char** argv) {
 
   std::cout << "Optitrack ready" << std::endl;
 
+  // set up GPR predictor
+  learning::GPR<2> gpr;
+  bool gprStarted = false;
+  gpr.start(1);
+  std::cout << "GPR will be ready" << std::endl;
+
   // set up ESN classifier
   std::cout << "Initializing ESN..." << std::endl;
   const std::vector<std::string> esnInputFields =
@@ -77,10 +83,6 @@ int main(int argc, char** argv) {
   std::vector<learning::esnPrediction> esnPredictionCollection;
   learning::esnPrediction finalESNPrediction;
   std::cout << "ESN ready" << std::endl;
-
-  // set up GPR predictor
-  learning::GPR<2> gpr;
-  bool gprStarted = false;
 
   // set up filters
   filter::DigitalButterworth twistFilter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 6);

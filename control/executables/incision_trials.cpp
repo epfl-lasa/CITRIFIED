@@ -298,7 +298,7 @@ int main(int argc, char** argv) {
       }
       case CLASSIFICATION: {
         if (esnPredictionCollection.size() < 3) {
-          std::cout << "less than 3 predictions available!" << std::endl;
+          std::cout << "less than 3 predictions available! (" << esnPredictionCollection.size() << ")" << std::endl;
         }
         finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
         std::vector<double> probabilities(finalESNPrediction.predictions.data(),
@@ -306,7 +306,7 @@ int main(int argc, char** argv) {
         jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
         jsonLogger.addField(logger::MessageType::ESN, "class_index", finalESNPrediction.classIndex);
         jsonLogger.addField(logger::MessageType::ESN, "class_name", finalESNPrediction.className);
-        esn.stop();
+//        esn.stop();
         trialState = PAUSE;
         std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
         std::cout << finalESNPrediction.className << std::endl;
@@ -323,6 +323,7 @@ int main(int argc, char** argv) {
             trialState = CUT;
             std::cout << "### STARTING CUT PHASE" << std::endl;
           } else {
+            finished = true;
             ITS.setRetractionPhase(eeInTask);
             trialState = RETRACTION;
             std::cout << "### STARTING RETRACTION PHASE" << std::endl;

@@ -32,9 +32,12 @@ int main(int argc, char** argv) {
   logger::JSONLogger jsonLogger(ITS.trialName);
   jsonLogger.addMetaData(ITS.trialName, ITS.yamlContent);
   jsonLogger.addSubfield(logger::METADATA, "insertion", "depth", ITS.params["insertion"]["depth"].as<double>());
+  jsonLogger.addSubfield(logger::METADATA, "insertion", "pitch", ITS.params["attractor"]["pitch_angle"].as<double>());
   if (ITS.cut) {
     jsonLogger.addSubfield(logger::METADATA, "cut", "depth", ITS.params["cut"]["depth"].as<double>());
     jsonLogger.addSubfield(logger::METADATA, "cut", "radius", ITS.params["cut"]["radius"].as<double>());
+    jsonLogger.addSubfield(logger::METADATA, "cut", "speed", ITS.params["cut"]["speed"].as<double>());
+    jsonLogger.addSubfield(logger::METADATA, "cut", "normal_gain", ITS.params["cut"]["normal_gain"].as<double>());
   }
 
   // set up optitrack
@@ -309,12 +312,15 @@ int main(int argc, char** argv) {
         if (esnPredictionCollection.size() < 3) {
           std::cout << "less than 3 predictions available! (" << esnPredictionCollection.size() << ")" << std::endl;
         }
-        finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
-        std::vector<double> probabilities(finalESNPrediction.predictions.data(),
-                                          finalESNPrediction.predictions.data() + finalESNPrediction.predictions.size());
-        jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
-        jsonLogger.addField(logger::MessageType::ESN, "class_index", finalESNPrediction.classIndex);
-        jsonLogger.addField(logger::MessageType::ESN, "class_name", finalESNPrediction.className);
+        if (!esnPredictionCollection.empty()) {
+          finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
+          std::vector<double> probabilities(finalESNPrediction.predictions.data(),
+                                            finalESNPrediction.predictions.data()
+                                                + finalESNPrediction.predictions.size());
+          jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
+          jsonLogger.addField(logger::MessageType::ESN, "class_index", finalESNPrediction.classIndex);
+          jsonLogger.addField(logger::MessageType::ESN, "class_name", finalESNPrediction.className);
+        }
         esn.stop();
         trialState = PAUSE;
         std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;

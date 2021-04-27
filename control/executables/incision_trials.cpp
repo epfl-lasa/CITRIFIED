@@ -315,7 +315,7 @@ int main(int argc, char** argv) {
         jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
         jsonLogger.addField(logger::MessageType::ESN, "class_index", finalESNPrediction.classIndex);
         jsonLogger.addField(logger::MessageType::ESN, "class_name", finalESNPrediction.className);
-//        esn.stop();
+        esn.stop();
         trialState = PAUSE;
         std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
         std::cout << finalESNPrediction.className << std::endl;

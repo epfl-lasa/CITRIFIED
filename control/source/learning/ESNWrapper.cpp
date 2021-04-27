@@ -30,7 +30,7 @@ void ESNWrapper::start() {
 
 void ESNWrapper::stop() {
   keepAlive_ = false;
-  esnThread_.join();
+//  esnThread_.join();
 }
 
 std::optional<esnPrediction> ESNWrapper::getLastPrediction() {

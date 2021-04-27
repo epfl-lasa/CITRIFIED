@@ -30,7 +30,8 @@ void ESNWrapper::start() {
 
 void ESNWrapper::stop() {
   keepAlive_ = false;
-//  esnThread_.join();
+  // FIXME: trying to join the thread causes a SIGABRT (system_error)
+  // esnThread_.join();
 }
 
 std::optional<esnPrediction> ESNWrapper::getLastPrediction() {

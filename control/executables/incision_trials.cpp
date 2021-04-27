@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
   learning::GPR<2> gpr;
   bool gprStarted = false;
   gpr.start(1);
-  std::cout << "GPR will be ready" << std::endl;
+  std::cout << "GPR server ready" << std::endl;
 
   // set up ESN classifier
   std::cout << "Initializing ESN..." << std::endl;

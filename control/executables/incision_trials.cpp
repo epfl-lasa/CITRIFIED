@@ -234,6 +234,8 @@ int main(int argc, char** argv) {
           std::cout << "Stopping ESN thread" << std::endl;
           esn.stop();
 
+          // hold the current position
+          ITS.setRetractionPhase(eeInTask, 0.0);
           pauseTimer = std::chrono::system_clock::now();
           trialState = CLASSIFICATION;
           std::cout << "### CLASSIFYING - INCISION DEPTH REACHED" << std::endl;
@@ -324,8 +326,8 @@ int main(int argc, char** argv) {
           gprStarted = gpr.start(1);
         }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
-        if (elapsed_seconds.count() > 2.0f && gprStarted) {
-          if (ITS.cut) {
+        if (elapsed_seconds.count() > 2.0f) {
+          if (ITS.cut && gprStarted) {
             ITS.setCutPhase(eeInTask);
             trialState = CUT;
             std::cout << "### STARTING CUT PHASE" << std::endl;
@@ -335,10 +337,6 @@ int main(int argc, char** argv) {
             trialState = RETRACTION;
             std::cout << "### STARTING RETRACTION PHASE" << std::endl;
           }
-        } else if (elapsed_seconds.count() > 2.0f && !gprStarted) {
-          ITS.setRetractionPhase(eeInTask);
-          trialState = RETRACTION;
-          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }
         break;
       }
@@ -378,13 +376,11 @@ int main(int argc, char** argv) {
             std::cout << "Next touch point in task: " << std::endl;
             std::cout << nextPoint << std::endl;
             ITS.pointDS.set_attractor(nextPoint);
-            trialState = TrialState::APPROACH;
-            std::cout << "### STARTING APPROACH PHASE" << std::endl;
           } else {
             ITS.pointDS.set_attractor(CP.getStart());
-            trialState = TrialState::APPROACH;
-            std::cout << "### STARTING APPROACH PHASE" << std::endl;
           }
+          trialState = TrialState::APPROACH;
+          std::cout << "### STARTING APPROACH PHASE" << std::endl;
         }
         break;
     }

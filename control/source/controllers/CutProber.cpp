@@ -1,5 +1,7 @@
 #include "controllers/CutProber.h"
 
+#include <numeric>
+
 using namespace state_representation;
 
 CutProber::CutProber(const std::string& configFile) : IncisionTrialSystem(configFile), dt_(1) {
@@ -45,10 +47,14 @@ double CutProber::estimateHeightInTask(const CartesianPose& eeInTask) const {
       (xy_.colwise() - Eigen::Vector2d(eeInTask.get_position().x(), eeInTask.get_position().y())).colwise().norm();
   // TODO: if any dist is < tol, then just return the z value of that index. Otherwise, calculate weighted average
 
-  Eigen::VectorXd weights = dist.cwiseInverse().cwiseAbs2();
-  weights /= weights.sum();
+  // sort the indices of the distance matrix in ascending order
+  std::vector<size_t> indices(dist.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  stable_sort(indices.begin(), indices.end(), [&dist](size_t i1, size_t i2) {return dist(i1) < dist(i2);});
 
-  return weights.dot(z_);
+  // find the height as the linearly weighted average between the closest two sample points
+  double weight = dist(indices[0]) / (dist(indices[0]) + dist(indices[1]));
+  return z_(indices[0]) * (1 - weight) + z_(indices[1]) * weight;
 }
 
 CartesianPose CutProber::getStart() const {

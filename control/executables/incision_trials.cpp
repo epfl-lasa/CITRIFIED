@@ -221,7 +221,12 @@ int main(int argc, char** argv) {
         }
         break;
       case INSERTION: {
-        double depth = (touchPose.get_position() - eeInRobot.get_position()).norm();
+        double depth = 0;
+        if (ITS.cut) {
+          depth = CP.estimateHeightInTask(eeInTask) - eeInTask.get_position().z();
+        } else {
+          depth = (touchPose.get_position() - eeInRobot.get_position()).norm();
+        }
         jsonLogger.addField(logger::MODEL, "depth", depth);
         if (depth > ITS.params["insertion"]["depth"].as<double>()) {
           ITS.zVelocity = 0;

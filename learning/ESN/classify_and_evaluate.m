@@ -18,7 +18,13 @@ for i = 1:length(predicted_output)
     avg_predicted_output{i}(nb_splits,:) = mean(predicted_output{i}((nb_splits-1)*split+1:end, :));
     sum_avg_predicted_output = sum(avg_predicted_output{i});
     softmax_sum = sum(arrayfun(@(x) exp(x),sum_avg_predicted_output));
-    softmax_predicted_output = arrayfun(@(x) exp(x),sum_avg_predicted_output)./softmax_sum;
+    if isinf(softmax_sum)
+        [~, max_index] = max(sum_avg_predicted_output);
+        softmax_predicted_output = zeros(1,nb_outputs);
+        softmax_predicted_output(max_index) = 1;
+    else
+        softmax_predicted_output = arrayfun(@(x) exp(x),sum_avg_predicted_output)./softmax_sum;
+    end
 %     normalized_predicted_output = sum(avg_predicted_output{i}) / sum(sum(avg_predicted_output{i}));
     prediction_distribution = [prediction_distribution;  softmax_predicted_output];
 

@@ -55,8 +55,8 @@ for nb_class = 1:size(all_timewindows,1)
         end
     end
     xlabel('depth')
-    ylabel('vel')
-    zlabel('force derivative')
+    ylabel('velocity z')
+    zlabel('force derivative z')
     view(ax,[30 25]);
 end
 
@@ -73,11 +73,12 @@ for nb_class = 1:size(all_timewindows,1)
     end
 end
 xlabel('depth')
-ylabel('vel z')
+ylabel('velocity z')
 zlabel('force derivative z')
 view(ax,[30 25]);
 
 figure;
+title('apples - green, oranges - red')
 hold on; grid on;
 for nb_class = 1:size(all_timewindows,1)
     data = all_timewindows(nb_class,:);
@@ -89,8 +90,8 @@ for nb_class = 1:size(all_timewindows,1)
         end
     end
 end
-xlabel('depth')
-ylabel('vel z')
-zlabel('force z')
+xlabel('depth [m]')
+ylabel('velocity z [m/s]')
+zlabel('force z [N]')
 view(ax,[30 25]);
     

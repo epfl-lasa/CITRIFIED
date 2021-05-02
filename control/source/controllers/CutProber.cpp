@@ -43,18 +43,36 @@ void CutProber::addPoint(const CartesianPose& eeInTask) {
 
 // get a surface height estimate for an XY position in the task frame
 double CutProber::estimateHeightInTask(const CartesianPose& eeInTask) const {
-  Eigen::VectorXd dist =
-      (xy_.colwise() - Eigen::Vector2d(eeInTask.get_position().x(), eeInTask.get_position().y())).colwise().norm();
-  // TODO: if any dist is < tol, then just return the z value of that index. Otherwise, calculate weighted average
+  if (xy_.cols() == 0) {
+    return 0;
+  }
 
-  // sort the indices of the distance matrix in ascending order
-  std::vector<size_t> indices(dist.size());
-  std::iota(indices.begin(), indices.end(), 0);
-  stable_sort(indices.begin(), indices.end(), [&dist](size_t i1, size_t i2) {return dist(i1) < dist(i2);});
+  Eigen::Matrix2Xd diffs = (xy_.colwise() - Eigen::Vector2d(eeInTask.get_position().x(), eeInTask.get_position().y())).matrix();
+  Eigen::VectorXd dist = diffs.colwise().norm();
+
+  // get the index of the closest point
+  Eigen::VectorXd::Index minIndex;
+  double min = dist.minCoeff(&minIndex);
+  if (abs(min) < tol_ || xy_.cols() == 1) {
+    return z_(minIndex);
+  }
+
+  // the current position is between the closest sample and one other sample,
+  // which is either before or after the closest sample
+  Eigen::VectorXd::Index other;
+  if (minIndex == 0) {
+    other = 1;
+  } else if (minIndex == (xy_.cols() - 1)) {
+    other = xy_.cols() - 2;
+  } else {
+    double a = diffs.col(minIndex).normalized().dot((xy_.col(minIndex) - xy_.col(minIndex - 1)).normalized());
+    double b = diffs.col(minIndex).normalized().dot((xy_.col(minIndex) - xy_.col(minIndex + 1)).normalized());
+    other = a > b ? minIndex - 1 : minIndex + 1;
+  }
 
   // find the height as the linearly weighted average between the closest two sample points
-  double weight = dist(indices[0]) / (dist(indices[0]) + dist(indices[1]));
-  return z_(indices[0]) * (1 - weight) + z_(indices[1]) * weight;
+  double weight = dist(minIndex) / (dist(minIndex) + dist(other));
+  return z_(minIndex) * (1 - weight) + z_(other) * weight;
 }
 
 CartesianPose CutProber::getStart() const {

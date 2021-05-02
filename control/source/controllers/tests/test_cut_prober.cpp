@@ -23,15 +23,23 @@ protected:
   CutProber CP;
 };
 
-TEST_F(TestCutProber, add) {
+TEST_F(TestCutProber, HeightEstimateInterpolation) {
+  // populate the surface samples
   for (std::size_t sample = 0; sample < xy_samples.cols(); ++sample) {
     pose.set_position(xy_samples(0, sample), xy_samples(1, sample), z_samples(sample));
     CP.addPoint(pose);
   }
 
-  pose.set_position(0, 0, 0);
-  EXPECT_NEAR(CP.estimateHeightInTask(pose), 0.0596, 1e-3);
+  // check the sampled values at and between each sample
+  for (std::size_t sample = 0; sample < xy_samples.cols() - 1; ++sample) {
+    pose.set_position(xy_samples(0, sample), xy_samples(1, sample), 0);
+    EXPECT_NEAR(CP.estimateHeightInTask(pose), z_samples(sample), 1e-5);
 
-  pose.set_position(0, 0.03, 0);
-  EXPECT_NEAR(CP.estimateHeightInTask(pose), 0.0603, 1e-3);
+    for (int interp = 0; interp < 11; ++interp) {
+      double d = static_cast<double>(interp) / 10;
+      Eigen::Vector2d xy = xy_samples.col(sample) * (1 - d) + xy_samples.col(sample + 1) * d;
+      pose.set_position(xy(0), xy(1), 0);
+      EXPECT_NEAR(CP.estimateHeightInTask(pose), z_samples(sample) * (1 - d) + z_samples(sample + 1) * d, 1e-5);
+    }
+  }
 }

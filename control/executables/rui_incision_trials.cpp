@@ -392,7 +392,10 @@ int main(int argc, char** argv) {
           esn.start();
 
           ITS.setInsertionPhase();
-          trialState = INSERTION;
+//          trialState = INSERTION;
+          trialState = PAUSE;
+          finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
+          finalESNPrediction.classIndex=1;
           std::cout << "### STARTING INSERTION PHASE" << std::endl;
         }
         break;
@@ -438,10 +441,6 @@ int main(int argc, char** argv) {
           jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_x", std::vector<double>(dataBuffer.col(5).data(), dataBuffer.col(5).data() + esnBufferSize));
           jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_z", std::vector<double>(dataBuffer.col(6).data(), dataBuffer.col(6).data() + esnBufferSize));
         }
-
-        finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
-        finalESNPrediction.classIndex=1;
-
         break;
       }
       case PAUSE: {

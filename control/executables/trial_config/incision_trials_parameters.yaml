@@ -57,7 +57,7 @@ insertion:
   speed: 0.075
   depth: 0.0075
 
-cut:
+circle:
   depth: 0.0075
   d1: 200   # principle linear damping
   d2: 150   # secondary linear damping
@@ -70,7 +70,7 @@ cut:
   normal_gain: 10
   angular_gain: 10
   arc_angle: 90     # max cut distance in degrees
-  cut_distance: 0.07  # max cut distance in meters
+  cut_distance: 0.7  # max cut distance in meters
 
 probe:
   samples: 10  # maximum number of surface samples to collect

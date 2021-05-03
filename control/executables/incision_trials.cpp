@@ -10,6 +10,7 @@
 #include "network/interfaces.h"
 #include "logger/JSONLogger.h"
 #include "learning/ESNWrapper.h"
+#include "learning/GPR.h"
 
 #define RB_ID_ROBOT_BASE 1
 #define RB_ID_TASK_BASE 2
@@ -56,6 +57,12 @@ int main(int argc, char** argv) {
 
   std::cout << "Optitrack ready" << std::endl;
 
+  // set up GPR predictor
+  learning::GPR<2> gpr;
+  bool gprStarted = false;
+  gpr.start(1);
+  std::cout << "GPR server ready" << std::endl;
+
   // set up ESN classifier
   std::cout << "Initializing ESN..." << std::endl;
   const std::vector<std::string> esnInputFields =
@@ -65,7 +72,10 @@ int main(int argc, char** argv) {
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "inputs", esnInputFields);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "config_file", esnConfigFile);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "buffer_size", ITS.esnBufferSize);
-  jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "min_time_between_predictions", ITS.esnMinTimeBetweenPredictions);
+  jsonLogger.addSubfield(logger::MessageType::METADATA,
+                         "esn",
+                         "min_time_between_predictions",
+                         ITS.esnMinTimeBetweenPredictions);
   jsonLogger.addSubfield(logger::MessageType::METADATA, "esn", "sampling_frequency", 500.0);
   Eigen::VectorXd esnInputSample(5);
   learning::ESNWrapper esn(esnConfigFile, ITS.esnBufferSize, ITS.esnMinTimeBetweenPredictions);
@@ -240,8 +250,8 @@ int main(int argc, char** argv) {
         auto esnPrediction = esn.getLastPrediction(timeBuffer, dataBuffer);
         if (esnPrediction && esnPredictionCollection.size() < 3) {
           esnPredictionCollection.emplace_back(*esnPrediction);
-          std::vector<double> probabilities
-              (esnPrediction->predictions.data(), esnPrediction->predictions.data() + esnPrediction->predictions.size());
+          std::vector<double> probabilities(esnPrediction->predictions.data(),
+                                            esnPrediction->predictions.data() + esnPrediction->predictions.size());
           jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
           jsonLogger.addField(logger::MessageType::ESN, "class_index", esnPrediction->classIndex);
           jsonLogger.addField(logger::MessageType::ESN, "class_name", esnPrediction->className);
@@ -290,7 +300,7 @@ int main(int argc, char** argv) {
       }
       case CLASSIFICATION: {
         if (esnPredictionCollection.size() < 3) {
-          std::cout << "less than 3 predictions available!" << std::endl;
+          std::cout << "less than 3 predictions available! (" << esnPredictionCollection.size() << ")" << std::endl;
         }
         finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
         std::vector<double> probabilities(finalESNPrediction.predictions.data(),
@@ -298,24 +308,32 @@ int main(int argc, char** argv) {
         jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
         jsonLogger.addField(logger::MessageType::ESN, "class_index", finalESNPrediction.classIndex);
         jsonLogger.addField(logger::MessageType::ESN, "class_name", finalESNPrediction.className);
-        esn.stop();
+//        esn.stop();
         trialState = PAUSE;
         std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
         std::cout << finalESNPrediction.className << std::endl;
         break;
       }
       case PAUSE: {
+        if (!gprStarted) {
+          gprStarted = gpr.start(1);
+        }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
-        if (elapsed_seconds.count() > 1.0f) {
+        if (elapsed_seconds.count() > 2.0f && gprStarted) {
           if (ITS.cut) {
             ITS.setCutPhase(eeInTask);
             trialState = CUT;
             std::cout << "### STARTING CUT PHASE" << std::endl;
           } else {
+            finished = true;
             ITS.setRetractionPhase(eeInTask);
             trialState = RETRACTION;
             std::cout << "### STARTING RETRACTION PHASE" << std::endl;
           }
+        } else if (elapsed_seconds.count() > 2.0f && !gprStarted) {
+          ITS.setRetractionPhase(eeInTask);
+          trialState = RETRACTION;
+          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }
         break;
       }
@@ -328,12 +346,20 @@ int main(int argc, char** argv) {
         center.set_position(position);
         ITS.ringDS.set_center(center);
 
+        std::array<double, 2>
+            gprRequest = {position.z() - eeInTask.get_position().z(), eeInRobotFilt.get_linear_velocity().x()};
+        gpr.updateState(gprRequest);
+        if (auto gprPrediction = gpr.getLastPrediction()) {
+          jsonLogger.addField(logger::MODEL, "gpr", gprPrediction->data());
+        }
+
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
         double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
         if (angle > ITS.params["cut"]["arc_angle"].as<double>()
             || distance > ITS.params["cut"]["cut_distance"].as<double>()) {
           ITS.setRetractionPhase(eeInTask);
           finished = true;
+          gpr.stop();
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }

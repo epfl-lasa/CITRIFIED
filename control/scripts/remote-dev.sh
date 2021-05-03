@@ -27,6 +27,7 @@ PORT_SSH=2222
 PORT_STATE=5550
 PORT_COMMAND=5551
 PORT_OPTITRACK=5511
+PORT_GPR=7777
 
 if [ "$REBUILD" -eq 1 ]; then
   DOCKER_BUILDKIT=1 docker build --no-cache --target project-dependencies -f ../Dockerfile --tag $IMAGE_NAME ..
@@ -41,4 +42,5 @@ docker run -d --cap-add sys_ptrace \
   -p127.0.0.1:"$PORT_SSH":22 \
   -p"$PORT_STATE":"$PORT_STATE" -p"$PORT_COMMAND":"$PORT_COMMAND" \
   -p"$PORT_OPTITRACK":"$PORT_OPTITRACK" \
+  -p"$PORT_GPR":"$PORT_GPR" \
   --name $CONTAINER_NAME $IMAGE_NAME

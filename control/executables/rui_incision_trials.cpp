@@ -493,7 +493,7 @@ int main(int argc, char** argv) {
 
     CartesianTwist commandTwistInRobot = ITS.getTwistCommand(eeInTask, taskInRobot, trialState);
     CartesianWrench commandWrenchInRobot = ITS.getWrenchCommand(commandTwistInRobot, eeInRobot);
-    if (trialState == CUT) {
+    if (finalESNPrediction.classIndex==1 || finalESNPrediction.classIndex==3) {
       commandTwistInRobot.set_linear_velocity(
               Eigen::Vector3d(desired_velocity(0), desired_velocity(1), desired_velocity(2)) +
               Eigen::Vector3d(0, 0, ITS.zVelocity));

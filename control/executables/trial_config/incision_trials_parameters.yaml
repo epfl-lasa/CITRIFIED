@@ -12,8 +12,8 @@
 # Set the cut radius to 1m for a practically straight line cut
 # Set the cut radius to 0.02 for small circle
 
-trial_prefix: 'YYYYMMDD_fruit_00_'
-trial: '00'
+trial_prefix: '20210503_filmapple_01_'
+trial: '01'
 
 # set false to cut after insertion
 insertion_only: false
@@ -21,9 +21,9 @@ insertion_only: false
 # The attractor position and orientation during the hold phase
 attractor:
   position:
-    x: 0.0
-    y: 0.0
-    z: 0.1
+    x: -0.00
+    y: 0.02
+    z: 0.085
   yaw_angle: 0     # degrees to rotate the initial knife orientation, counter-clockwise from above
   pitch_angle: 15  # degrees to tilt the knife forward, positive around the knife -Y axis
   gains:
@@ -54,30 +54,30 @@ insertion:
   d2: 150   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping
-  speed: 0.075
-  depth: 0.0075
+  speed: 0.06
+  depth: 0.007
 
 cut:
-  depth: 0.0075
-  d1: 200   # principle linear damping
+  depth: 0.007
+  d1: 210   # principle linear damping
   d2: 150   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping
-  radius: 1.00
+  radius: 0.02
   width: 0.005
   speed: 0.05
   field_strength: 2
-  normal_gain: 10
+  normal_gain: 20
   angular_gain: 10
   arc_angle: 90     # max cut distance in degrees
-  cut_distance: 0.07  # max cut distance in meters
+  cut_distance: 0.06  # max cut distance in meters
 
 probe:
-  samples: 10  # maximum number of surface samples to collect
+  samples: 9  # maximum number of surface samples to collect
   ms_per_step: 100 # integration interval in milliseconds between each probe sample
 
 
 esn:
   filename: ESN_march30_0.84000.1.yaml
   buffer_size: 50
-  min_time_between_predictions: 0 # in milliseconds
+  min_time_between_predictions: 60 # in milliseconds

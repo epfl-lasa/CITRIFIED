@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
           esn.stop();
 
           // hold the current position
-          ITS.setRetractionPhase(eeInTask, 0.0);
+          ITS.setRetractionPhase(eeInTask, ITS.params["insertion"]["depth"].as<double>() - ITS.params["cut"]["depth"].as<double>());
           pauseTimer = std::chrono::system_clock::now();
           trialState = CLASSIFICATION;
           std::cout << "### CLASSIFYING - INCISION DEPTH REACHED" << std::endl;

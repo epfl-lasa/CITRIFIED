@@ -258,6 +258,8 @@ int main(int argc, char** argv) {
   Eigen::VectorXd esnInputSample(5);
   learning::ESNWrapper esn(esnConfigFile, 50);
   esn.setDerivativeCalculationIndices({3, 4});
+  std::vector<learning::esnPrediction> esnPredictionCollection;
+  learning::esnPrediction finalESNPrediction;
   std::cout << "ESN ready" << std::endl;
 
   // set up filters
@@ -436,6 +438,10 @@ int main(int argc, char** argv) {
           jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_x", std::vector<double>(dataBuffer.col(5).data(), dataBuffer.col(5).data() + esnBufferSize));
           jsonLogger.addSubfield(logger::MessageType::ESN, "input", "force_derivative_z", std::vector<double>(dataBuffer.col(6).data(), dataBuffer.col(6).data() + esnBufferSize));
         }
+
+        finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
+        finalESNPrediction.classIndex=1;
+
         break;
       }
       case PAUSE: {
@@ -493,7 +499,7 @@ int main(int argc, char** argv) {
 
     CartesianTwist commandTwistInRobot = ITS.getTwistCommand(eeInTask, taskInRobot, trialState);
     CartesianWrench commandWrenchInRobot = ITS.getWrenchCommand(commandTwistInRobot, eeInRobot);
-    if (finalESNPrediction.classIndex==1 || finalESNPrediction.classIndex==3) {
+    if (finalESNPrediction.classIndex==1) {
       commandTwistInRobot.set_linear_velocity(
               Eigen::Vector3d(desired_velocity(0), desired_velocity(1), desired_velocity(2)) +
               Eigen::Vector3d(0, 0, ITS.zVelocity));

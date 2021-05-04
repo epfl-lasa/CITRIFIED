@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // Set up franka ZMQ
-  network::Interface franka(network::InterfaceType::FRANKA_LWI);
+  network::Interface franka(network::InterfaceType::FRANKA_LWI_16);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};

@@ -39,4 +39,5 @@ private:
   std::chrono::milliseconds dt_;
   double dist_ = 0;
   double ang_ = 0;
+  double tol_ = 1e-5;
 };

@@ -32,9 +32,12 @@ int main(int argc, char** argv) {
   logger::JSONLogger jsonLogger(ITS.trialName);
   jsonLogger.addMetaData(ITS.trialName, ITS.yamlContent);
   jsonLogger.addSubfield(logger::METADATA, "insertion", "depth", ITS.params["insertion"]["depth"].as<double>());
+  jsonLogger.addSubfield(logger::METADATA, "insertion", "pitch", ITS.params["attractor"]["pitch_angle"].as<double>());
   if (ITS.cut) {
     jsonLogger.addSubfield(logger::METADATA, "cut", "depth", ITS.params["cut"]["depth"].as<double>());
     jsonLogger.addSubfield(logger::METADATA, "cut", "radius", ITS.params["cut"]["radius"].as<double>());
+    jsonLogger.addSubfield(logger::METADATA, "cut", "speed", ITS.params["cut"]["speed"].as<double>());
+    jsonLogger.addSubfield(logger::METADATA, "cut", "normal_gain", ITS.params["cut"]["normal_gain"].as<double>());
   }
 
   // set up optitrack
@@ -221,7 +224,12 @@ int main(int argc, char** argv) {
         }
         break;
       case INSERTION: {
-        double depth = (touchPose.get_position() - eeInRobot.get_position()).norm();
+        double depth = 0;
+        if (ITS.cut) {
+          depth = CP.estimateHeightInTask(eeInTask) - eeInTask.get_position().z();
+        } else {
+          depth = (touchPose.get_position() - eeInRobot.get_position()).norm();
+        }
         jsonLogger.addField(logger::MODEL, "depth", depth);
         if (depth > ITS.params["insertion"]["depth"].as<double>()) {
           ITS.zVelocity = 0;
@@ -229,6 +237,8 @@ int main(int argc, char** argv) {
           std::cout << "Stopping ESN thread" << std::endl;
           esn.stop();
 
+          // hold the current position
+          ITS.setRetractionPhase(eeInTask, ITS.params["insertion"]["depth"].as<double>() - ITS.params["cut"]["depth"].as<double>());
           pauseTimer = std::chrono::system_clock::now();
           trialState = CLASSIFICATION;
           std::cout << "### CLASSIFYING - INCISION DEPTH REACHED" << std::endl;
@@ -302,13 +312,16 @@ int main(int argc, char** argv) {
         if (esnPredictionCollection.size() < 3) {
           std::cout << "less than 3 predictions available! (" << esnPredictionCollection.size() << ")" << std::endl;
         }
-        finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
-        std::vector<double> probabilities(finalESNPrediction.predictions.data(),
-                                          finalESNPrediction.predictions.data() + finalESNPrediction.predictions.size());
-        jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
-        jsonLogger.addField(logger::MessageType::ESN, "class_index", finalESNPrediction.classIndex);
-        jsonLogger.addField(logger::MessageType::ESN, "class_name", finalESNPrediction.className);
-//        esn.stop();
+        if (!esnPredictionCollection.empty()) {
+          finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
+          std::vector<double> probabilities(finalESNPrediction.predictions.data(),
+                                            finalESNPrediction.predictions.data()
+                                                + finalESNPrediction.predictions.size());
+          jsonLogger.addField(logger::MessageType::ESN, "probabilities", probabilities);
+          jsonLogger.addField(logger::MessageType::ESN, "class_index", finalESNPrediction.classIndex);
+          jsonLogger.addField(logger::MessageType::ESN, "class_name", finalESNPrediction.className);
+        }
+        esn.stop();
         trialState = PAUSE;
         std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
         std::cout << finalESNPrediction.className << std::endl;
@@ -319,8 +332,8 @@ int main(int argc, char** argv) {
           gprStarted = gpr.start(1);
         }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
-        if (elapsed_seconds.count() > 2.0f && gprStarted) {
-          if (ITS.cut) {
+        if (elapsed_seconds.count() > 2.0f) {
+          if (ITS.cut && gprStarted) {
             ITS.setCutPhase(eeInTask);
             trialState = CUT;
             std::cout << "### STARTING CUT PHASE" << std::endl;
@@ -330,10 +343,6 @@ int main(int argc, char** argv) {
             trialState = RETRACTION;
             std::cout << "### STARTING RETRACTION PHASE" << std::endl;
           }
-        } else if (elapsed_seconds.count() > 2.0f && !gprStarted) {
-          ITS.setRetractionPhase(eeInTask);
-          trialState = RETRACTION;
-          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }
         break;
       }
@@ -373,13 +382,11 @@ int main(int argc, char** argv) {
             std::cout << "Next touch point in task: " << std::endl;
             std::cout << nextPoint << std::endl;
             ITS.pointDS.set_attractor(nextPoint);
-            trialState = TrialState::APPROACH;
-            std::cout << "### STARTING APPROACH PHASE" << std::endl;
           } else {
             ITS.pointDS.set_attractor(CP.getStart());
-            trialState = TrialState::APPROACH;
-            std::cout << "### STARTING APPROACH PHASE" << std::endl;
           }
+          trialState = TrialState::APPROACH;
+          std::cout << "### STARTING APPROACH PHASE" << std::endl;
         }
         break;
     }

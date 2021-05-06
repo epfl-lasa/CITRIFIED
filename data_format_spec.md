@@ -46,11 +46,14 @@ These fields will generally only be present in the first log line.
   "trial": "...",
   "details": "...",
   "insertion": {
-    "depth": 0.01
+    "depth": 0.01,
+    "pitch": 15
   },
   "cut": {
     "depth": 0.01,
     "radius": 0.01,
+    "speed": 0.01,
+    "normal_gain": 1.0
   },
   "esn": {
     "inputs": [],
@@ -71,9 +74,12 @@ These fields will generally only be present in the first log line.
   - `details` - the verbose description (the full trial yaml configuration as string)
   - `insertion` - the parameters for the insertion interaction
     - `depth` - the desired insertion depth in meters
+    - `pitch` - the knife pitch angle in degrees
   - `cut` - the parameters for the cut interaction
     - `depth` - the desired cut depth in meters
     - `radius` - the desired cut radius in meters
+    - `speed` - the desired cut speed in meters per second
+    - `normal_gain` - the vertical gain for the cut plane
   - `esn` 
     - `inputs` - the names of the input signals
     - `config_file` - the path of the ESN config file

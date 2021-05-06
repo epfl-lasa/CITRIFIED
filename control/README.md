@@ -57,6 +57,8 @@ Run the script [remote-dev.sh](scripts/remote-dev.sh) from the scripts directory
 to build and launch a Docker container as a background daemon process.
 This environment can be accessed over SSH as a remote host for building and debugging.
 
+The container runs in the docker bridge network `citrinet`.
+
 See the instructions for CLion configuration [here](https://github.com/eeberhard/docker-clion-cpp-env).
 Remote host development may also be possible in other IDEs.
 

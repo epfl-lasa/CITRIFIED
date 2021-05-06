@@ -38,7 +38,11 @@ fi
 docker container stop "$CONTAINER_NAME" >/dev/null 2>&1
 docker rm --force "$CONTAINER_NAME" >/dev/null 2>&1
 
+docker network inspect citrinet >/dev/null 2>&1 || \
+  docker network create --subnet=172.20.0.0/16 --gateway=172.20.0.1 citrinet
+
 docker run -d --cap-add sys_ptrace \
+  --network=citrinet \
   -p127.0.0.1:"$PORT_SSH":22 \
   -p"$PORT_STATE":"$PORT_STATE" -p"$PORT_COMMAND":"$PORT_COMMAND" \
   -p"$PORT_OPTITRACK":"$PORT_OPTITRACK" \

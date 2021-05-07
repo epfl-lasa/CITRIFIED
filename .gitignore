@@ -1,10 +1,13 @@
 /data/
 /lib/
 
-/notebooks/.ipynb_checkpoints/
+.ipynb_checkpoints
 /.idea/
 
 /rviz_visualization/ros_ws/build/
 /rviz_visualization/ros_ws/devel/
 /rviz_visualization/ros_ws/src/CMakeLists.txt
 /rviz_visualization/ros_ws/.catkin_workspace
+
+*.mat
+*.jpg

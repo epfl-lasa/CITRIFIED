@@ -1,6 +1,0 @@
-[submodule "data_process_lib"]
-	path = preprocessing/data_process_lib
-	url = git@github.com:RLoad/data_process_lib.git
-[submodule "phys-gmm"]
-	path = preprocessing/phys-gmm
-	url = git@github.com:nbfigueroa/phys-gmm.git

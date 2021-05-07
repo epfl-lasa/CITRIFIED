@@ -3,27 +3,27 @@
 namespace motion_generator {
 
 CircleDS::CircleDS() :
-    center(StateRepresentation::CartesianPose::Identity("world")),
+    center(state_representation::CartesianPose::Identity("world")),
     circularDS(center) {
 }
 
-CircleDS::CircleDS(const StateRepresentation::CartesianPose& pose) :
+CircleDS::CircleDS(const state_representation::CartesianPose& pose) :
     center(pose),
     circularDS(center) {
 }
 
-CircleDS::CircleDS(const StateRepresentation::CartesianPose& pose, double radius) :
+CircleDS::CircleDS(const state_representation::CartesianPose& pose, double radius) :
     center(pose),
     circularDS(center) {
   circularDS.set_radius(radius);
 }
 
-StateRepresentation::CartesianTwist CircleDS::getTwist(const StateRepresentation::CartesianPose& pose) {
+state_representation::CartesianTwist CircleDS::getTwist(const state_representation::CartesianPose& pose) {
   updateCurrentPose(pose);
   return getTwist();
 }
-StateRepresentation::CartesianTwist CircleDS::getTwist() {
-  StateRepresentation::CartesianTwist twist = circularDS.evaluate(currentPose);
+state_representation::CartesianTwist CircleDS::getTwist() {
+  state_representation::CartesianTwist twist = circularDS.evaluate(currentPose);
   clampTwist(twist);
   return twist;
 }

@@ -2,32 +2,33 @@
 #include <iostream>
 #include <cstdio>
 
-#include <state_representation/Space/Cartesian/CartesianPose.hpp>
-#include <state_representation/Space/Cartesian/CartesianState.hpp>
+#include <state_representation/space/cartesian/CartesianPose.hpp>
+#include <state_representation/space/cartesian/CartesianState.hpp>
+#include <state_representation/robot/Jacobian.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
-#include "controllers/CartesianPoseController.h"
+#include "controllers/TwistController.h"
 #include "motion_generators/PointAttractorDS.h"
 #include "motion_generators/CircularDS.h"
 #include "motion_generators/RingDS.h"
-#include "network/netutils.h"
+#include "franka_lwi/franka_lwi_utils.h"
+#include "network/interfaces.h"
 
 class BlendDS {
 public:
   BlendDS() {
-    orientationDS.setTargetPose(StateRepresentation::CartesianPose("world", center, defaultOrientation));
+    orientationDS.setTargetPose(state_representation::CartesianPose("world", center, defaultOrientation));
     orientationDS.linearDS.set_gain(pointGains);
 
-    flatCircleDS = motion_generator::CircleDS(StateRepresentation::CartesianPose("world", center, defaultOrientation));
+    flatCircleDS = motion_generator::CircleDS(state_representation::CartesianPose("world", center, defaultOrientation));
     flatCircleDS.circularDS.set_radius(radius);
     flatCircleDS.circularDS.set_circular_velocity(radialVelocity);
     flatCircleDS.circularDS.set_planar_gain(circGains[0]);
     flatCircleDS.circularDS.set_normal_gain(circGains[1]);
 
-    inclinedCircleDS = motion_generator::CircleDS(StateRepresentation::CartesianPose("world",
-                                                                                     center,
-                                                                                     inclination * defaultOrientation));
+    inclinedCircleDS = motion_generator::CircleDS(
+        state_representation::CartesianPose("world", center, inclination * defaultOrientation));
     inclinedCircleDS.circularDS.set_radius(radius);
     inclinedCircleDS.circularDS.set_circular_velocity(radialVelocity);
     inclinedCircleDS.circularDS.set_planar_gain(circGains[0]);
@@ -48,9 +49,9 @@ public:
 
   std::vector<double> blend(frankalwi::proto::StateMessage<7> state) {
 //    updateOrientationTarget(state);
-    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    network::poseFromState(state, pose);
-    StateRepresentation::CartesianTwist twist = orientationDS.getTwist(pose);
+    state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
+    frankalwi::utils::toCartesianPose(state, pose);
+    state_representation::CartesianTwist twist = orientationDS.getTwist(pose);
     // TODO this is just an intermediate solution
     std::vector<double> v1 = {
         twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
@@ -89,7 +90,7 @@ private:
     Eigen::Quaterniond
         target = Eigen::Quaterniond(Eigen::AngleAxisd(angle, Eigen::Vector3d::UnitZ())) * defaultOrientation;
 
-    orientationDS.setTargetOrientation(StateRepresentation::CartesianPose("world", center, target));
+    orientationDS.setTargetOrientation(state_representation::CartesianPose("world", center, target));
   }
 
   std::vector<double> blendCircles(frankalwi::proto::StateMessage<7> state) {
@@ -99,10 +100,10 @@ private:
 
     double zVel = 0;
 
-    StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
-    network::poseFromState(state, pose);
-    StateRepresentation::CartesianTwist flatCircleTwist = flatCircleDS.getTwist(pose);
-    StateRepresentation::CartesianTwist inclinedCircleTwist = inclinedCircleDS.getTwist(pose);
+    state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
+    frankalwi::utils::toCartesianPose(state, pose);
+    state_representation::CartesianTwist flatCircleTwist = flatCircleDS.getTwist(pose);
+    state_representation::CartesianTwist inclinedCircleTwist = inclinedCircleDS.getTwist(pose);
 
     Eigen::Vector3d l;
     if (state.eePose.position.x - center.x() > xBlendWidth) {
@@ -147,33 +148,29 @@ int main(int argc, char** argv) {
 
   DS.defaultPose = Eigen::Quaterniond(0.0, -0.393, 0.919, 0.0).normalized();
 
-  controller::CartesianPoseController ctrl(230, 150, 5);
-  ctrl.angularController.setDamping(5);
+  controllers::TwistController ctrl(230, 150, 5, 5);
 
   std::cout << std::fixed << std::setprecision(3);
 
-  // Set up ZMQ
-  zmq::context_t context;
-  zmq::socket_t publisher, subscriber;
-  network::configure(context, publisher, subscriber);
+  // Set up franka ZMQ
+  network::Interface franka(network::InterfaceType::FRANKA_LWI);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
-  StateRepresentation::CartesianPose pose(StateRepresentation::CartesianPose::Identity("world"));
 
-  while (subscriber.connected()) {
-    if (frankalwi::proto::receive(subscriber, state)) {
-//      std::vector<double> desiredVelocity = DS.blend(state);
+  state_representation::CartesianState robot_ee("end-effector", "robot");
+  state_representation::Jacobian jacobian("franka", 7, "end-effector", "robot");
 
-      network::poseFromState(state, pose);
-      StateRepresentation::CartesianTwist twist = DS.getTwist(pose);
-      std::vector<double> desiredVelocity = {
-          twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
-          twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
-      };
+  while (franka.receive(state)) {
+    frankalwi::utils::toCartesianState(state, robot_ee);
+    frankalwi::utils::toJacobian(state.jacobian, jacobian);
 
-      command = ctrl.getJointTorque(state, desiredVelocity);
-      frankalwi::proto::send(publisher, command);
-    }
+//    std::vector<double> desiredVelocity = DS.blend(state);
+    state_representation::CartesianTwist twist = DS.getTwist(robot_ee);
+
+    state_representation::JointTorques joint_command = ctrl.compute_command(twist, robot_ee, jacobian);
+
+    frankalwi::utils::fromJointTorque(joint_command, command);
+    franka.send(command);
   }
 }

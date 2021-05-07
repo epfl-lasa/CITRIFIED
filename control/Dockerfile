@@ -27,26 +27,15 @@ RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.
   && mkdir build \
   && cd build \
   && cmake .. -DCPPZMQ_BUILD_TESTS=OFF \
-  && make -j4 install \
-  && cd ../.. \
-  && rm -rf cppzmq*
+  && make -j4 install
 
 # install control libraries
-RUN git clone -b develop --single-branch https://github.com/epfl-lasa/control_libraries.git
-WORKDIR control_libraries/source/build
-RUN cmake -DBUILD_TESTING="OFF" -DBUILD_CONTROLLERS="OFF" -DBUILD_ROBOT_MODEL="OFF" .. \
+RUN git clone -b develop --single-branch https://github.com/epfl-lasa/control_libraries.git \
+  && mkdir -p control_libraries/source/build \
+  && cd control_libraries/source/build \
+  && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ROBOT_MODEL="OFF" .. \
   && make -j \
   && make install
-
-WORKDIR /tmp
-RUN rm -rf control_libraries
-# "install" passive-ds-control repo (we will build it in our own makefile)
-RUN git clone https://github.com/epfl-lasa/passive-ds-control.git \
-  && cd passive-ds-control \
-  && mv include /usr/local/include/passive-ds-control \
-  && mv src /usr/local/src/passive-ds-control \
-  && cd .. \
-  && rm -rf passive-ds-control
 
 # install KDL
 RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
@@ -55,9 +44,7 @@ RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
   && cd build \
   && cmake .. \
   && make \
-  && make install \
-  && cd ../../.. \
-  && rm -rf orocos_kinematics_dynamics
+  && make install
 
 # install yaml-cpp
 RUN git clone https://github.com/jbeder/yaml-cpp.git \
@@ -66,37 +53,23 @@ RUN git clone https://github.com/jbeder/yaml-cpp.git \
   && cd build \
   && cmake .. \
   && make \
-  && make install \
-  && cd ../../.. \
-  && rm -rf yaml-cpp
+  && make install
 
-# install limbo
-# WORKDIR /limbo_lib
-RUN wget http://members.loria.fr/JBMouret/mirrors/nlopt-2.4.2.tar.gz \
-  && tar -zxvf nlopt-2.4.2.tar.gz \
-  && cd nlopt-2.4.2 \
-  && ./configure -with-cxx --enable-shared --without-python --without-matlab --without-octave \
-  && make install \
-  && ldconfig \
-  && cd .. \
-  && rm -rf nlopt-2.4.2 \
-  && rm -rf *.tar.gz
-
-RUN git clone -b release-2.1 --single-branch https://github.com/resibots/limbo.git \
-  && cd limbo \
-  && ./waf configure \
-  && ./waf build \
-  && cp build/src/liblimbo.a /usr/local/lib \
-  && cp -r src/limbo /usr/local/include/limbo \
-  && cp -r src/external /usr/local/include/external \
-  && cd .. \
-  %% rm -rf limbo
+# install json library header
+RUN wget https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp \
+  && mv json.hpp /usr/local/include
 
 # install gtest
-WORKDIR /tmp/gtest_build
-RUN cmake /usr/src/gtest \
+RUN mkdir -p /tmp/gtest_build \
+  && cd /tmp/gtest_build \
+  && cmake /usr/src/gtest \
   && make \
-  && cp lib/* /usr/local/lib
+  && cp lib/* /usr/local/lib || cp *.a /usr/local/lib
+
+# clean up installation artefacts
+WORKDIR /
+RUN rm -rf /tmp/*
+RUN ldconfig
 
 # tag a new build stage that copies the project source files
 FROM project-dependencies as project-sources
@@ -104,7 +77,6 @@ FROM project-dependencies as project-sources
 WORKDIR /usr/src/CITRIFIED/control
 COPY executables executables
 COPY include include
-COPY lib lib
 COPY source source
 COPY CMakeLists.txt CMakeLists.txt
 

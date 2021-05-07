@@ -1,14 +1,28 @@
 add_executable(circular_cut circular_cut.cpp)
-target_link_libraries(circular_cut motion_generators controllers)
+target_link_libraries(circular_cut motion_generators local_controllers)
 
 add_executable(ik_controller simple_ik_controller.cpp)
-target_link_libraries(ik_controller motion_generators controllers)
+target_link_libraries(ik_controller motion_generators local_controllers)
 
-add_executable(simple_ds_controller simple_ds_controller.cpp)
-target_link_libraries(simple_ds_controller motion_generators controllers)
+add_executable(simple_point_attractor simple_point_attractor.cpp)
+target_link_libraries(simple_point_attractor dynamical_systems local_controllers yaml-cpp)
 
 add_executable(test_interface test_interface.cpp)
 target_link_libraries(test_interface cppzmq state_representation)
 
 add_executable(example_ft_sensor example_ft_sensor.cpp)
 target_link_libraries(example_ft_sensor sensors cppzmq)
+
+add_executable(mocap_point_attractor mocap_point_attractor.cpp)
+target_link_libraries(mocap_point_attractor sensors motion_generators local_controllers state_representation)
+
+add_executable(incision_trials incision_trials.cpp)
+target_compile_definitions(incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(incision_trials dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)
+
+add_executable(surface_prober surface_prober.cpp)
+target_compile_definitions(surface_prober PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(surface_prober dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)
+
+add_executable(test_learning test_learning.cpp)
+target_link_libraries(test_learning learning cppzmq)

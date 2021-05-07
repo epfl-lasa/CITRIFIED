@@ -11,7 +11,7 @@ ForceTorqueSensor::ForceTorqueSensor(const std::string& sensorName, const std::s
                                      std::size_t sensorTimeoutMs, ToolSpec tool, bool mock) :
     sensorName_(sensorName),
     tool_(std::move(tool)),
-    bias_(StateRepresentation::CartesianWrench(sensorName + "Bias", sensorName)) {
+    bias_(state_representation::CartesianWrench(sensorName + "Bias", sensorName)) {
   if (mock) {
     netftRDTDriver_ = std::make_unique<netft_rdt_driver::MockNetFTRDTDriver>();
   } else {
@@ -21,7 +21,7 @@ ForceTorqueSensor::ForceTorqueSensor(const std::string& sensorName, const std::s
 
 bool ForceTorqueSensor::computeBias(const Eigen::Matrix3d& worldToFTRotation, std::size_t numPoints) {
   if (!biasOk_) {
-    StateRepresentation::CartesianWrench tmp(sensorName_, sensorName_);
+    state_representation::CartesianWrench tmp(sensorName_, sensorName_);
     if (!readRawData(tmp)) {
       return false;
     }
@@ -38,9 +38,9 @@ bool ForceTorqueSensor::computeBias(const Eigen::Matrix3d& worldToFTRotation, st
   return biasOk_;
 }
 
-bool ForceTorqueSensor::readContactWrench(StateRepresentation::CartesianWrench& wrench,
+bool ForceTorqueSensor::readContactWrench(state_representation::CartesianWrench& wrench,
                                           const Eigen::Matrix3d& worldToFTRotation) {
-  StateRepresentation::CartesianWrench tmp(sensorName_, sensorName_);
+  state_representation::CartesianWrench tmp(sensorName_, sensorName_);
   if (!readRawData(tmp)) {
     return false;
   }
@@ -51,7 +51,7 @@ bool ForceTorqueSensor::readContactWrench(StateRepresentation::CartesianWrench& 
   return true;
 }
 
-bool ForceTorqueSensor::readRawData(StateRepresentation::CartesianWrench& wrench) {
+bool ForceTorqueSensor::readRawData(state_representation::CartesianWrench& wrench) {
   netft_rdt_driver::RawWrenchMessage rawMessage;
   if (wrench.get_reference_frame() != sensorName_) {
     wrench.set_reference_frame(sensorName_);
@@ -67,7 +67,7 @@ bool ForceTorqueSensor::readRawData(StateRepresentation::CartesianWrench& wrench
   return newData;
 }
 
-bool ForceTorqueSensor::readBias(StateRepresentation::CartesianWrench& wrench) {
+bool ForceTorqueSensor::readBias(state_representation::CartesianWrench& wrench) {
   if (biasOk_) { wrench = bias_; }
   return biasOk_;
 }
@@ -76,5 +76,9 @@ void ForceTorqueSensor::resetBias() {
   biasOk_ = false;
   bias_.set_zero();
   biasCount_ = 0;
+}
+
+bool ForceTorqueSensor::biasOK() {
+  return biasOk_;
 }
 }

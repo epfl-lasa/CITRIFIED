@@ -17,10 +17,10 @@ endif()
 
 find_library(state_representation REQUIRED)
 find_library(dynamical_systems REQUIRED)
+find_library(controllers REQUIRED)
 find_library(limbo REQUIRED)
 
 include_directories(include ${Eigen_INCLUDE_DIRS})
 
-add_subdirectory(lib)
 add_subdirectory(source)
 add_subdirectory(executables)

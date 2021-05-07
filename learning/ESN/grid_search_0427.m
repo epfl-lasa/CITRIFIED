@@ -17,18 +17,6 @@ insertion_data = unpack_timewindows(all_timewindows)';
 
 clear all_timewindows
 
-%% define paths
-% if isunix
-%     path_of_load = ['../../data/segmented_data/' data_of_exp '/'];
-%     path_of_save = ['../../data/esn_data/' data_of_exp '/'];
-% else
-%     path_of_load = ['.\data\processed_data\' data_of_exp_input '\'];
-%     path_of_save = ['.\data\data_set4learn\' data_of_exp_output '\'];
-% end
-% if ~isfolder(path_of_save)
-%     mkdir(path_of_save); 
-% end
-
 %% training parameters
 test_train_rate = 0.3;
 nb_restarts_training = 10;

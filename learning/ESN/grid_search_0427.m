@@ -78,7 +78,7 @@ for spectral_radius=spectral_radius_grid
                         output(2) = 1;
                         train_output_labels(end+1) = 2;
                     end
-                    train_output{end+1} = output;
+                    train_output{end+1} = repmat(output, length(input.depth), 1);
                 end
 
                 test_input = [];
@@ -97,7 +97,7 @@ for spectral_radius=spectral_radius_grid
                         output(2) = 1;
                         test_output_labels(end+1) = 2;
                     end
-                    test_output{end+1} = output;
+                    test_output{end+1} = repmat(output, length(input.depth), 1);
                 end
                 clear j output
                 
@@ -110,12 +110,14 @@ for spectral_radius=spectral_radius_grid
                 test_success(restart) = test_scores.success_rate;
 
                 if test_success(restart) > best_test_success
-                    best_test_success = test_success(restart);
-                    best_predicted_train_indices = predicted_train_indices;
-                    best_predicted_test_indices = predicted_test_indices;
-                    best_trained_esn = trained_esn;
-                    best_train_scores = train_scores;
-                    best_test_scores = test_scores;
+                    best_result.test_success = test_success(restart);
+                    best_result.train_labels = train_output_labels;
+                    best_result.test_labels = test_output_labels;
+                    best_result.predicted_train_labels = predicted_train_indices;
+                    best_result.predicted_test_labels = predicted_test_indices;
+                    best_result.trained_esn = trained_esn;
+                    best_result.train_scores = train_scores;
+                    best_result.test_scores = test_scores;
                 end
             end
             figure;
@@ -124,10 +126,10 @@ for spectral_radius=spectral_radius_grid
             plot(test_success,'r-o')
             legend('train success','test success')
             
-            C = confusionmat([train_output_labels test_output_labels], [best_predicted_train_indices best_predicted_test_indices]);
+            C = confusionmat([best_result.train_labels best_result.test_labels], [best_result.predicted_train_labels best_result.predicted_test_labels]);
             C_norm = 100 * C ./ sum(C,2);
             figure;
-            imagesc([1, 2],[1, 2],C_norm);colorbar;
+            imagesc(1:1:length(classes),1:1:length(classes),C_norm);colorbar;
             figure;
             cm = confusionchart(C, classes);
         end

@@ -25,7 +25,6 @@ for i = 1:length(predicted_output)
     else
         softmax_predicted_output = arrayfun(@(x) exp(x),sum_avg_predicted_output)./softmax_sum;
     end
-%     normalized_predicted_output = sum(avg_predicted_output{i}) / sum(sum(avg_predicted_output{i}));
     prediction_distribution = [prediction_distribution;  softmax_predicted_output];
 
     [~, ind] = max(softmax_predicted_output);
@@ -38,7 +37,22 @@ for i = 1:length(predicted_output)
         max_conf(end+1) = max(softmax_predicted_output);
     else
         errors(i) = ind;
-    end     
+    end
+    
+%     normalized_predicted_output = sum_avg_predicted_output / sum(sum_avg_predicted_output);
+%     prediction_distribution = [prediction_distribution;  normalized_predicted_output];
+% 
+%     [~, ind] = max(normalized_predicted_output);
+%     predicted_indices(end+1) = ind;
+% 
+%     if real_labels(i) == ind
+%         success_rate = success_rate + 1;
+%         sorted = sort(normalized_predicted_output);
+%         decision_gap(end+1) = sorted(end) - sorted(end-1);
+%         max_conf(end+1) = max(normalized_predicted_output);
+%     else
+%         errors(i) = ind;
+%     end     
 end
 
 scores.success_rate  = 100 * (success_rate / length(predicted_output));

@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
   }
   DS.set_attractor(attractor);
 
-  network::Interface franka(network::InterfaceType::FRANKA_LWI);
+  network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 

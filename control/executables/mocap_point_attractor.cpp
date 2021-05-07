@@ -25,7 +25,7 @@ int main(int, char**) {
 
   controllers::TwistController ctrl(100, 100, 5, 5);
 
-  network::Interface franka(network::InterfaceType::FRANKA_LWI);
+  network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};

@@ -6,7 +6,7 @@
 namespace network {
 
 enum InterfaceType {
-  FRANKA_LWI_16, FRANKA_LWI_17, OPTITRACK, GPR
+  FRANKA_PAPA_16, FRANKA_QUEBEC_17, OPTITRACK, GPR
 };
 
 class Interface {
@@ -34,10 +34,10 @@ private:
 
 inline Interface::Interface(InterfaceType type) : type_(type) {
   switch (type_) {
-    case FRANKA_LWI_16:
+    case FRANKA_PAPA_16:
       zmq_interface::configurePubSubSockets(context_, publisher_, subscriber_, "0.0.0.0:1601", "0.0.0.0:1602", true);
       break;
-    case FRANKA_LWI_17:
+    case FRANKA_QUEBEC_17:
       zmq_interface::configurePubSubSockets(context_, publisher_, subscriber_, "0.0.0.0:1701", "0.0.0.0:1702", true);
       break;
     case OPTITRACK:

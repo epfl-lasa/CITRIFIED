@@ -1,3 +1,0 @@
-[submodule "preprocessing/CITRIFIED_lib"]
-	path = preprocessing/CITRIFIED_lib
-	url = git@github.com:RLoad/CITRIFIED_lib.git

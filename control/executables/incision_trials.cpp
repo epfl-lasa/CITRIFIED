@@ -57,10 +57,10 @@ int main(int argc, char** argv) {
   std::cout << "Waiting for optitrack robot base and task base state..." << std::endl;
   while (!optitracker.getState(robotInOptitrack, RB_ID_ROBOT_BASE)
       || !optitracker.getState(taskInOptitrack, RB_ID_TASK_BASE)) {}
-
   std::cout << "Optitrack ready" << std::endl;
 
   // set up GPR predictor
+  std::cout << "Waiting for GPR server..." << std::endl;
   learning::GPR<2> gpr;
   bool gprStarted = false;
   gpr.start(1);

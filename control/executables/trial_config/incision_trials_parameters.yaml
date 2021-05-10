@@ -54,8 +54,8 @@ insertion:
   d2: 150   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping
-  speed: 0.075
-  depth: 0.0075
+  speed: 0.06
+  depth: 0.01
 
 cut:
   depth: 0.0075
@@ -78,6 +78,6 @@ probe:
 
 
 esn:
-  filename: ESN_march30_0.84000.1.yaml
+  filename: ESN_400_20210503.yaml
   buffer_size: 50
-  min_time_between_predictions: 0 # in milliseconds
+  min_time_between_predictions: 60 # in milliseconds

@@ -46,8 +46,7 @@ int main(int argc, char** argv) {
 
   // set up FT sensor
   sensors::ToolSpec tool = {
-      .centerOfMass = Eigen::Vector3d(0, 0, 0.02),
-      .mass = 0.07
+      .centerOfMass = Eigen::Vector3d(0, 0, 0.02), .mass = 0.07
   };
   sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
 
@@ -238,7 +237,9 @@ int main(int argc, char** argv) {
           esn.stop();
 
           // hold the current position
-          ITS.setRetractionPhase(eeInTask, ITS.params["insertion"]["depth"].as<double>() - ITS.params["cut"]["depth"].as<double>());
+          ITS.setRetractionPhase(eeInTask,
+                                 ITS.params["insertion"]["depth"].as<double>()
+                                     - ITS.params["cut"]["depth"].as<double>());
           pauseTimer = std::chrono::system_clock::now();
           trialState = CLASSIFICATION;
           std::cout << "### CLASSIFYING - INCISION DEPTH REACHED" << std::endl;
@@ -247,11 +248,8 @@ int main(int argc, char** argv) {
         esnSkip--;
         if (esnSkip <= 0) {
           // combine sample for esn input
-          esnInputSample << depth,
-              eeLocalTwistFilt.get_linear_velocity().x(),
-              eeLocalTwistFilt.get_linear_velocity().z(),
-              ftWrenchInRobotFilt.get_force().x(),
-              ftWrenchInRobotFilt.get_force().z();
+          esnInputSample
+              << depth, eeLocalTwistFilt.get_linear_velocity().x(), eeLocalTwistFilt.get_linear_velocity().z(), ftWrenchInRobotFilt.get_force().x(), ftWrenchInRobotFilt.get_force().z();
 
           esn.addSample(jsonLogger.getTime(), esnInputSample);
           esnSkip = 2;
@@ -359,7 +357,16 @@ int main(int argc, char** argv) {
             gprRequest = {position.z() - eeInTask.get_position().z(), eeInRobotFilt.get_linear_velocity().x()};
         gpr.updateState(gprRequest);
         if (auto gprPrediction = gpr.getLastPrediction()) {
-          jsonLogger.addField(logger::MODEL, "gpr", gprPrediction->data());
+          jsonLogger.addSubfield(logger::MODEL, "gpr", "mean", gprPrediction->mean);
+          jsonLogger.addSubfield(logger::MODEL, "gpr", "sigma", gprPrediction->sigma);
+          double deviation = abs(ftWrenchInRobotFilt.get_force().x() - gprPrediction->mean)
+              / (gprPrediction->sigma * gprPrediction->sigma);
+          jsonLogger.addSubfield(logger::MODEL, "gpr", "deviation", deviation);
+          std::cout << "GPR >>> " << deviation << std::endl;
+
+          if (abs(deviation) > ITS.params["cut"]["max_force_deviation"].as<double>()) {
+            //TODO: accumulate error and abort if the total exceeds some time / magnitude constraints
+          }
         }
 
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;

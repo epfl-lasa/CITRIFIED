@@ -1,4 +1,4 @@
-Format version `v1.1`
+Format version `v1.2`
 
 # CITRIFIED data logging format spec
 
@@ -106,7 +106,11 @@ The high frequency fields are the main part of the log. These fields will genera
 "model": {
   "surface_point": [x, y, z]
   "depth": 0.0,
-  "gpr": {...}
+  "gpr": {
+    "mean": 0.0,
+    "sigma": 0.0,
+    "deviation": 0.0
+  }
 }
 ```
 
@@ -124,7 +128,14 @@ angular stiffness, angular damping)
   - `depth` - the estimate of insertion or cut depth, measured along the task Z axis with respect to surface
   measurements made with the FT sensor. This value is positive when inside the surface, and only available within
   the INSERTION and CUT phases.
-  - `gpr` - the prediction details of the continuous state model
+  - `gpr` - the prediction details of the continuous state model as a list. The first element is the mean prediction
+  (force in Newtons), while the second element is the predicted variance.
+    - `mean` - the mean predicted X force [N].
+    - `sigma` - the standard deviation (sigma) of the prediction [N].
+    - `deviation` - the normalised deviation of the measurement with respect to the prediction. Here, a value of 0
+    would indicate that the measured force matches the predicted mean force. A value of +1 would indicate that the 
+    measurement is one standard deviation larger than the mean, while a value of -2 would be two standard deviations
+    below the mean.
 
 ## Low frequency message fields
 

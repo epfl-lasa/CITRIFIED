@@ -2,7 +2,7 @@ clear all;close all;clc;
 
 % the echo-state-networks repository is a submodule in this CITRIFIED
 % repository, make sure you have initialized and updated it.
-addpath(genpath(fullfile('.','echo-state-networks','lib','ESNToolbox')));
+addpath(genpath(fullfile('.','echo-state-networks')));
 
 %% ESN classes
 classes = {'apple','banana','orange','prune'};
@@ -17,9 +17,16 @@ insertion_data = unpack_timewindows(all_timewindows)';
 
 clear all_timewindows
 
+%% settings
+
+plot_figures = true;
+
+save_esn = true;
+esn_path = fullfile(pwd,'ESN_400_20210503.yaml');
+
 %% training parameters
-test_train_rate = 0.2;
-nb_restarts_training = 5;
+test_train_rate = 0.4;
+nb_restarts_training = 20;
 
 %% grid search
 % define the grid for the 4 parameters spectral_radius, nb_internal_units,
@@ -27,10 +34,10 @@ nb_restarts_training = 5;
 % spectral_radius_grid = [0.1 0.3 0.5 0.7 0.9];
 % nb_internal_units_grid = [400];
 % nb_forget_points = [0 5 10 15];
-spectral_radius_grid = [0.3];
+spectral_radius_grid = [0.5];
 nb_internal_units_grid = [400];
-nb_forget_points = [10];
-perf = [];
+nb_forget_points = [0];
+performances = [];
 
 for spectral_radius=spectral_radius_grid
     for nb_internal_units=nb_internal_units_grid
@@ -100,42 +107,49 @@ for spectral_radius=spectral_radius_grid
                     best_result.trained_esn = trained_esn;
                     best_result.train_scores = train_scores;
                     best_result.test_scores = test_scores;
+                    best_result.nb_forget_points = nb_forget_point;
                 end
             end
             
-            figure(1);
-            plot(train_success,'b-*')
-            hold on; grid on;
-            plot(test_success,'r-o')
-            legend('train success','test success')
+            if plot_figures
+                figure(1);
+                plot(train_success,'b-*')
+                hold on; grid on;
+                plot(test_success,'r-o')
+                legend('train success','test success')
+
+                C = confusionmat([best_result.train_labels best_result.test_labels], [best_result.predicted_train_labels best_result.predicted_test_labels]);
+                C_norm = 100 * C ./ sum(C,2);
+
+                figure(2);
+                cm = confusionchart(C, classes);
+            end
             
-            C = confusionmat([best_result.train_labels best_result.test_labels], [best_result.predicted_train_labels best_result.predicted_test_labels]);
-            C_norm = 100 * C ./ sum(C,2);
-            
-            figure(2);
-            cm = confusionchart(C, classes);
-            
-%             performance.s_rad = spectral_radius;
-%             performance.nb_forget = nb_forget_point;
-%             performance.best = best_result;
-%             perf{end+1} = performance;
+            performance.spectral_radius = spectral_radius;
+            performance.nb_forget_points = nb_forget_point;
+            performance.best_result = best_result;
+            performance.mean_test_success = mean(test_success);
+            performances{end+1} = performance;
         end
     end
 end
 
-% best = 0;
-% values = [];
-% for p = perf
-%     values = [values; p{1}.s_rad p{1}.nb_forget p{1}.best.test_success];
-%     if p{1}.best.test_success > best
-%         best = p{1}.best.test_success;
+if save_esn
+    writeESNtoYAML(performance.best_result.trained_esn, esn_path, performance.best_result.nb_forget_points, classes);
+end
+
+% best_grid_result = 0;
+% grid_results = [];
+% for p = performances
+%     grid_results = [grid_results; p{1}.spectral_radius p{1}.nb_forget_points p{1}.mean_test_success];
+%     if p{1}.mean_test_success > best_grid_result
+%         best_grid_result = p{1}.mean_test_success;
 %         best_p = p{1};
 %     end
 % end
-% best_p
 % figure;
 % [x, y] = meshgrid(spectral_radius_grid, nb_forget_points);
-% surf(x,y, reshape(values(:,3),length(nb_forget_points), length(spectral_radius_grid)))
+% surf(x,y, reshape(grid_results(:,3),length(nb_forget_points), length(spectral_radius_grid)))
 
 %%
 function unpacked=unpack_timewindows(timewindows)

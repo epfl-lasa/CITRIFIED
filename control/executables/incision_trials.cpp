@@ -357,12 +357,12 @@ int main(int argc, char** argv) {
             gprRequest = {position.z() - eeInTask.get_position().z(), eeInRobotFilt.get_linear_velocity().x()};
         gpr.updateState(gprRequest);
         if (auto gprPrediction = gpr.getLastPrediction()) {
-          jsonLogger.addSubfield(logger::MODEL, "gpr", "mean", gprPrediction->mean);
-          jsonLogger.addSubfield(logger::MODEL, "gpr", "sigma", gprPrediction->sigma);
-          double deviation = abs(ftWrenchInRobotFilt.get_force().x() - gprPrediction->mean)
-              / (gprPrediction->sigma * gprPrediction->sigma);
-          jsonLogger.addSubfield(logger::MODEL, "gpr", "deviation", deviation);
-          std::cout << "GPR >>> " << deviation << std::endl;
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "mean", gprPrediction->mean);
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "sigma", gprPrediction->sigma);
+          double deviation = (ftWrenchInRobotFilt.get_force().x() - gprPrediction->mean) / gprPrediction->sigma;
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "deviation", deviation);
+//          std::cout << "GPR >>> F: " << ftWrenchInRobotFilt.get_force().x() << ", u: " << gprPrediction->mean
+//            << ", sigma: " << gprPrediction->sigma << " | deviation: " << deviation << std::endl;
 
           if (abs(deviation) > ITS.params["cut"]["max_force_deviation"].as<double>()) {
             //TODO: accumulate error and abort if the total exceeds some time / magnitude constraints

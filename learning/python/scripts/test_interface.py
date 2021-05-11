@@ -7,7 +7,7 @@ if __name__ == "__main__":
     # create interface with default state_uri and command_uri
     interface = ZMQInterface('0.0.0.0:7777')
     # create gpr from pickle file
-    file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gpr_rbf.pickle")
+    file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rbf_orange_0503.pickle")
     gpr = GPR()
     class_switcher = {1: 'orange', 2: 'apple'}
 

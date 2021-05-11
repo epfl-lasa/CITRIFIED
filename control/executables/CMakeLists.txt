@@ -26,6 +26,10 @@ add_executable(incision_trials incision_trials.cpp)
 target_compile_definitions(incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(incision_trials local_controllers cppzmq sensors filters learning logger)
 
+add_executable(dual_incision_trials dual_franka_incision_trials.cpp)
+target_compile_definitions(dual_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(dual_incision_trials dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)
+
 add_executable(surface_prober surface_prober.cpp)
 target_compile_definitions(surface_prober PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(surface_prober local_controllers cppzmq sensors filters learning logger)

@@ -29,7 +29,6 @@ private:
   zmq::context_t context_;
   zmq::socket_t publisher_;
   zmq::socket_t subscriber_;
-
 };
 
 inline Interface::Interface(InterfaceType type) : type_(type) {

@@ -9,7 +9,7 @@ FrankaController::FrankaController(network::InterfaceType id,
                                    const std::string& robot_name,
                                    const std::string& end_effector_name) :
     franka_(id), robot_state_(end_effector_name, robot_name), jacobian_(robot_name, 7, end_effector_name, robot_name) {
-
+  callback_ = &FrankaController::zero_callback;
 }
 
 void FrankaController::start() {
@@ -28,6 +28,11 @@ void FrankaController::pause() {
 void FrankaController::stop() {
   running_ = false;
   control_thread_.join();
+}
+
+state_representation::JointTorques FrankaController::zero_callback(const state_representation::CartesianState& state,
+                                                                   const state_representation::Jacobian&) {
+  return state_representation::JointTorques::Zero(state.get_reference_frame(), 7);
 }
 
 void FrankaController::set_callback(FrankaControllerCallback callback) {

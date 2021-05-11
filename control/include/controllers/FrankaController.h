@@ -29,6 +29,9 @@ private:
   void control_loop();
   void control_step();
 
+  static state_representation::JointTorques zero_callback(const state_representation::CartesianState& state,
+                                                          const state_representation::Jacobian& jacobian);
+
   network::Interface franka_;
   state_representation::CartesianState robot_state_;
   state_representation::Jacobian jacobian_;

@@ -10,6 +10,9 @@ target_link_libraries(simple_point_attractor cppzmq state_representation dynamic
 add_executable(simple_joy_attractor simple_joy_attractor.cpp)
 target_link_libraries(simple_joy_attractor cppzmq state_representation dynamical_systems controllers sensors)
 
+add_executable(dual_franka dual_franka.cpp)
+target_link_libraries(dual_franka local_controllers cppzmq yaml-cpp)
+
 add_executable(test_interface test_interface.cpp)
 target_link_libraries(test_interface cppzmq state_representation)
 

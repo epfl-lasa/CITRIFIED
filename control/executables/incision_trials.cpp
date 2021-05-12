@@ -64,6 +64,26 @@ int main(int argc, char** argv) {
   bool gprStarted = false;
   gpr.testConnection();
   std::cout << "GPR server ready" << std::endl;
+//
+//  std::array<double, 2>
+//  gprRequest = {0.007, 0};
+//  for (int index = 0; index < 10; ++index) {
+//    gprRequest = {0.007, static_cast<float>(index) / 1000};
+//    gpr.updateState(gprRequest);
+//    gpr.updateState(gprRequest);
+//    gpr.updateState(gprRequest);
+//    gpr.updateState(gprRequest);
+//    gpr.updateState(gprRequest);
+//    while (true) {
+//      if (auto gprPrediction = gpr.getLastPrediction()) {
+//        std::cout << "GPR >>> u: " << gprPrediction->mean << ", sigma: " << gprPrediction->sigma << std::endl;
+//        break;
+//      }
+//    }
+//  }
+//
+//  return 0;
+
 
   // set up ESN classifier
   std::cout << "Initializing ESN..." << std::endl;
@@ -330,7 +350,7 @@ int main(int argc, char** argv) {
           gprStarted = gpr.start(1);
         }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
-        if (elapsed_seconds.count() > 2.0f) {
+        if (elapsed_seconds.count() > 1.5f) {
           if (ITS.cut && gprStarted) {
             ITS.setCutPhase(eeInTask);
             trialState = CUT;
@@ -348,21 +368,21 @@ int main(int argc, char** argv) {
         auto center = ITS.ringDS.get_center();
         auto position = center.get_position();
         position.z() = CP.estimateHeightInTask(eeInTask);
-        jsonLogger.addField(logger::MODEL, "depth", position.z() - eeInTask.get_position().z());
+        double depth = position.z() - eeInTask.get_position().z();
+        jsonLogger.addField(logger::MODEL, "depth", depth);
         position.z() -= ITS.params["cut"]["depth"].as<double>();
         center.set_position(position);
         ITS.ringDS.set_center(center);
 
-        std::array<double, 2>
-            gprRequest = {position.z() - eeInTask.get_position().z(), eeInRobotFilt.get_linear_velocity().x()};
+        std::array<double, 2> gprRequest = {depth, eeInRobotFilt.get_linear_velocity().x()};
         gpr.updateState(gprRequest);
         if (auto gprPrediction = gpr.getLastPrediction()) {
           jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "mean", gprPrediction->mean);
           jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "sigma", gprPrediction->sigma);
           double deviation = (ftWrenchInRobotFilt.get_force().x() - gprPrediction->mean) / gprPrediction->sigma;
           jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "deviation", deviation);
-//          std::cout << "GPR >>> F: " << ftWrenchInRobotFilt.get_force().x() << ", u: " << gprPrediction->mean
-//            << ", sigma: " << gprPrediction->sigma << " | deviation: " << deviation << std::endl;
+          std::cout << "GPR >>> F: " << ftWrenchInRobotFilt.get_force().x() << ", u: " << gprPrediction->mean
+            << ", sigma: " << gprPrediction->sigma << " | deviation: " << deviation << std::endl;
 
           if (abs(deviation) > ITS.params["cut"]["max_force_deviation"].as<double>()) {
             //TODO: accumulate error and abort if the total exceeds some time / magnitude constraints

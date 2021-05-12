@@ -12,8 +12,8 @@
 # Set the cut radius to 1m for a practically straight line cut
 # Set the cut radius to 0.02 for small circle
 
-trial_prefix: '20210512_orange_01_'
-trial: '04'
+trial_prefix: '20210512_apple_04_'
+trial: '03'
 
 # set false to cut after insertion
 insertion_only: false
@@ -21,9 +21,9 @@ insertion_only: false
 # The attractor position and orientation during the hold phase
 attractor:
   position:
-    x: 0.005
-    y: 0.005
-    z: 0.1
+    x: 0.01
+    y: 0.0
+    z: 0.09
   yaw_angle: 0     # degrees to rotate the initial knife orientation, counter-clockwise from above
   pitch_angle: 15  # degrees to tilt the knife forward, positive around the knife -Y axis
   gains:
@@ -47,7 +47,7 @@ touch:
   ak: 4     # angular stiffness
   ad: 4     # angular damping
   speed: 0.05 # speed of touch approach
-  touch_force: 0.4  # force magnitude to register surface
+  touch_force: 0.3  # force magnitude to register surface
 
 insertion:
   d1: 210   # principle linear damping

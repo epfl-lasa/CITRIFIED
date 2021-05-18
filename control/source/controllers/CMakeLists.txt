@@ -2,12 +2,11 @@ target_sources(local_controllers
         PUBLIC
             KDLRobot.cpp
             KinematicController.cpp
-            TwistController.cpp
             IncisionTrialSystem.cpp
             CutProber.cpp)
 
 target_include_directories(local_controllers PUBLIC ${Eigen3_INCLUDE_DIRS})
-target_link_libraries(local_controllers Eigen3::Eigen cppzmq state_representation dynamical_systems orocos-kdl controllers)
+target_link_libraries(local_controllers Eigen3::Eigen yaml-cpp state_representation dynamical_systems controllers orocos-kdl)
 
 if(BUILD_TESTING)
     file(GLOB_RECURSE MODULE_TEST_SOURCES tests test_*.cpp)

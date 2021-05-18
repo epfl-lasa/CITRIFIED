@@ -38,6 +38,7 @@ public:
 
   bool start(const int& classIndex);
   void stop();
+  bool testConnection();
 
   bool updateState(const std::array<double, inputDim>& state);
 
@@ -87,6 +88,15 @@ void GPR<inputDim>::runPredictor() {
     predict();
     usleep(1000);
   }
+}
+
+template<int inputDim>
+bool GPR<inputDim>::testConnection() {
+  gprInitMessage message{99, 0};
+  interface_.send(message);
+  bool success;
+  interface_.receive(success);
+  return success;
 }
 
 template<int inputDim>

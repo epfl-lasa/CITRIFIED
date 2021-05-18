@@ -55,48 +55,49 @@ end
 
 fclose(file);
 
-force_dt_x = zeros(length(force_x),1);
-force_dt_z = zeros(length(force_z),1);
-
-dt_fx = mean(diff(force_x));
-force_dt_x(2:end-1) = (force_x(3:end) - force_x(1:end-2)) / dt_fx;
-force_dt_x(1) = force_x(2);
-force_dt_x(end) = force_x(end-1);
-
-dt_fz = mean(diff(force_z));
-force_dt_z(2:end-1) = (force_z(3:end) - force_z(1:end-2)) / dt_fz;
-force_dt_z(1) = force_z(2);
-force_dt_z(end) = force_z(end-1);
-
 %% Time Windows
 
 % Split data into time windows
 
-nb_tw = 3; % number of time windows
+length_tw = 3500; % number of samples in one time window
 overlap = 0; % number of samples that must overlap
-length_tw = ceil((length(vel_x) + (overlap * nb_tw)) / nb_tw); % lenth of each time window
+length_tw = length_tw + overlap;
 
 vel_x_tw = buffer(vel_x, length_tw, overlap, 'nodelay');
 vel_z_tw = buffer(vel_z, length_tw, overlap, 'nodelay');
 force_x_tw = buffer(force_x, length_tw, overlap, 'nodelay');
 force_z_tw = buffer(force_z, length_tw, overlap, 'nodelay');
-force_dt_x_tw = buffer(force_dt_x, length_tw, overlap, 'nodelay');
-force_dt_z_tw = buffer(force_dt_z, length_tw, overlap, 'nodelay');
-time = buffer(time, length_tw, overlap, 'nodelay');
+time_tw = buffer(time, length_tw, overlap, 'nodelay');
 
 % Store input data in cell arrays
 
+nb_tw = length(time_tw(1,:));
 timewindows_data = {};
 
 for i = 1:nb_tw
     
-    input.time = time(:,i);
+    input.time = time_tw(:,i);
     input.force_x = force_x_tw(:,i);
     input.force_z = force_z_tw(:,i);
     input.vel_x = vel_x_tw(:,i);
     input.vel_z = vel_z_tw(:,i);
-    input.force_derivative_x = force_x_tw(:,i);
-    input.force_derivative_z = force_x_tw(:,i);
+    
+    % Derivative of Fx and Fz
+    
+    input.force_dt_x = zeros(length(input.force_x),1);
+    input.force_dt_z = zeros(length(input.force_z),1);
+    
+    dt_fx = mean(diff(input.time));
+    input.force_dt_x(2:end-1) = (input.force_x(3:end) - input.force_x(1:end-2)) / dt_fx;
+    input.force_dt_x(1) = input.force_x(2);
+    input.force_dt_x(end) = input.force_x(end-1);
+    
+    dt_fz = mean(diff(input.time));
+    input.force_dt_z(2:end-1) = (input.force_z(3:end) - input.force_z(1:end-2)) / dt_fz;
+    input.force_dt_z(1) = input.force_z(2);
+    input.force_dt_z(end) = input.force_z(end-1);
+    
+    % Add input struct to cell array
     
     timewindows_data{1,i} = input;
     

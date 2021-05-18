@@ -64,26 +64,6 @@ int main(int argc, char** argv) {
   bool gprStarted = false;
   gpr.testConnection();
   std::cout << "GPR server ready" << std::endl;
-//
-//  std::array<double, 2>
-//  gprRequest = {0.007, 0};
-//  for (int index = 0; index < 10; ++index) {
-//    gprRequest = {0.007, static_cast<float>(index) / 1000};
-//    gpr.updateState(gprRequest);
-//    gpr.updateState(gprRequest);
-//    gpr.updateState(gprRequest);
-//    gpr.updateState(gprRequest);
-//    gpr.updateState(gprRequest);
-//    while (true) {
-//      if (auto gprPrediction = gpr.getLastPrediction()) {
-//        std::cout << "GPR >>> u: " << gprPrediction->mean << ", sigma: " << gprPrediction->sigma << std::endl;
-//        break;
-//      }
-//    }
-//  }
-//
-//  return 0;
-
 
   // set up ESN classifier
   std::cout << "Initializing ESN..." << std::endl;
@@ -135,6 +115,11 @@ int main(int argc, char** argv) {
   jsonLogger.addBody(logger::MessageType::STATIC, robotInOptitrack);
   jsonLogger.addBody(logger::MessageType::STATIC, taskInOptitrack);
   jsonLogger.write();
+
+  // adaptive cut parameters
+  int cutStable = -20;
+  auto deviationOffset = ITS.params["cut"]["deviation_offset"].as<double>();
+  auto deviationRate = ITS.params["cut"]["offset_incremental_rate"].as<double>();
 
   std::cout << "Ready to begin trial!" << std::endl;
   // start main control loop
@@ -341,20 +326,26 @@ int main(int argc, char** argv) {
         }
         esn.stop();
         trialState = PAUSE;
-        std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
-        std::cout << finalESNPrediction.className << std::endl;
+        std::cout << "### PAUSING - TISSUE CLASSIFIED : " << finalESNPrediction.className << std::endl;
         break;
       }
       case PAUSE: {
         if (!gprStarted) {
-          gprStarted = gpr.start(1);
+          //TODO: validate classification against known / approved models
+          // gprStarted = gpr.start(finalESNPrediction.classIndex);
+          gprStarted = gpr.start(0);
         }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
         if (elapsed_seconds.count() > 1.5f) {
           if (ITS.cut && gprStarted) {
-            ITS.setCutPhase(eeInTask);
-            trialState = CUT;
-            std::cout << "### STARTING CUT PHASE" << std::endl;
+            if (auto gprPrediction = gpr.getLastPrediction()) {
+              ITS.setCutPhase(eeInTask);
+              trialState = CUT;
+              std::cout << "### STARTING CUT PHASE" << std::endl;
+            } else {
+              gpr.updateState(std::array<double, 2>({ITS.params["cut"]["depth"].as<double>(),
+                                                     ITS.params["cut"]["speed"].as<double>()}));
+            }
           } else {
             finished = true;
             ITS.setRetractionPhase(eeInTask);
@@ -377,15 +368,39 @@ int main(int argc, char** argv) {
         std::array<double, 2> gprRequest = {depth, eeInRobotFilt.get_linear_velocity().x()};
         gpr.updateState(gprRequest);
         if (auto gprPrediction = gpr.getLastPrediction()) {
+          double deviation = (ftWrenchInRobotFilt.get_force().x() - gprPrediction->mean) / gprPrediction->sigma;
+
+          auto offsetMean = gprPrediction->mean + deviationOffset * gprPrediction->sigma;
+          double offsetDeviation = deviation - deviationOffset;
+
           jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "mean", gprPrediction->mean);
           jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "sigma", gprPrediction->sigma);
-          double deviation = (ftWrenchInRobotFilt.get_force().x() - gprPrediction->mean) / gprPrediction->sigma;
           jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "deviation", deviation);
-          std::cout << "GPR >>> F: " << ftWrenchInRobotFilt.get_force().x() << ", u: " << gprPrediction->mean
-            << ", sigma: " << gprPrediction->sigma << " | deviation: " << deviation << std::endl;
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "deviation_offset", deviationOffset);
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "offset_mean", offsetMean);
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "offset_deviation", offsetDeviation);
 
-          if (abs(deviation) > ITS.params["cut"]["max_force_deviation"].as<double>()) {
+          std::cout << "GPR >>> F: " << ftWrenchInRobotFilt.get_force().x() << ", u: " << gprPrediction->mean
+                    << ", sigma: " << gprPrediction->sigma << ", deviation: " << deviation;
+
+          std::cout << " | u': " << offsetMean << ", deviation': " << offsetDeviation
+                    << ", offset: " << deviationOffset << std::endl;
+
+          // incrementally adapt the offset
+          if (abs(deviationOffset + deviationRate * offsetDeviation) < ITS.params["cut"]["max_force_deviation"].as<double>()) {
+            deviationOffset += deviationRate * offsetDeviation;
+          }
+
+          if (cutStable < 0 && abs(offsetDeviation) < ITS.params["cut"]["max_force_deviation"].as<double>()) {
+            ++cutStable;
+          } else if (cutStable >= 0 && abs(offsetDeviation) >= ITS.params["cut"]["max_force_deviation"].as<double>()) {
             //TODO: accumulate error and abort if the total exceeds some time / magnitude constraints
+            std::cout << "### Cut force outside of expected range! Deviation: " << deviation << std::endl;
+            ITS.setRetractionPhase(eeInTask);
+            finished = true;
+            gpr.stop();
+            trialState = RETRACTION;
+            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
           }
         }
 

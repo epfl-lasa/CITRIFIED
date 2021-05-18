@@ -12,8 +12,8 @@
 # Set the cut radius to 1m for a practically straight line cut
 # Set the cut radius to 0.02 for small circle
 
-trial_prefix: '20210512_apple_04_'
-trial: '03'
+trial_prefix: '20210518_apple_02_'
+trial: '05'
 
 # set false to cut after insertion
 insertion_only: false
@@ -22,7 +22,7 @@ insertion_only: false
 attractor:
   position:
     x: 0.01
-    y: 0.0
+    y: 0.025
     z: 0.09
   yaw_angle: 0     # degrees to rotate the initial knife orientation, counter-clockwise from above
   pitch_angle: 15  # degrees to tilt the knife forward, positive around the knife -Y axis
@@ -71,7 +71,9 @@ cut:
   angular_gain: 10
   arc_angle: 90     # max cut distance in degrees
   cut_distance: 0.05  # max cut distance in meters
-  max_force_deviation: 1 # max deviation of measured force from mean prediction [std deviation]
+  max_force_deviation: 2.5 # max deviation of measured force from mean prediction [std deviation]
+  deviation_offset: 0.0 # bias to add to the predicted force (incrementally learned) [std deviation]
+  offset_incremental_rate: 0.01 # incremental learning rate (proportion
 
 probe:
   samples: 12  # maximum number of surface samples to collect

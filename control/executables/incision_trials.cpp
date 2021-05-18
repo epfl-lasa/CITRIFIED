@@ -411,10 +411,9 @@ int main(int argc, char** argv) {
       jsonLogger.addBody(logger::FILTERED, ftWrenchInRobotFilt);
       jsonLogger.addCommand(commandTwistInRobot, commandWrenchInRobot);
 
-      jsonLogger.addField(logger::CONTROL,
-                          "gains",
-                          std::vector<double>(ITS.ctrl.get_gains().data(),
-                                              ITS.ctrl.get_gains().data() + ITS.ctrl.get_gains().size()));
+      std::vector<double> gains(4);
+      Eigen::MatrixXd::Map(&gains[0], 4, 1) = ITS.ctrl.get_gains();
+      jsonLogger.addField(logger::CONTROL, "gains",  gains);
     }
 
     jsonLogger.write();

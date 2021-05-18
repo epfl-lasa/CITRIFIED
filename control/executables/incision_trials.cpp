@@ -411,12 +411,10 @@ int main(int argc, char** argv) {
       jsonLogger.addBody(logger::FILTERED, ftWrenchInRobotFilt);
       jsonLogger.addCommand(commandTwistInRobot, commandWrenchInRobot);
 
-      jsonLogger.addField(logger::CONTROL, "gains", std::vector<double>({
-                                                                            ITS.ctrl.get_linear_damping(0),
-                                                                            ITS.ctrl.get_linear_damping(1),
-                                                                            ITS.ctrl.angular_stiffness,
-                                                                            ITS.ctrl.angular_damping
-                                                                        }));
+      jsonLogger.addField(logger::CONTROL,
+                          "gains",
+                          std::vector<double>(ITS.ctrl.get_gains().data(),
+                                              ITS.ctrl.get_gains().data() + ITS.ctrl.get_gains().size()));
     }
 
     jsonLogger.write();

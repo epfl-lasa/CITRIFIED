@@ -2,7 +2,7 @@
 
 #include <dynamical_systems/Linear.hpp>
 
-#include "controllers/TwistController.h"
+#include "controllers/impedance/CartesianTwistController.hpp"
 #include "sensors/ForceTorqueSensor.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "sensors/RigidBodyTracker.h"
@@ -49,10 +49,10 @@ int main(int argc, char** argv) {
   pointDS.set_base_frame(CartesianState::Identity("task", "task"));
 
   // set up controller
-  controllers::TwistController ctrl(params["default"]["d1"].as<double>(),
-                                    params["default"]["d2"].as<double>(),
-                                    params["default"]["ak"].as<double>(),
-                                    params["default"]["ad"].as<double>());
+  controllers::impedance::CartesianTwistController ctrl(params["default"]["d1"].as<double>(),
+                                                        params["default"]["d2"].as<double>(),
+                                                        params["default"]["ak"].as<double>(),
+                                                        params["default"]["ad"].as<double>());
 
   // set up logger
   logger::JSONLogger jsonLogger(params["experiment_prefix"].as<std::string>() + params["surface"].as<std::string>() + "_surface.json");
@@ -170,10 +170,9 @@ int main(int argc, char** argv) {
           pointDS.set_gain(gains);
           zVelocity = -params["touch"]["speed"].as<double>();
 
-          // set the controller to specific insertion phase gains
-          ctrl.set_linear_damping(params["touch"]["d1"].as<double>(), params["touch"]["d2"].as<double>());
-          ctrl.angular_stiffness = params["touch"]["ak"].as<double>();
-          ctrl.angular_damping = params["touch"]["ad"].as<double>();
+          // set the controller to specific touch phase gains
+          ctrl.set_linear_gains(params["touch"]["d1"].as<double>(), params["touch"]["d2"].as<double>());
+          ctrl.set_angular_gains(params["touch"]["ak"].as<double>(), params["touch"]["ad"].as<double>());
 
           printf("Grid position %i, %i (%i / %i)\n", x_index, y_index, y_index * resolution + x_index + 1, resolution * resolution);
           probeState = TOUCH;
@@ -189,9 +188,8 @@ int main(int argc, char** argv) {
           zVelocity = -params["touch"]["speed"].as<double>();
 
           // set the controller to specific insertion phase gains
-          ctrl.set_linear_damping(params["touch"]["d1"].as<double>(), params["touch"]["d2"].as<double>());
-          ctrl.angular_stiffness = params["touch"]["ak"].as<double>();
-          ctrl.angular_damping = params["touch"]["ad"].as<double>();
+          ctrl.set_linear_gains(params["insertion"]["d1"].as<double>(), params["insertion"]["d2"].as<double>());
+          ctrl.set_angular_gains(params["insertion"]["ak"].as<double>(), params["insertion"]["ad"].as<double>());
 
           printf("Going to center\n");
           probeState = TOUCH;
@@ -215,9 +213,8 @@ int main(int argc, char** argv) {
           zVelocity = 0;
 
           // reset the controller to default damping values
-          ctrl.set_linear_damping(params["default"]["d1"].as<double>(), params["default"]["d2"].as<double>());
-          ctrl.angular_stiffness = params["default"]["ak"].as<double>();
-          ctrl.angular_damping = params["default"]["ad"].as<double>();
+          ctrl.set_linear_gains(params["default"]["d1"].as<double>(), params["default"]["d2"].as<double>());
+          ctrl.set_angular_gains(params["default"]["ak"].as<double>(), params["default"]["ad"].as<double>());
 
           probeState = RETRACT;
           std::cout << "### RETRACTING" << std::endl;

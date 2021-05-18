@@ -8,7 +8,7 @@
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
-#include "controllers/TwistController.h"
+#include "controllers/impedance/CartesianTwistController.hpp"
 #include "motion_generators/PointAttractorDS.h"
 #include "motion_generators/CircularDS.h"
 #include "motion_generators/RingDS.h"
@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
 
   DS.defaultPose = Eigen::Quaterniond(0.0, -0.393, 0.919, 0.0).normalized();
 
-  controllers::TwistController ctrl(230, 150, 5, 5);
+  controllers::impedance::CartesianTwistController ctrl(230, 150, 5, 5);
 
   std::cout << std::fixed << std::setprecision(3);
 

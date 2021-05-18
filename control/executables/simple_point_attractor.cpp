@@ -7,7 +7,7 @@
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
-#include "controllers/TwistController.h"
+#include "controllers/impedance/CartesianTwistController.hpp"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "network/interfaces.h"
 
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> DS(attractor, gains);
 
-  controllers::TwistController ctrl(100, 100, 5, 5);
+  controllers::impedance::CartesianTwistController ctrl(100, 100, 5, 5);
 
   bool positionSet = false;
   bool orientationSet = false;

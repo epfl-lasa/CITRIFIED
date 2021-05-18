@@ -2,6 +2,7 @@
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 #include <dynamical_systems/Linear.hpp>
+#include <dynamical_systems/Circular.hpp>
 
 #include "controllers/FrankaController.h"
 #include "controllers/IncisionTrialSystem.h"
@@ -18,22 +19,31 @@ using namespace state_representation;
 
 class QuebecWrapper {
 public:
-  QuebecWrapper() :
+  explicit QuebecWrapper(const YAML::Node& params) :
       franka_quebec(network::InterfaceType::FRANKA_QUEBEC_17, "quebec", "task"),
       frame_quebec(CartesianState::Identity("quebec", "papa")),
       task_in_quebec("task", "quebec"),
-      ds_quebec(frame_quebec),
-      ctrl_quebec(100, 100, 5, 5) {
+      orientation_ds_quebec(frame_quebec),
+      position_ds_quebec(frame_quebec, 1, 1, 1),
+      ctrl_quebec(1, 1, 1, 1) {
     // assume frame papa = world
     frame_quebec.set_position(0.899, 0, 0);
     frame_quebec.set_orientation(Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())));
 
-    std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
-    state_representation::CartesianPose attractor_quebec("attractor_quebec",
-                                                         Eigen::Vector3d(0.342, -0.038, 0.460),
-                                                         Eigen::Quaterniond(-0.229, 0.296, -0.049, 0.926),
-                                                         frame_quebec.get_name());
-    ds_quebec = dynamical_systems::Linear<CartesianState>(attractor_quebec, gains);
+    std::vector<double> orientation_gains = {0.0, 0.0, 0.0, 10.0, 10.0, 10.0};
+    state_representation::CartesianPose attractor_quebec("attractor_quebec",frame_quebec.get_name());
+    attractor_quebec.from_std_vector(params["quebec"]["position"].as<std::vector<double>>());
+    attractor_quebec.from_std_vector(params["quebec"]["orientation"].as<std::vector<double>>());
+    orientation_ds_quebec = dynamical_systems::Linear<CartesianState>(attractor_quebec, orientation_gains);
+
+    position_ds_quebec.set_center(attractor_quebec);
+    position_ds_quebec.set_radiuses(params["quebec"]["ellipse"].as<std::vector<double>>());
+    position_ds_quebec.set_normal_gain(params["quebec"]["normal_gain"].as<double>());
+    position_ds_quebec.set_planar_gain(params["quebec"]["planar_gain"].as<double>());
+    position_ds_quebec.set_circular_velocity(params["quebec"]["circular_velocity"].as<double>());
+
+    auto gains = params["quebec"]["ctrl_gains"].as<std::vector<double>>();
+    ctrl_quebec.set_gains(Eigen::Vector4d(gains.data()));
 
     franka_quebec.set_callback([this] (const CartesianState& state, const Jacobian& jacobian) -> JointTorques {
       return control_loop_quebec(state, jacobian);
@@ -42,7 +52,7 @@ public:
 
   JointTorques control_loop_quebec(const CartesianState& state, const Jacobian& jacobian) {
     task_in_quebec = state;
-    CartesianTwist dsTwist = ds_quebec.evaluate(state);
+    CartesianTwist dsTwist = orientation_ds_quebec.evaluate(state) + position_ds_quebec.evaluate(state);
     dsTwist.clamp(0.5, 0.75);
 
     return ctrl_quebec.compute_command(dsTwist, state, jacobian);
@@ -51,8 +61,9 @@ public:
   controllers::FrankaController franka_quebec;
   CartesianState frame_quebec;
   CartesianState task_in_quebec;
-  dynamical_systems::Linear<CartesianState> ds_quebec;
-  controllers::TwistController ctrl_quebec;
+  dynamical_systems::Linear<CartesianState> orientation_ds_quebec;
+  dynamical_systems::Circular position_ds_quebec;
+  controllers::impedance::CartesianTwistController ctrl_quebec;
 };
 
 int main(int argc, char** argv) {
@@ -124,7 +135,7 @@ int main(int argc, char** argv) {
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
-  QuebecWrapper quebec_wrapper;
+  QuebecWrapper quebec_wrapper(ITS.params);
   quebec_wrapper.franka_quebec.start();
 
   // prepare all state objects
@@ -443,12 +454,11 @@ int main(int argc, char** argv) {
       jsonLogger.addBody(logger::FILTERED, ftWrenchInPapaFilt);
       jsonLogger.addCommand(commandTwistInPapa, commandWrenchInPapa);
 
-      jsonLogger.addField(logger::CONTROL, "gains", std::vector<double>({
-                                                                            ITS.ctrl.get_linear_damping(0),
-                                                                            ITS.ctrl.get_linear_damping(1),
-                                                                            ITS.ctrl.angular_stiffness,
-                                                                            ITS.ctrl.angular_damping
-                                                                        }));
+      // TODO add quebec logging, maybe filtered?
+
+      std::vector<double> gains(4);
+      Eigen::MatrixXd::Map(&gains[0], 4, 1) = ITS.ctrl.get_gains();
+      jsonLogger.addField(logger::CONTROL, "gains",  gains);
     }
 
     jsonLogger.write();

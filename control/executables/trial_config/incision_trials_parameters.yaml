@@ -81,3 +81,12 @@ esn:
   filename: ESN_400_20210503.yaml
   buffer_size: 50
   min_time_between_predictions: 60 # in milliseconds
+
+quebec:
+  ctrl_gains: [100, 100, 5, 5]
+  position: [0.342, -0.038, 0.460]
+  orientation: [-0.229, 0.296, -0.049, 0.926]
+  ellipse: [0.1, 0.2]
+  normal_gain: 1
+  planar_gain: 1
+  circular_velocity: 1

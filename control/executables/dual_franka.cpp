@@ -6,7 +6,7 @@
 #include <dynamical_systems/Linear.hpp>
 
 #include "controllers/FrankaController.h"
-#include "controllers/TwistController.h"
+#include "controllers/impedance/CartesianTwistController.hpp"
 
 using namespace state_representation;
 using namespace dynamical_systems;
@@ -82,8 +82,8 @@ public:
   CartesianState frame_quebec;
   Linear<CartesianState> ds_papa;
   Linear<CartesianState> ds_quebec;
-  controllers::TwistController ctrl_papa;
-  controllers::TwistController ctrl_quebec;
+  controllers::impedance::CartesianTwistController ctrl_papa;
+  controllers::impedance::CartesianTwistController ctrl_quebec;
 };
 
 int main(int, char**) {

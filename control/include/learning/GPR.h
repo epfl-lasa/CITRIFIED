@@ -95,7 +95,7 @@ bool GPR<inputDim>::testConnection() {
   gprInitMessage message{99, 0};
   interface_.send(message);
   bool success;
-  interface_.template receive(success);
+  interface_.receive(success);
   return success;
 }
 

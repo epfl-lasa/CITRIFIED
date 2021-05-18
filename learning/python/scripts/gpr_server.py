@@ -34,6 +34,8 @@ if __name__ == "__main__":
                 continue
             if gpr.init(file_switcher[class_name]):
                 interface.send(True, '?')
+        elif header == 99:
+            interface.send('True', '?')
         else:
             print("This kind of header type is not defined. Exit")
             exit(1)

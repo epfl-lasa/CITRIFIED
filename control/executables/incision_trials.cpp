@@ -117,9 +117,10 @@ int main(int argc, char** argv) {
   jsonLogger.write();
 
   // adaptive cut parameters
-  int cutStable = -20;
+  int cutStable = -ITS.params["cut"]["evaluation_buffer"].as<int>();
   auto deviationOffset = ITS.params["cut"]["deviation_offset"].as<double>();
   auto deviationRate = ITS.params["cut"]["offset_incremental_rate"].as<double>();
+  std::array<double, 2> maxDeviation = {0, 0};
 
   std::cout << "Ready to begin trial!" << std::endl;
   // start main control loop
@@ -393,14 +394,24 @@ int main(int argc, char** argv) {
 
           if (cutStable < 0 && abs(offsetDeviation) < ITS.params["cut"]["max_force_deviation"].as<double>()) {
             ++cutStable;
-          } else if (cutStable >= 0 && abs(offsetDeviation) >= ITS.params["cut"]["max_force_deviation"].as<double>()) {
-            //TODO: accumulate error and abort if the total exceeds some time / magnitude constraints
-            std::cout << "### Cut force outside of expected range! Deviation: " << deviation << std::endl;
-            ITS.setRetractionPhase(eeInTask);
-            finished = true;
-            gpr.stop();
-            trialState = RETRACTION;
-            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+          }
+
+          if (cutStable >= 0) {
+            if (offsetDeviation < maxDeviation[0]) {
+              maxDeviation[0] = offsetDeviation;
+            } else if (offsetDeviation > maxDeviation[1]) {
+              maxDeviation[1] = offsetDeviation;
+            }
+
+            if (abs(offsetDeviation) >= ITS.params["cut"]["max_force_deviation"].as<double>()) {
+              //TODO: accumulate error and abort if the total exceeds some time / magnitude constraints
+              std::cout << "### Cut force outside of expected range! Deviation: " << deviation << std::endl;
+              ITS.setRetractionPhase(eeInTask);
+              finished = true;
+              gpr.stop();
+              trialState = RETRACTION;
+              std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+            }
           }
         }
 
@@ -411,6 +422,8 @@ int main(int argc, char** argv) {
           ITS.setRetractionPhase(eeInTask);
           finished = true;
           gpr.stop();
+          std::cout << "Cut phase finished. Min / Max observed deviation: " << maxDeviation[0]
+                    << ", " << maxDeviation[1] << std::endl;
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }

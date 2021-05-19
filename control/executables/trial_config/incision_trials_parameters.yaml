@@ -12,19 +12,19 @@
 # Set the cut radius to 1m for a practically straight line cut
 # Set the cut radius to 0.02 for small circle
 
-trial_prefix: 'YYYYMMDD_fruit_00_'
-trial: '00'
+trial_prefix: '20210519_apple_02_'
+trial: '02'
 
 # set false to cut after insertion
-insertion_only: true
+insertion_only: false
 
 # The attractor position and orientation during the hold phase
 attractor:
   position:
-    x: 0.0
-    y: -0.005
+    x: 0.01
+    y: 0.0
     z: 0.15
-  yaw_angle: 150     # degrees to rotate the initial knife orientation, counter-clockwise from above
+  yaw_angle: 0     # degrees to rotate the initial knife orientation, counter-clockwise from above
   pitch_angle: 15  # degrees to tilt the knife forward, positive around the knife -Y axis
   gains:
     linear: 50.0
@@ -42,7 +42,7 @@ default:
   max_force: 15             # force magnitude to trigger retraction
 
 touch:
-  d1: 100   # principle linear damping
+  d1: 125   # principle linear damping
   d2: 100   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping
@@ -70,11 +70,11 @@ cut:
   normal_gain: 10
   angular_gain: 10
   arc_angle: 90     # max cut distance in degrees
-  cut_distance: 0.07  # max cut distance in meters
+  cut_distance: 0.04  # max cut distance in meters
 
 probe:
-  samples: 10  # maximum number of surface samples to collect
-  ms_per_step: 100 # integration interval in milliseconds between each probe sample
+  samples: 12  # maximum number of surface samples to collect
+  ms_per_step: 75 # integration interval in milliseconds between each probe sample
 
 
 esn:
@@ -84,9 +84,9 @@ esn:
 
 quebec:
   ctrl_gains: [100, 100, 5, 5]
-  position: [0.342, -0.038, 0.460]
-  orientation: [-0.229, 0.296, -0.049, 0.926]
-  ellipse: [0.1, 0.2]
-  normal_gain: 1
-  planar_gain: 1
-  circular_velocity: 1
+  position: [0.45, -0.25, 0.225]
+  orientation: [1.0, 0, 0, 0]
+  ellipse: [0.04, 0.04]
+  normal_gain: 10
+  planar_gain: 250
+  circular_velocity: 2.5

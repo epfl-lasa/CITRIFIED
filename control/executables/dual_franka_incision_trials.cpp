@@ -23,9 +23,9 @@ public:
       franka_quebec(network::InterfaceType::FRANKA_QUEBEC_17, "quebec", "task"),
       frame_quebec(CartesianState::Identity("quebec", "papa")),
       task_in_quebec("task", "quebec"),
-      orientation_ds_quebec(frame_quebec),
-      position_ds_quebec(frame_quebec, 1, 1, 1),
-      ctrl_quebec(1, 1, 1, 1) {
+      orientation_ds_quebec(task_in_quebec),
+      position_ds_quebec(task_in_quebec, 1, 1, 1),
+      ctrl_quebec(100, 100, 4, 4) {
     // assume frame papa = world
     frame_quebec.set_position(0.899, 0, 0);
     frame_quebec.set_orientation(Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())));
@@ -405,7 +405,7 @@ int main(int argc, char** argv) {
         }
 
         double angle = touchPose.get_orientation().angularDistance(eeInPapa.get_orientation()) * 180 / M_PI;
-        double distance = (eeInPapa.get_position() - touchPose.get_position()).norm();
+        double distance = eeInTask.dist(CP.getTouchPointInTask(0), CartesianStateVariable::POSITION);
         if (angle > ITS.params["cut"]["arc_angle"].as<double>()
             || distance > ITS.params["cut"]["cut_distance"].as<double>()) {
           ITS.setRetractionPhase(eeInTask);

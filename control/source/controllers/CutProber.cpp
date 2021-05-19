@@ -98,3 +98,10 @@ void CutProber::step() {
   ang_ += diff.get_orientation().angularDistance(Eigen::Quaterniond::Identity());
   poseInTask_ = dt_ * twistInTask + poseInTask_;
 }
+state_representation::CartesianPose CutProber::getTouchPointInTask(unsigned int index) const {
+  CartesianPose pose("touch", poseInTask_.get_reference_frame());
+  if (index < z_.size()) {
+    pose.set_position(xy_.col(index)(0), xy_.col(index)(1), z_(index));
+  }
+  return pose;
+}

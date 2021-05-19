@@ -31,12 +31,12 @@ void Joy::run() {
 }
 
 state_representation::CartesianPose Joy::getJoyUpdate(double gain) {
-  state_representation::CartesianPose pose("joy", "ee");
+  state_representation::CartesianPose pose("joy", "franka");
   if (joyReady_) {
     joyMutex_.lock();
     auto axesCopy = axes_;
     joyMutex_.unlock();
-    pose.set_position(axesCopy(0), axesCopy(1), (axesCopy(2)-axesCopy(5)) / 2.0);
+    pose.set_position(-axesCopy(0), axesCopy(1), (axesCopy(2) - axesCopy(5)) / 2.0);
     pose = gain * pose;
   }
   return pose;

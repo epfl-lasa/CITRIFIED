@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> DS(attractor, gains);
 
-  controllers::impedance::CartesianTwistController ctrl(100, 100, 5, 5);
+  controllers::impedance::CartesianTwistController ctrl(100, 100, 4, 4);
 
   bool positionSet = false;
   bool orientationSet = false;
@@ -90,7 +90,11 @@ int main(int argc, char** argv) {
       }
       DS.set_attractor(attractor);
     }
-    DS.set_attractor(DS.get_attractor() + joy.getJoyUpdate());
+    auto joyPose = joy.getJoyUpdate(0.0001);
+    if (!joyPose.is_empty()) {
+      attractor += joyPose;
+      DS.set_attractor(attractor);
+    }
 
     state_representation::CartesianTwist dsTwist = DS.evaluate(robot);
     dsTwist.clamp(0.25, 0.5);

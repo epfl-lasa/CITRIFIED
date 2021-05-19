@@ -4,4 +4,6 @@ echo "## ROS" >> ~/.bashrc
 echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 echo "source ~/ros_ws/devel/setup.bash" >> ~/.bashrc
 
+echo "export ROS_MASTER_URI=http://128.178.145.15:11311" >> ~/.bashrc
+
 echo "session required pam_limits.so" | sudo tee --append /etc/pam.d/common-session > /dev/null

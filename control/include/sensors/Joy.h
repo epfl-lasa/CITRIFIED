@@ -22,7 +22,7 @@ public:
   void stop();
   void run();
 
-  state_representation::CartesianPose getJoyUpdate(double gain = 0.001);
+  state_representation::CartesianPose getJoyUpdate(double gain = 0.0001);
 
 private:
   network::Interface interface_ = network::Interface(network::InterfaceType::JOY);

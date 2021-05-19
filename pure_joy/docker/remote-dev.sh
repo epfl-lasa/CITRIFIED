@@ -60,4 +60,5 @@ docker run \
   --volume="${XAUTH}:${XAUTH}" \
   --env XAUTHORITY="${XAUTH}" \
   --env DISPLAY="${DISPLAY}" \
+  --add-host lasapc21:128.178.145.15 \
   "${IMAGE_NAME}:${MULTISTAGE_TARGET}"

@@ -65,12 +65,8 @@ for tw=1:length(tw_size_grid)
             s.input.force_derivative_z = fd_z;
             s.real_class_index = round(mean(label_tw(:,i)));
             insertion_data{end+1} = s;
-            if s.real_class_index == 2
-                continue
-            end
         end
     end
-    insertion_data = insertion_data';
     
     for spectral_radius=spectral_radius_grid
         for nb_internal_units=nb_internal_units_grid

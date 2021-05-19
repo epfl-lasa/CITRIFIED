@@ -2,7 +2,6 @@
 #include <iostream>
 
 #include <state_representation/space/cartesian/CartesianPose.hpp>
-#include <state_representation/space/cartesian/CartesianState.hpp>
 #include <dynamical_systems/Linear.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
@@ -10,6 +9,7 @@
 #include "controllers/impedance/CartesianTwistController.hpp"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "network/interfaces.h"
+#include "sensors/Joy.h"
 
 void throttledPrint(const state_representation::CartesianState& robot,
                     const state_representation::CartesianPose& attractor,
@@ -70,6 +70,9 @@ int main(int argc, char** argv) {
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
+  sensors::Joy joy;
+  joy.start();
+
   // control loop
   while (franka.receive(state)) {
     frankalwi::utils::toCartesianState(state, robot);
@@ -87,6 +90,7 @@ int main(int argc, char** argv) {
       }
       DS.set_attractor(attractor);
     }
+    DS.set_attractor(DS.get_attractor() + joy.getJoyUpdate());
 
     state_representation::CartesianTwist dsTwist = DS.evaluate(robot);
     dsTwist.clamp(0.25, 0.5);

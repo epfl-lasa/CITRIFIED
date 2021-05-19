@@ -5,7 +5,7 @@ add_executable(ik_controller simple_ik_controller.cpp)
 target_link_libraries(ik_controller motion_generators local_controllers)
 
 add_executable(simple_point_attractor simple_point_attractor.cpp)
-target_link_libraries(simple_point_attractor cppzmq state_representation dynamical_systems controllers)
+target_link_libraries(simple_point_attractor cppzmq state_representation dynamical_systems controllers sensors)
 
 add_executable(test_interface test_interface.cpp)
 target_link_libraries(test_interface cppzmq state_representation)
@@ -26,3 +26,6 @@ target_link_libraries(surface_prober local_controllers cppzmq sensors filters le
 
 add_executable(test_learning test_learning.cpp)
 target_link_libraries(test_learning learning cppzmq)
+
+add_executable(test_joy test_joy.cpp)
+target_link_libraries(test_joy cppzmq sensors)

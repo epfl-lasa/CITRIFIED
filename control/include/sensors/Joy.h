@@ -32,5 +32,6 @@ private:
   std::thread joyThread_;
   std::mutex joyMutex_;
   bool keepAlive_ = false;
+  bool joyReady_ = false;
 };
 }

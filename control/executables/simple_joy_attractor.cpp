@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> DS(attractor, gains);
 
-  controllers::impedance::CartesianTwistController ctrl(10, 10, 0.4, 0.4);
+  controllers::impedance::CartesianTwistController ctrl(100, 100, 4, 4);
 
   network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};

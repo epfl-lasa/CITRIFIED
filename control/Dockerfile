@@ -57,6 +57,15 @@ RUN git clone https://github.com/jbeder/yaml-cpp.git \
   && make \
   && make install
 
+# install lpvDS
+RUN git clone -b nadia --single-branch https://github.com/nbfigueroa/lpvDS-lib.git
+
+# install lagsDS
+RUN git clone https://github.com/nbfigueroa/lagsDS-lib.git
+
+# install lagsDS
+RUN git clone https://github.com/epfl-lasa/gaussian-process-regression.git
+
 # install json library header
 RUN wget https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp \
   && mv json.hpp /usr/local/include

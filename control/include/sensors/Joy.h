@@ -29,7 +29,7 @@ private:
   Eigen::VectorXd axes_ = Eigen::VectorXd::Zero(6);
   Eigen::VectorXi buttons_ = Eigen::VectorXi::Zero(17);
 
-  double position_gain_;
+  double positionGain_;
 
   std::thread joyThread_;
   std::mutex joyMutex_;

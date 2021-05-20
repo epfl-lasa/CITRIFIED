@@ -38,7 +38,7 @@ void Joy::getJoyUpdate(state_representation::CartesianPose& pose) {
     auto axesCopy = axes_;
     joyMutex_.unlock();
     pose.set_position(-axesCopy(0), axesCopy(1), (axesCopy(2) - axesCopy(5)) / 2.0);
-    pose.set_position(position_gain_ * pose.get_position());
+    pose.set_position(positionGain_ * pose.get_position());
   }
 }
 

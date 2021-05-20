@@ -2,7 +2,7 @@
 
 namespace sensors {
 
-Joy::Joy(const double& positionGain) : position_gain_(positionGain) {}
+Joy::Joy(const double& positionGain) : positionGain_(positionGain) {}
 
 void Joy::start() {
   if (!keepAlive_) {

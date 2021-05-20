@@ -2,7 +2,6 @@
 #include <iostream>
 
 #include <state_representation/space/cartesian/CartesianPose.hpp>
-#include <state_representation/space/cartesian/CartesianState.hpp>
 #include <dynamical_systems/Linear.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
@@ -10,6 +9,7 @@
 #include "controllers/impedance/CartesianTwistController.hpp"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "network/interfaces.h"
+#include "sensors/Joy.h"
 
 void throttledPrint(const state_representation::CartesianState& robot,
                     const state_representation::CartesianPose& attractor,
@@ -43,50 +43,31 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> DS(attractor, gains);
 
-  controllers::impedance::CartesianTwistController ctrl(100, 100, 5, 5);
-
-  bool positionSet = false;
-  bool orientationSet = false;
-  if (argc == 4) {
-    attractor.set_position(atof(argv[1]), atof(argv[2]), atof(argv[3]));
-    std::cout << "Using target position from command line" << std::endl;
-    positionSet = true;
-  } else if (argc == 5) {
-    std::cout << "Using target orientation from command line" << std::endl;
-    Eigen::Quaterniond orientation(atof(argv[1]), atof(argv[2]), atof(argv[3]), atof(argv[4]));
-    attractor.set_orientation(orientation.normalized());
-    orientationSet = true;
-  } else if (argc == 8) {
-    std::cout << "Using target pose from command line" << std::endl;
-    attractor.set_position(atof(argv[1]), atof(argv[2]), atof(argv[3]));
-    Eigen::Quaterniond orientation(atof(argv[4]), atof(argv[5]), atof(argv[6]), atof(argv[7]));
-    attractor.set_orientation(orientation.normalized());
-    positionSet = true;
-    orientationSet = true;
-  }
-  DS.set_attractor(attractor);
+  controllers::impedance::CartesianTwistController ctrl(10, 10, 0.4, 0.4);
 
   network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
+  sensors::Joy joy(0.0001);
+  joy.start();
+
+  bool poseSet = false;
   // control loop
   while (franka.receive(state)) {
     frankalwi::utils::toCartesianState(state, robot);
     frankalwi::utils::toJacobian(state.jacobian, jacobian);
-    if (!positionSet || !orientationSet) {
-      if (!positionSet) {
-        std::cout << "Updating target position from current state" << std::endl;
-        attractor.set_position(robot.get_position());
-        positionSet = true;
-      }
-      if (!orientationSet) {
-        std::cout << "Updating target orientation from current state" << std::endl;
-        attractor.set_orientation(robot.get_orientation());
-        orientationSet = true;
-      }
+    if (!poseSet) {
+      attractor.set_position(robot.get_position());
+      attractor.set_orientation(robot.get_orientation());
       DS.set_attractor(attractor);
+      poseSet = true;
     }
+
+    auto joyPose = state_representation::CartesianPose::Identity(attractor.get_name(), attractor.get_reference_frame());
+    joy.getJoyUpdate(joyPose);
+    attractor += joyPose;
+    DS.set_attractor(attractor);
 
     state_representation::CartesianTwist dsTwist = DS.evaluate(robot);
     dsTwist.clamp(0.25, 0.5);

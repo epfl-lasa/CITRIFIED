@@ -14,7 +14,7 @@ namespace sensors {
 
 class Joy {
 public:
-  Joy() = default;
+  explicit Joy(const double& positionGain = 0.0001);
 
   ~Joy() = default;
 
@@ -22,12 +22,14 @@ public:
   void stop();
   void run();
 
-  state_representation::CartesianPose getJoyUpdate(double gain = 0.0001);
+  void getJoyUpdate(state_representation::CartesianPose& pose);
 
 private:
   network::Interface interface_ = network::Interface(network::InterfaceType::JOY);
   Eigen::VectorXd axes_ = Eigen::VectorXd::Zero(6);
   Eigen::VectorXi buttons_ = Eigen::VectorXi::Zero(17);
+
+  double position_gain_;
 
   std::thread joyThread_;
   std::mutex joyMutex_;

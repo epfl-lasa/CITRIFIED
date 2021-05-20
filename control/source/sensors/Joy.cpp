@@ -2,6 +2,8 @@
 
 namespace sensors {
 
+Joy::Joy(const double& positionGain) : position_gain_(positionGain) {}
+
 void Joy::start() {
   if (!keepAlive_) {
     keepAlive_ = true;
@@ -30,16 +32,14 @@ void Joy::run() {
   }
 }
 
-state_representation::CartesianPose Joy::getJoyUpdate(double gain) {
-  state_representation::CartesianPose pose("joy", "franka");
+void Joy::getJoyUpdate(state_representation::CartesianPose& pose) {
   if (joyReady_) {
     joyMutex_.lock();
     auto axesCopy = axes_;
     joyMutex_.unlock();
     pose.set_position(-axesCopy(0), axesCopy(1), (axesCopy(2) - axesCopy(5)) / 2.0);
-    pose = gain * pose;
+    pose.set_position(position_gain_ * pose.get_position());
   }
-  return pose;
 }
 
 }

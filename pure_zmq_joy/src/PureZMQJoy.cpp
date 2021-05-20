@@ -1,23 +1,23 @@
-#include "pure_joy/PureJoy.h"
+#include "pure_zmq_joy/PureZMQJoy.h"
 
-namespace pure_joy {
+namespace zmq_joy {
 
-PureJoy::PureJoy(ros::NodeHandle nh) {
-  sub_ = nh.subscribe("/joy", 10, &PureJoy::joyCallback, this);
+PureZMQJoy::PureZMQJoy(ros::NodeHandle nh) {
+  sub_ = nh.subscribe("/joy", 10, &PureZMQJoy::joyCallback, this);
 
   context_ = zmq::context_t(1);
   pub_ = zmq::socket_t(context_, ZMQ_PUB);
   pub_.connect("tcp://0.0.0.0:8888");
 }
 
-void PureJoy::run() {
+void PureZMQJoy::run() {
   while (ros::ok()) {
     ros::spinOnce();
   }
 }
 
-void PureJoy::joyCallback(const sensor_msgs::Joy::ConstPtr& rosMsg) {
-  ROS_ERROR_STREAM(*rosMsg);
+void PureZMQJoy::joyCallback(const sensor_msgs::Joy::ConstPtr& rosMsg) {
+  ROS_INFO_STREAM(*rosMsg);
   proto::JoyMessage zmqMsg;
   for (std::size_t button = 0; button < 17; ++button) {
     zmqMsg.buttons[button] = rosMsg->buttons[button];
@@ -28,7 +28,7 @@ void PureJoy::joyCallback(const sensor_msgs::Joy::ConstPtr& rosMsg) {
   send(zmqMsg);
 }
 
-bool PureJoy::send(const pure_joy::proto::JoyMessage& msg) {
+bool PureZMQJoy::send(const zmq_joy::proto::JoyMessage& msg) {
   zmq::message_t message(sizeof(msg));
   memcpy(message.data(), &msg, sizeof(msg));
   auto res = pub_.send(message, zmq::send_flags::none);

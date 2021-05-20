@@ -1,3 +1,0 @@
-<launch>
-    <node name="pure_joy_node" pkg="pure_joy" type="pure_joy_node"/>
-</launch>

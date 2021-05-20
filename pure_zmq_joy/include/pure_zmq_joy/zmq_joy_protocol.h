@@ -2,7 +2,7 @@
 
 #include <array>
 
-namespace pure_joy::proto {
+namespace zmq_joy::proto {
 
 struct Buttons {
   int& operator[](std::size_t i) {

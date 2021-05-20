@@ -6,11 +6,11 @@
 
 #include "zmq_joy_protocol.h"
 
-namespace pure_joy {
+namespace zmq_joy {
 
-class PureJoy {
+class PureZMQJoy {
 public:
-  PureJoy(ros::NodeHandle nh);
+  PureZMQJoy(ros::NodeHandle nh);
 
   void run();
 
@@ -21,7 +21,6 @@ private:
   zmq::socket_t pub_;
 
   void joyCallback(const sensor_msgs::Joy::ConstPtr& rosMsg);
-  bool send(const pure_joy::proto::JoyMessage& msg);
-
+  bool send(const zmq_joy::proto::JoyMessage& msg);
 };
 }

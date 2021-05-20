@@ -14,7 +14,7 @@ namespace sensors {
 
 class Joy {
 public:
-  explicit Joy(const double& positionGain = 0.0001);
+  explicit Joy(const double& positionGain = 0.0001, const double& orientationGain = 0.0001);
 
   ~Joy() = default;
 
@@ -30,6 +30,7 @@ private:
   Eigen::VectorXi buttons_ = Eigen::VectorXi::Zero(17);
 
   double positionGain_;
+  double orientationGain_;
 
   std::thread joyThread_;
   std::mutex joyMutex_;

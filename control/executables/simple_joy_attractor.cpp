@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
-  sensors::Joy joy(0.0001);
+  sensors::Joy joy(0.0001, 0.0005);
   joy.start();
 
   bool poseSet = false;

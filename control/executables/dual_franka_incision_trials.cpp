@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
   std::cout << "Waiting for GPR server..." << std::endl;
   learning::GPR<2> gpr;
   bool gprStarted = false;
-  gpr.start(1);
+  gpr.testConnection();
   std::cout << "GPR server ready" << std::endl;
 
   // set up ESN classifier

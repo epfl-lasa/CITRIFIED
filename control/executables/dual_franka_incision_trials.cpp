@@ -9,6 +9,7 @@
 
 #include "franka_lwi/franka_lwi_utils.h"
 #include "sensors/ForceTorqueSensor.h"
+#include "sensors/Joy.h"
 #include "filters/DigitalButterworth.h"
 #include "network/interfaces.h"
 #include "logger/JSONLogger.h"
@@ -23,27 +24,20 @@ public:
       franka_quebec(network::InterfaceType::FRANKA_QUEBEC_17, "quebec", "task"),
       frame_quebec(CartesianState::Identity("quebec", "papa")),
       task_in_quebec("task", "quebec"),
-      orientation_ds_quebec(task_in_quebec),
-      position_ds_quebec(task_in_quebec, 1, 1, 1),
+      ds_quebec(task_in_quebec),
+      attractor_quebec("attractor_quebec",frame_quebec.get_name()),
       ctrl_quebec(100, 100, 4, 4) {
     // assume frame papa = world
     frame_quebec.set_position(0.899, 0, 0);
     frame_quebec.set_orientation(Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())));
 
-    std::vector<double> orientation_gains = {0.0, 0.0, 0.0, 10.0, 10.0, 10.0};
-    state_representation::CartesianPose attractor_quebec("attractor_quebec",frame_quebec.get_name());
+    std::vector<double> ds_gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
     attractor_quebec.from_std_vector(params["quebec"]["position"].as<std::vector<double>>());
     attractor_quebec.from_std_vector(params["quebec"]["orientation"].as<std::vector<double>>());
-    orientation_ds_quebec = dynamical_systems::Linear<CartesianState>(attractor_quebec, orientation_gains);
+    ds_quebec = dynamical_systems::Linear<CartesianState>(attractor_quebec, ds_gains);
 
-    position_ds_quebec.set_center(attractor_quebec);
-    position_ds_quebec.set_radiuses(params["quebec"]["ellipse"].as<std::vector<double>>());
-    position_ds_quebec.set_normal_gain(params["quebec"]["normal_gain"].as<double>());
-    position_ds_quebec.set_planar_gain(params["quebec"]["planar_gain"].as<double>());
-    position_ds_quebec.set_circular_velocity(params["quebec"]["circular_velocity"].as<double>());
-
-    auto gains = params["quebec"]["ctrl_gains"].as<std::vector<double>>();
-    ctrl_quebec.set_gains(Eigen::Vector4d(gains.data()));
+    auto ctrl_gains = params["quebec"]["ctrl_gains"].as<std::vector<double>>();
+    ctrl_quebec.set_gains(Eigen::Vector4d(ctrl_gains.data()));
 
     franka_quebec.set_callback([this] (const CartesianState& state, const Jacobian& jacobian) -> JointTorques {
       return control_loop_quebec(state, jacobian);
@@ -52,7 +46,7 @@ public:
 
   JointTorques control_loop_quebec(const CartesianState& state, const Jacobian& jacobian) {
     task_in_quebec = state;
-    CartesianTwist dsTwist = orientation_ds_quebec.evaluate(state) + position_ds_quebec.evaluate(state);
+    CartesianTwist dsTwist = ds_quebec.evaluate(state);
     dsTwist.clamp(0.5, 0.75);
 
     return ctrl_quebec.compute_command(dsTwist, state, jacobian);
@@ -60,9 +54,9 @@ public:
 
   controllers::FrankaController franka_quebec;
   CartesianState frame_quebec;
+  CartesianPose attractor_quebec;
   CartesianState task_in_quebec;
-  dynamical_systems::Linear<CartesianState> orientation_ds_quebec;
-  dynamical_systems::Circular position_ds_quebec;
+  dynamical_systems::Circular ds_quebec;
   controllers::impedance::CartesianTwistController ctrl_quebec;
 };
 
@@ -135,6 +129,8 @@ int main(int argc, char** argv) {
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
+  sensors::Joy joy(0.0001, 0.000);
+
   QuebecWrapper quebec_wrapper(ITS.params);
   quebec_wrapper.franka_quebec.start();
 
@@ -176,6 +172,10 @@ int main(int argc, char** argv) {
     }
     auto eeInTask = taskInPapa.inverse() * eeInPapa;
     ITS.setDSBaseFrame(taskInPapa);
+
+    auto joyPose = state_representation::CartesianPose::Identity(quebec_wrapper.frame_quebec.get_name(), quebec_wrapper.frame_quebec.get_reference_frame());
+    joy.getJoyUpdate(joyPose);
+    quebec_wrapper.ds_quebec.set_attractor(quebec_wrapper.ds_quebec.get_attractor() + joyPose);
 
     // update ft wrench
     if (ft_sensor.biasOK()) {

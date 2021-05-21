@@ -83,7 +83,3 @@ quebec:
   ctrl_gains: [100, 100, 5, 5]
   position: [0.45, -0.25, 0.225]
   orientation: [1.0, 0, 0, 0]
-  ellipse: [0.04, 0.04]
-  normal_gain: 10
-  planar_gain: 250
-  circular_velocity: 2.5

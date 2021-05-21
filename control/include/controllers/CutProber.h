@@ -22,6 +22,8 @@ public:
 
   state_representation::CartesianPose getStart() const;
 
+  state_representation::CartesianPose getTouchPointInTask(unsigned int index) const;
+
   int count() const;
   double dist() const;
   double angle() const;

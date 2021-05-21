@@ -10,6 +10,9 @@ target_link_libraries(simple_point_attractor cppzmq state_representation dynamic
 add_executable(simple_joy_attractor simple_joy_attractor.cpp)
 target_link_libraries(simple_joy_attractor cppzmq state_representation dynamical_systems controllers sensors)
 
+add_executable(dual_franka dual_franka.cpp)
+target_link_libraries(dual_franka local_controllers cppzmq yaml-cpp)
+
 add_executable(test_interface test_interface.cpp)
 target_link_libraries(test_interface cppzmq state_representation)
 
@@ -22,6 +25,10 @@ target_link_libraries(mocap_point_attractor sensors motion_generators local_cont
 add_executable(incision_trials incision_trials.cpp)
 target_compile_definitions(incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(incision_trials local_controllers cppzmq sensors filters learning logger)
+
+add_executable(dual_incision_trials dual_franka_incision_trials.cpp)
+target_compile_definitions(dual_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(dual_incision_trials dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)
 
 add_executable(surface_prober surface_prober.cpp)
 target_compile_definitions(surface_prober PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")

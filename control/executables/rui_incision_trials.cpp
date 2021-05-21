@@ -39,9 +39,9 @@ static const std::map<TrialState, std::string> trialStateMap {
         {RETRACTION, "retraction"}
 };
 
-class IncisionTrialSystem {
+class IncisionTrialSystem2 {
 public:
-    IncisionTrialSystem() :
+    IncisionTrialSystem2() :
             pointDS(CartesianPose::Identity("center", "task")),
             ringDS(CartesianPose::Identity("center", "task")),
             ctrl(1, 1, 1, 1) {
@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // set up control system
-  IncisionTrialSystem ITS;
+  IncisionTrialSystem2 ITS;
 
   // set up logger
   logger::JSONLogger jsonLogger(ITS.trialName);
@@ -299,7 +299,7 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {0.0, 0.0, 0.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> orientation_ds(attractor_ori, gains);
   // set SEDS
-  double frequency=256,Mu_scale=1, Sigma_scale=1;
+  double frequency=900,Mu_scale=1, Sigma_scale=1;
   bool SEDS_state=0;
   std::string filepath = std::string(TRIAL_CONFIGURATION_DIR) + "SEDS_parameters.yaml";
   YAML::Node SEDS_params = YAML::LoadFile(filepath);
@@ -394,7 +394,7 @@ int main(int argc, char** argv) {
           ITS.setInsertionPhase();
 //          trialState = INSERTION;
           trialState = PAUSE;
-          finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
+          //finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
           finalESNPrediction.classIndex=1;
           std::cout << "### STARTING INSERTION PHASE" << std::endl;
         }
@@ -481,11 +481,18 @@ int main(int argc, char** argv) {
 
         //-----rui: try run SEDS
         desired_velocity = coupledDSMotionGenerator.ComputeDesiredVelocity(eeInRobot);
-        std::cerr<<"desired_velocity"<<desired_velocity<<std::endl;
+//        std::cerr<<"desired_velocity"<<desired_velocity<<std::endl;
 
-        double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
-        double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
-        if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {
+//        double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
+//        double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
+//        if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {
+//          ITS.setRetractionPhase(eeInTask);
+//          trialState = RETRACTION;
+//          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+//        }
+        double distance = (eeInRobot.get_position() - attractor_ori.get_position()).norm();
+//        std::cerr<<"distance"<<distance<<std::endl;
+        if (distance < 0.086) {
           ITS.setRetractionPhase(eeInTask);
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;
@@ -497,8 +504,7 @@ int main(int argc, char** argv) {
     }
 
     CartesianTwist commandTwistInRobot = ITS.getTwistCommand(eeInTask, taskInRobot, trialState);
-    CartesianWrench commandWrenchInRobot = ITS.getWrenchCommand(commandTwistInRobot, eeInRobot);
-    if (finalESNPrediction.classIndex==1) {
+    if (trialState == CUT && finalESNPrediction.classIndex==1) {
       commandTwistInRobot.set_linear_velocity(
               Eigen::Vector3d(desired_velocity(0), desired_velocity(1), desired_velocity(2)) +
               Eigen::Vector3d(0, 0, ITS.zVelocity));
@@ -506,8 +512,9 @@ int main(int argc, char** argv) {
                                 ITS.params["default"]["max_angular_velocity"].as<double>());
       // get twist command for just the orientation
       state_representation::CartesianTwist orientation_twist = orientation_ds.evaluate(eeInRobot);
-      commandTwistInRobot.set_angular_velocity(orientation_twist.get_angular_velocity());
+//      commandTwistInRobot.set_angular_velocity(orientation_twist.get_angular_velocity());
     }
+    CartesianWrench commandWrenchInRobot = ITS.getWrenchCommand(commandTwistInRobot, eeInRobot);
 
     frankalwi::utils::fromJointTorque(jacobian.transpose() * commandWrenchInRobot, command);
     franka.send(command);

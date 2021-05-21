@@ -68,7 +68,7 @@ bool coupledDSMotionGenerator::InitializeDS() {
     return false;
   }
 
-  if (attractor_.size() != 6) {
+  if (attractor_.size() != 7) {
     std::cerr <<
               "InitializeDS: Please provide 6 elements for the attractor. It has " << attractor_.size()
               << " elements." << std::endl;
@@ -84,7 +84,7 @@ bool coupledDSMotionGenerator::InitializeDS() {
     Sigma_[i] = Sigma_[i] * Sigma_scale_;
   }
 
-  SED_GMM_.reset(new GMRDynamics(K_gmm_, dim_, dt_, Priors_, Mu_, Sigma_));
+  SED_GMM_ = std::make_unique<GMRDynamics>(K_gmm_, dim_, dt_, Priors_, Mu_, Sigma_);
   SED_GMM_->initGMR(0, 2, 3, 5); //get the input and output Mu and sigma
 
   // initializing the filter
@@ -125,9 +125,9 @@ bool coupledDSMotionGenerator::InitializeDS() {
 
 MathLib::Vector coupledDSMotionGenerator::ComputeDesiredVelocity(const CartesianState& eeInRobot_) {
   Trans_pose.Resize(3);
-  Trans_pose(0)=eeInRobot_.get_position().x();
-  Trans_pose(1)=eeInRobot_.get_position().y();
-  Trans_pose(2)=eeInRobot_.get_position().z();
+  Trans_pose(0)=eeInRobot_.get_position().x()-attractor_[0];
+  Trans_pose(1)=eeInRobot_.get_position().y()-attractor_[1];
+  Trans_pose(2)=eeInRobot_.get_position().z()-attractor_[2];
 
   desired_velocity_ = SED_GMM_->getVelocity(Trans_pose);
   return desired_velocity_;

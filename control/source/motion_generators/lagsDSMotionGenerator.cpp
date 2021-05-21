@@ -240,10 +240,10 @@ MathLib::Vector  lagsDSMotionGenerator::ComputeDesiredVelocity(const CartesianSt
 
 	mutex_.lock();
 
-    Trans_pose.Resize(3);
-    Trans_pose(0)=eeInRobot_.get_position().x();
-    Trans_pose(1)=eeInRobot_.get_position().y();
-    Trans_pose(2)=eeInRobot_.get_position().z();
+  real_pose_.Resize(3);
+  real_pose_(0)=eeInRobot_.get_position().x();
+  real_pose_(1)=eeInRobot_.get_position().y();
+  real_pose_(2)=eeInRobot_.get_position().z();
 
 
 

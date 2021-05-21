@@ -42,10 +42,15 @@ public:
     franka_quebec.set_callback([this] (const CartesianState& state, const Jacobian& jacobian) -> JointTorques {
       return control_loop_quebec(state, jacobian);
     });
+
+    joy.start();
   }
 
   JointTorques control_loop_quebec(const CartesianState& state, const Jacobian& jacobian) {
     task_in_quebec = state;
+    auto joyPose = state_representation::CartesianPose::Identity(attractor_quebec.get_name(), attractor_quebec.get_reference_frame());
+    joy.getJoyUpdate(joyPose);
+    ds_quebec.set_attractor(ds_quebec.get_attractor() + joyPose);
     CartesianTwist dsTwist = ds_quebec.evaluate(state);
     dsTwist.clamp(0.5, 0.75);
 
@@ -56,8 +61,9 @@ public:
   CartesianState frame_quebec;
   CartesianPose attractor_quebec;
   CartesianState task_in_quebec;
-  dynamical_systems::Circular ds_quebec;
+  dynamical_systems::Linear<CartesianState> ds_quebec;
   controllers::impedance::CartesianTwistController ctrl_quebec;
+  sensors::Joy joy = sensors::Joy(0.0001, 0.0005);
 };
 
 int main(int argc, char** argv) {
@@ -129,8 +135,6 @@ int main(int argc, char** argv) {
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
-  sensors::Joy joy(0.0001, 0.000);
-
   QuebecWrapper quebec_wrapper(ITS.params);
   quebec_wrapper.franka_quebec.start();
 
@@ -172,10 +176,6 @@ int main(int argc, char** argv) {
     }
     auto eeInTask = taskInPapa.inverse() * eeInPapa;
     ITS.setDSBaseFrame(taskInPapa);
-
-    auto joyPose = state_representation::CartesianPose::Identity(quebec_wrapper.frame_quebec.get_name(), quebec_wrapper.frame_quebec.get_reference_frame());
-    joy.getJoyUpdate(joyPose);
-    quebec_wrapper.ds_quebec.set_attractor(quebec_wrapper.ds_quebec.get_attractor() + joyPose);
 
     // update ft wrench
     if (ft_sensor.biasOK()) {
@@ -368,7 +368,7 @@ int main(int argc, char** argv) {
       }
       case PAUSE: {
         if (!gprStarted) {
-          gprStarted = gpr.start(1);
+          gprStarted = gpr.start(0);
         }
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
         if (elapsed_seconds.count() > 2.0f) {

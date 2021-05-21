@@ -21,9 +21,10 @@ find_library(dynamical_systems REQUIRED)
 find_library(controllers REQUIRED)
 find_library(limbo REQUIRED)
 find_library(armadillo REQUIRED)
-find_library(lpvDS-lib REQUIRED)
-find_library(lagsDS-lib REQUIRED)
-find_library(gaussian-process-regression REQUIRED)
+#find_library(lpvDS-lib REQUIRED)
+#find_library(lagsDS-lib REQUIRED)
+#find_library(gaussian-process-regression REQUIRED)
+#find_library(mathlib REQUIRED)
 
 include_directories(include ${Eigen_INCLUDE_DIRS})
 

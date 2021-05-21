@@ -19,22 +19,20 @@
 
 #include "motion_generators/lagsDSMotionGenerator.h"
 
-lagsDSMotionGenerator::lagsDSMotionGenerator(//ros::NodeHandle &n,
-                                     double frequency,
+lagsDSMotionGenerator::lagsDSMotionGenerator(double frequency,
                                      int K, int M, std::vector<double> Priors, std::vector<double> Mu, std::vector<double> Sigma,
                                      std::vector<double>  A_g, std::vector<double>  att_g, std::vector<double>  A_l,
-				                     std::vector<double>  A_d, std::vector<double>  att_l, std::vector<double>  w_l,
-				                     std::vector<double>  b_l, double scale, double  b_g, std::string  gpr_path,
+                                     std::vector<double>  A_d, std::vector<double>  att_l, std::vector<double>  w_l,
+                                     std::vector<double>  b_l, double scale, double  b_g, std::string  gpr_path
 //                                     std::string input_topic_name,
 //                                     std::string output_topic_name,
 //                                     std::string output_filtered_topic_name,
 //                                     std::string input_target_topic_name,
-                                     bool bPublish_DS_path,
-                                     bool bDynamic_target,
-                                     double path_offset)
-									: //nh_(n),
-//									  loop_rate_(frequency),
-									  K_(K), M_(M), Priors_(Priors), Mu_(Mu), Sigma_(Sigma),
+//                                     bool bPublish_DS_path,
+//                                     bool bDynamic_target,
+//                                     double path_offset
+                                     )
+									: K_(K), M_(M), Priors_(Priors), Mu_(Mu), Sigma_(Sigma),
 									  A_g_(A_g), att_g_(att_g), A_l_(A_l), A_d_(A_d), 
 									  att_l_(att_l), w_l_(w_l), b_l_(b_l), scale_(scale), 
 									  b_g_(b_g),  gpr_path_(gpr_path),
@@ -45,10 +43,11 @@ lagsDSMotionGenerator::lagsDSMotionGenerator(//ros::NodeHandle &n,
 									  Wn_(0),
                                       scaling_factor_(0.5),
                                       ds_vel_limit_(0.005),
-								      bPublish_DS_path_(bPublish_DS_path),
-								      bDynamic_target_(bDynamic_target),
+//								      bPublish_DS_path_(bPublish_DS_path),
+//								      bDynamic_target_(bDynamic_target),
 //								      input_target_topic_name_(input_target_topic_name),
-                                      path_offset_(path_offset),bGlobal_(0),phase(0),wait_time(0),time_count(500){
+//                                      path_offset_(path_offset),
+                                      bGlobal_(0),phase(0),wait_time(0),time_count(500){
 
 //	ROS_INFO_STREAM("Motion generator node is created at: " << nh_.getNamespace() << " with freq: " << frequency << "Hz");
 }

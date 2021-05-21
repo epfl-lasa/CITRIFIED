@@ -304,24 +304,30 @@ int main(int argc, char** argv) {
   std::string filepath = std::string(TRIAL_CONFIGURATION_DIR) + "cut_curve.yaml";
   YAML::Node LAGS_params = YAML::LoadFile(filepath);
   auto K_gmm = LAGS_params["K"].as<int>();
+  auto M_gmm = LAGS_params["M"].as<int>();
   auto dim = LAGS_params["dim"].as<int>();
   auto Priors = LAGS_params["Priors"].as<std::vector<double>>();
   auto Mu = LAGS_params["Mu"].as<std::vector<double>>();
   auto Sigma = LAGS_params["Sigma"].as<std::vector<double>>();
   auto attractor = LAGS_params["attractor"].as<std::vector<double>>();
+  auto A_g = LAGS_params["A_g"].as<std::vector<double>>();
+  auto att_g = LAGS_params["att_g"].as<std::vector<double>>();
+  auto A_l = LAGS_params["A_l"].as<std::vector<double>>();
+  auto A_d = LAGS_params["A_d"].as<std::vector<double>>();
+  auto att_l = LAGS_params["att_l"].as<std::vector<double>>();
+  auto w_l = LAGS_params["w_l"].as<std::vector<double>>();
+  auto b_l = LAGS_params["b_l"].as<std::vector<double>>();
+  auto scale = LAGS_params["scale"].as<double>();
+  auto b_g = LAGS_params["b_g"].as<double>();
+  auto gpr_path = LAGS_params["gpr_path"].as<string>();
+
   double x,y,z;
 
   MathLib::Vector desired_velocity;
-  lagsDSMotionGenerator::lagsDSMotionGenerator(double frequency,
-                                              int K, int M, std::vector<double> Priors, std::vector<double> Mu, std::vector<double> Sigma,
-                                              std::vector<double>  A_g, std::vector<double>  att_g, std::vector<double>  A_l,
-                                              std::vector<double>  A_d, std::vector<double>  att_l, std::vector<double>  w_l,
-                                              std::vector<double>  b_l, double scale, double  b_g, std::string  gpr_path,
-                                              bool bPublish_DS_path,
-                                              bool bDynamic_target,
-                                              double path_offset)
+  lagsDSMotionGenerator lagsDS_motion_generator(frequency, K_gmm, M_gmm, Priors, Mu, Sigma,
+                                                A_g, att_g, A_l, A_d, att_l, w_l, b_l, scale, b_g, gpr_path);
 
-  if (!lagsDSMotionGenerator.Init()) {
+  if (!lagsDS_motion_generator.Init()) {
     return -1;
   }
   else{
@@ -484,7 +490,7 @@ int main(int argc, char** argv) {
         orientation_ds.set_attractor(attractor_ori);
 
         //-----rui: try run SEDS
-        desired_velocity = lagsDSMotionGenerator.ComputeDesiredVelocity(eeInRobot);
+        desired_velocity = lagsDS_motion_generator.ComputeDesiredVelocity(eeInRobot);
         std::cerr<<"desired_velocity"<<desired_velocity<<std::endl;
 
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;

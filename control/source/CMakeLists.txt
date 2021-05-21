@@ -31,3 +31,9 @@ add_subdirectory(fast_gmm)
 
 add_library(mathlib STATIC "")
 add_subdirectory(mathlib)
+
+add_library(lagsDS STATIC "")
+add_subdirectory(lagsDS)
+
+add_library(gaussian-process-regression STATIC "")
+add_subdirectory(gaussian-process-regression)

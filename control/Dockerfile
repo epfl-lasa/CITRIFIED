@@ -21,6 +21,20 @@ RUN apt-get update && apt-get install -y \
 
 RUN sudo apt-get update && sudo apt-get install -y liblapack-dev libblas-dev libboost-dev libarmadillo-dev
 
+# WORKDIR /usr/local/include
+
+# # include mathlib
+# RUN git clone https://github.com/epfl-lasa/mathlib.git
+
+# # install lpvDS
+# RUN git clone -b nadia --single-branch https://github.com/nbfigueroa/lpvDS-lib.git
+
+# # install lagsDS
+# RUN git clone https://github.com/nbfigueroa/lagsDS-lib.git
+
+# # install lagsDS
+# RUN git clone https://github.com/epfl-lasa/gaussian-process-regression.git
+
 WORKDIR /tmp
 # get cppzmq bindings
 RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.tar.gz \
@@ -56,15 +70,6 @@ RUN git clone https://github.com/jbeder/yaml-cpp.git \
   && cmake .. \
   && make \
   && make install
-
-# install lpvDS
-RUN git clone -b nadia --single-branch https://github.com/nbfigueroa/lpvDS-lib.git
-
-# install lagsDS
-RUN git clone https://github.com/nbfigueroa/lagsDS-lib.git
-
-# install lagsDS
-RUN git clone https://github.com/epfl-lasa/gaussian-process-regression.git
 
 # install json library header
 RUN wget https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp \

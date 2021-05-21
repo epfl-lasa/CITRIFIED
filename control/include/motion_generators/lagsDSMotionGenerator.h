@@ -32,12 +32,14 @@
 #include <stdlib.h> 
 
 //#include "MathLib.h"
-#include "lagsDS-lib/lagsDS.h"
+//#include "lagsDS-lib/lagsDS.h"
+//#include "lagsDS-lib/include/lagsDS.h"
 //#include "CDDynamics.h"
-#include "state_representation/space/cartesian/CartesianState.hpp"
+#include <state_representation/space/cartesian/CartesianState.hpp>
+#include "lagsDS/lagsDS.h"
 
 #include "mathlib/MathLib.h"
-#include "fast_gmm/GMRDynamics.h"
+//#include "fast_gmm/GMRDynamics.h"
 #include "fast_gmm/CDDynamics.h"
 
 //#include <dynamic_reconfigure/server.h>
@@ -161,20 +163,15 @@ public:
                       std::vector<double>  b_l,
                       double               scale,
                       double               b_g,
-                      string               gpr_path,
-//	                  std::string input_topic_name,
-//	                  std::string output_topic_name,
-//                      std::string output_filtered_topic_name,
-//                      std::string input_target_topic_name,
-                      bool bPublish_DS_path,
-                      bool bDynamic_target,
-                      double path_offset);
+                      string               gpr_path);
 
     ~lagsDSMotionGenerator(void);
 
 	bool Init();
 
 //	void Run();
+
+    MathLib::Vector  ComputeDesiredVelocity(const CartesianState& eeInRobot_);
 
 private:
 
@@ -186,7 +183,7 @@ private:
 //
 //    void UpdateDynamicTarget(const geometry_msgs::Point::ConstPtr& msg);
 
-    MathLib::Vector  ComputeDesiredVelocity(const CartesianState& eeInRobot_);
+
 
 //	void PublishDesiredVelocity();
 

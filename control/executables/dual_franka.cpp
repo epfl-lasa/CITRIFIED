@@ -58,22 +58,21 @@ public:
   }
 
   JointTorques control_loop_quebec(const CartesianState& state, const Jacobian& jacobian) {
-    std::cout << state << std::endl;
-//    auto papa_ee_state = franka_papa.get_state();
-//    if (!papa_ee_state.is_empty()) {
-//      auto target_in_papa_ee = CartesianPose("attractor",
-//                                             Eigen::Vector3d(0, 0, 0.2),
-//                                             Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d(1, 1, 0))),
-//                                             papa_ee_state.get_name());
-//      ds_quebec.set_attractor(frame_quebec.inverse() * frame_papa * papa_ee_state * target_in_papa_ee);
-//    } else {
-//      ds_quebec.set_attractor(state);
-//    }
-//
-//    CartesianTwist dsTwist = ds_quebec.evaluate(state);
-//    dsTwist.clamp(0.5, 0.75);
-//
-//    return ctrl_quebec.compute_command(dsTwist, state, jacobian);
+    auto papa_ee_state = franka_papa.get_state();
+    if (!papa_ee_state.is_empty()) {
+      auto target_in_papa_ee = CartesianPose("attractor",
+                                             Eigen::Vector3d(0, 0, 0.2),
+                                             Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d(1, 1, 0))),
+                                             papa_ee_state.get_name());
+      ds_quebec.set_attractor(frame_quebec.inverse() * frame_papa * papa_ee_state * target_in_papa_ee);
+    } else {
+      ds_quebec.set_attractor(state);
+    }
+
+    CartesianTwist dsTwist = ds_quebec.evaluate(state);
+    dsTwist.clamp(0.5, 0.75);
+
+    return ctrl_quebec.compute_command(dsTwist, state, jacobian);
   }
 
   controllers::FrankaController franka_papa;

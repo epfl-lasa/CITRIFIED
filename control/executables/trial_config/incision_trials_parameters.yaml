@@ -12,8 +12,8 @@
 # Set the cut radius to 1m for a practically straight line cut
 # Set the cut radius to 0.02 for small circle
 
-trial_prefix: '20210519_apple_02_'
-trial: '02'
+trial_prefix: 'YYYYMMDD_fruit_00'
+trial: '00'
 
 # set false to cut after insertion
 insertion_only: false
@@ -76,17 +76,7 @@ probe:
   samples: 12  # maximum number of surface samples to collect
   ms_per_step: 75 # integration interval in milliseconds between each probe sample
 
-
 esn:
   filename: ESN_400_20210503.yaml
   buffer_size: 50
   min_time_between_predictions: 60 # in milliseconds
-
-quebec:
-  ctrl_gains: [100, 100, 5, 5]
-  position: [0.45, -0.25, 0.225]
-  orientation: [1.0, 0, 0, 0]
-  ellipse: [0.04, 0.04]
-  normal_gain: 10
-  planar_gain: 250
-  circular_velocity: 2.5

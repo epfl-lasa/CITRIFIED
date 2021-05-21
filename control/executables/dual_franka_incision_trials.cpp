@@ -1,6 +1,5 @@
 #include <yaml-cpp/yaml.h>
 
-#include <franka_lwi/franka_lwi_communication_protocol.h>
 #include <dynamical_systems/Linear.hpp>
 #include <dynamical_systems/Circular.hpp>
 
@@ -8,6 +7,7 @@
 #include "controllers/IncisionTrialSystem.h"
 #include "controllers/CutProber.h"
 
+#include "franka_lwi/franka_lwi_utils.h"
 #include "sensors/ForceTorqueSensor.h"
 #include "filters/DigitalButterworth.h"
 #include "network/interfaces.h"
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // set up control system
-  auto configFile = std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml";
+  auto configFile = std::string(TRIAL_CONFIGURATION_DIR) + "dual_incision_trials_parameters.yaml";
   IncisionTrialSystem ITS(configFile);
   CutProber CP(configFile);
   CP.setStart(ITS.pointDS.get_attractor());
@@ -165,11 +165,8 @@ int main(int argc, char** argv) {
   while (franka_papa.receive(state)) {
 
     //  update states
-    eeInPapa.set_position(Eigen::Vector3d(frankalwi::proto::vec3DToArray(state.eePose.position).data()));
-    eeInPapa.set_orientation(Eigen::Quaterniond(state.eePose.orientation.w, state.eePose.orientation.x, state.eePose.orientation.y, state.eePose.orientation.z));
-    eeInPapa.set_linear_velocity(Eigen::Vector3d(frankalwi::proto::vec3DToArray(state.eeTwist.linear).data()));
-    eeInPapa.set_angular_velocity(Eigen::Vector3d(frankalwi::proto::vec3DToArray(state.eeTwist.angular).data()));
-    jacobian.set_data(Eigen::Map<Eigen::Matrix<double, 6, 7>>(state.jacobian.data()));
+    frankalwi::utils::toCartesianState(state, eeInPapa);
+    frankalwi::utils::toJacobian(state.jacobian, jacobian);
     eeLocalTwist.set_twist((-1.0 * CartesianTwist(eeInPapa).inverse()).get_twist());
 
     // update target states
@@ -436,8 +433,7 @@ int main(int argc, char** argv) {
     CartesianTwist commandTwistInPapa = ITS.getTwistCommand(eeInTask, taskInPapa, trialState);
     CartesianWrench commandWrenchInPapa = ITS.getWrenchCommand(commandTwistInPapa, eeInPapa);
 
-    JointTorques commandTorques = jacobian.transpose() * commandWrenchInPapa;
-    Eigen::MatrixXd::Map(command.jointTorque.data.data(), 7, 1) = commandTorques.data().array();
+    frankalwi::utils::fromJointTorque(jacobian.transpose() * commandWrenchInPapa, command);
     franka_papa.send(command);
 
     jsonLogger.addTime();
@@ -453,8 +449,6 @@ int main(int argc, char** argv) {
       jsonLogger.addBody(logger::FILTERED, eeLocalTwistFilt);
       jsonLogger.addBody(logger::FILTERED, ftWrenchInPapaFilt);
       jsonLogger.addCommand(commandTwistInPapa, commandWrenchInPapa);
-
-      // TODO add quebec logging, maybe filtered?
 
       std::vector<double> gains(4);
       Eigen::MatrixXd::Map(&gains[0], 4, 1) = ITS.ctrl.get_gains();

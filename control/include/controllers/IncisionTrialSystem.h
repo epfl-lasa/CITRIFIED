@@ -58,4 +58,6 @@ public:
   std::string esnFilename;
   int esnBufferSize = 50;
   double esnMinTimeBetweenPredictions = 0;
+
+  std::vector<std::string> permittedClasses;
 };

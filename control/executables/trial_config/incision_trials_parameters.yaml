@@ -80,3 +80,4 @@ esn:
   filename: ESN_400_20210503.yaml
   buffer_size: 50
   min_time_between_predictions: 60 # in milliseconds
+  permitted_classes: [ "apple", "orange", "banana", "prune" ]

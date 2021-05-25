@@ -39,9 +39,9 @@ static const std::map<TrialState, std::string> trialStateMap {
         {RETRACTION, "retraction"}
 };
 
-class IncisionTrialSystem {
+class IncisionTrialSystem3 {
 public:
-    IncisionTrialSystem() :
+    IncisionTrialSystem3() :
             pointDS(CartesianPose::Identity("center", "task")),
             ringDS(CartesianPose::Identity("center", "task")),
             ctrl(1, 1, 1, 1) {
@@ -79,12 +79,12 @@ public:
       // Configure circular dynamical system
       center.set_orientation(Eigen::Quaterniond::Identity());
       ringDS.set_center(center);
-      ringDS.set_radius(params["circle"]["radius"].as<double>());
-      ringDS.set_width(params["circle"]["width"].as<double>());
-      ringDS.set_speed(params["circle"]["speed"].as<double>());
-      ringDS.set_field_strength(params["circle"]["field_strength"].as<double>());
-      ringDS.set_normal_gain(params["circle"]["normal_gain"].as<double>());
-      ringDS.set_angular_gain(params["circle"]["angular_gain"].as<double>());
+      ringDS.set_radius(params["cut"]["radius"].as<double>());
+      ringDS.set_width(params["cut"]["width"].as<double>());
+      ringDS.set_speed(params["cut"]["speed"].as<double>());
+      ringDS.set_field_strength(params["cut"]["field_strength"].as<double>());
+      ringDS.set_normal_gain(params["cut"]["normal_gain"].as<double>());
+      ringDS.set_angular_gain(params["cut"]["angular_gain"].as<double>());
 
       // default pose at circle 0 angle (when local Y = 0 and local X > 0)
       //   has the knife X axis pointing along the world Y axis, with Z pointing down
@@ -176,9 +176,9 @@ public:
       ringDS.set_center(centerpose);
 
       // set the controller to specific insertion phase gains
-      ctrl.set_linear_damping(params["circle"]["d1"].as<double>(), params["circle"]["d2"].as<double>());
-      ctrl.angular_stiffness = params["circle"]["ak"].as<double>();
-      ctrl.angular_damping = params["circle"]["ad"].as<double>();
+      ctrl.set_linear_damping(params["cut"]["d1"].as<double>(), params["cut"]["d2"].as<double>());
+      ctrl.angular_stiffness = params["cut"]["ak"].as<double>();
+      ctrl.angular_damping = params["cut"]["ad"].as<double>();
     }
 
     void setRetractionPhase(const CartesianPose& eeInTask) {
@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // set up control system
-  IncisionTrialSystem ITS;
+  IncisionTrialSystem3 ITS;
 
   // set up logger
   logger::JSONLogger jsonLogger(ITS.trialName);
@@ -237,13 +237,15 @@ int main(int argc, char** argv) {
   sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
 
   CartesianState taskInOptitrack("task", "optitrack");
-  CartesianState robotInOptitrack("robot", "optitrack");
-  // wait for optitrack data
+  auto robotInOptitrack = CartesianState::Identity("robot", "optitrack");
+
+  /* wait for optitrack data
   std::cout << "Waiting for optitrack robot base and task base state..." << std::endl;
   while (!optitracker.getState(robotInOptitrack, RB_ID_ROBOT_BASE)
          || !optitracker.getState(taskInOptitrack, RB_ID_TASK_BASE)) {}
 
   std::cout << "Optitrack ready" << std::endl;
+  */
 
   // set up ESN classifier
   std::cout << "Initializing ESN..." << std::endl;
@@ -299,17 +301,15 @@ int main(int argc, char** argv) {
   std::vector<double> gains = {0.0, 0.0, 0.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> orientation_ds(attractor_ori, gains);
   // set SEDS
-  double frequency=256,Mu_scale=1, Sigma_scale=1;
+  double frequency=900,Mu_scale=1, Sigma_scale=1;
   bool SEDS_state=0;
-  std::string filepath = std::string(TRIAL_CONFIGURATION_DIR) + "cut_curve.yaml";
+  std::string filepath = std::string(TRIAL_CUT_CURVE_CONFIGURATION_DIR) + "cut_curve.yaml";
   YAML::Node LAGS_params = YAML::LoadFile(filepath);
   auto K_gmm = LAGS_params["K"].as<int>();
   auto M_gmm = LAGS_params["M"].as<int>();
-  auto dim = LAGS_params["dim"].as<int>();
   auto Priors = LAGS_params["Priors"].as<std::vector<double>>();
   auto Mu = LAGS_params["Mu"].as<std::vector<double>>();
   auto Sigma = LAGS_params["Sigma"].as<std::vector<double>>();
-  auto attractor = LAGS_params["attractor"].as<std::vector<double>>();
   auto A_g = LAGS_params["A_g"].as<std::vector<double>>();
   auto att_g = LAGS_params["att_g"].as<std::vector<double>>();
   auto A_l = LAGS_params["A_l"].as<std::vector<double>>();
@@ -319,7 +319,7 @@ int main(int argc, char** argv) {
   auto b_l = LAGS_params["b_l"].as<std::vector<double>>();
   auto scale = LAGS_params["scale"].as<double>();
   auto b_g = LAGS_params["b_g"].as<double>();
-  auto gpr_path = LAGS_params["gpr_path"].as<string>();
+  auto gpr_path = std::string(TRIAL_CUT_CURVE_CONFIGURATION_DIR) + "GPR_model.txt";
 
   double x,y,z;
 
@@ -347,9 +347,14 @@ int main(int argc, char** argv) {
     frankalwi::utils::toJacobian(state.jacobian, jacobian);
     eeLocalTwist.set_twist((-1.0 * CartesianTwist(eeInRobot).inverse()).get_twist());
 
-    // update optitrack states
+    /* update optitrack states
     optitracker.getState(robotInOptitrack, RB_ID_ROBOT_BASE);
     optitracker.getState(taskInOptitrack, RB_ID_TASK_BASE);
+    */
+    if (taskInOptitrack.is_empty()) {
+      std::cout << eeInRobot << std::endl;
+      taskInOptitrack.set_pose(eeInRobot.get_pose());
+    }
     auto taskInRobot = robotInOptitrack.inverse() * taskInOptitrack;
     auto eeInTask = taskInRobot.inverse() * eeInRobot;
     ITS.setDSBaseFrame(taskInRobot);
@@ -393,7 +398,8 @@ int main(int argc, char** argv) {
         }
         break;
       case TOUCH:
-        if (!touchPoseSet && abs(ftWrenchInRobotFilt.get_force().z()) > ITS.params["touch"]["touch_force"].as<double>()) {
+//        if (!touchPoseSet && abs(ftWrenchInRobotFilt.get_force().z()) > ITS.params["touch"]["touch_force"].as<double>()) {
+        if (!touchPoseSet) {
           std::cout << "Surface detected at position " << eeInRobot.get_position().transpose() << std::endl;
           touchPose = eeInRobot;
           touchPoseSet = true;
@@ -404,7 +410,7 @@ int main(int argc, char** argv) {
           ITS.setInsertionPhase();
 //          trialState = INSERTION;
           trialState = PAUSE;
-          finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
+          //finalESNPrediction = esn.getFinalClass(esnPredictionCollection);
           finalESNPrediction.classIndex=1;
           std::cout << "### STARTING INSERTION PHASE" << std::endl;
         }
@@ -472,7 +478,7 @@ int main(int argc, char** argv) {
 //        if (prediction.classIndex==1){
 //          double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
 //          double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
-//          if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {
+//          if (angle > ITS.params["cut"]["arc_angle"].as<double>() || distance > 0.07) {
 //            ITS.setRetractionPhase(eeInTask);
 //            trialState = RETRACTION;
 //            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
@@ -484,18 +490,26 @@ int main(int argc, char** argv) {
 //        }else if (prediction.classIndex==4){
 //
 //        }
+
         //----- rui: run linear ds for fixed ori
-        attractor_ori.set_position(Eigen::Vector3d(attractor[0], attractor[1], attractor[2]));
-        attractor_ori.set_orientation(Eigen::Quaterniond(attractor[6], attractor[3], attractor[4], attractor[5]));
+        attractor_ori.set_position(Eigen::Vector3d(att_g[0], att_g[1], 0.4));
+        attractor_ori.set_orientation(Eigen::Quaterniond(0, 1, 0, 0));
         orientation_ds.set_attractor(attractor_ori);
 
         //-----rui: try run SEDS
         desired_velocity = lagsDS_motion_generator.ComputeDesiredVelocity(eeInRobot);
-        std::cerr<<"desired_velocity"<<desired_velocity<<std::endl;
+//        std::cerr<<"desired_velocity"<<desired_velocity<<std::endl;
 
-        double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
-        double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
-        if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {
+//        double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
+//        double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
+//        if (angle > ITS.params["circle"]["arc_angle"].as<double>() || distance > 0.07) {
+//          ITS.setRetractionPhase(eeInTask);
+//          trialState = RETRACTION;
+//          std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+//        }
+        double distance = (eeInRobot.get_position() - attractor_ori.get_position()).norm();
+//        std::cerr<<"distance"<<distance<<std::endl;
+        if (distance < 0.086) {
           ITS.setRetractionPhase(eeInTask);
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;
@@ -507,17 +521,17 @@ int main(int argc, char** argv) {
     }
 
     CartesianTwist commandTwistInRobot = ITS.getTwistCommand(eeInTask, taskInRobot, trialState);
-    CartesianWrench commandWrenchInRobot = ITS.getWrenchCommand(commandTwistInRobot, eeInRobot);
-    if (finalESNPrediction.classIndex==1) {
+    if (trialState == CUT && finalESNPrediction.classIndex==1) {
       commandTwistInRobot.set_linear_velocity(
-              Eigen::Vector3d(desired_velocity(0), desired_velocity(1), desired_velocity(2)) +
-              Eigen::Vector3d(0, 0, ITS.zVelocity));
+              Eigen::Vector3d(0, 0, 0));
+//              Eigen::Vector3d(desired_velocity(0), desired_velocity(1), 0));
       commandTwistInRobot.clamp(ITS.params["default"]["max_linear_velocity"].as<double>(),
                                 ITS.params["default"]["max_angular_velocity"].as<double>());
       // get twist command for just the orientation
       state_representation::CartesianTwist orientation_twist = orientation_ds.evaluate(eeInRobot);
-      commandTwistInRobot.set_angular_velocity(orientation_twist.get_angular_velocity());
+//      commandTwistInRobot.set_angular_velocity(orientation_twist.get_angular_velocity());
     }
+    CartesianWrench commandWrenchInRobot = ITS.getWrenchCommand(commandTwistInRobot, eeInRobot);
 
     frankalwi::utils::fromJointTorque(jacobian.transpose() * commandWrenchInRobot, command);
     franka.send(command);

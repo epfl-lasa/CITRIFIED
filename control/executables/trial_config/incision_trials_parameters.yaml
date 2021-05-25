@@ -23,12 +23,12 @@ attractor:
   position:
     x: 0.0
     y: 0.0
-    z: 0.1
+    z: 0.0
   yaw_angle: 0     # degrees to rotate the initial knife orientation, counter-clockwise from above
   pitch_angle: 15  # degrees to tilt the knife forward, positive around the knife -Y axis
   gains:
     linear: 50.0
-    angular: 10.0
+    angular: 0.0
 
 default:
   d1: 50   # principle linear damping
@@ -57,7 +57,7 @@ insertion:
   speed: 0.075
   depth: 0.0075
 
-circle:
+cut:
   depth: 0.0075
   d1: 200   # principle linear damping
   d2: 150   # secondary linear damping

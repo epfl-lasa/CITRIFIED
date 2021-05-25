@@ -35,7 +35,7 @@ private:
 inline Interface::Interface(InterfaceType type) : type_(type) {
   switch (type_) {
     case FRANKA_LWI:
-      zmq_interface::configurePubSubSockets(context_, publisher_, subscriber_, "0.0.0.0:5550", "0.0.0.0:5551", true);
+      zmq_interface::configurePubSubSockets(context_, publisher_, subscriber_, "0.0.0.0:1601", "0.0.0.0:1602", true);
       break;
     case OPTITRACK:
       zmq_interface::configurePubSubSockets(context_, publisher_, subscriber_, "0.0.0.0:5511", "0.0.0.0:5512", true);

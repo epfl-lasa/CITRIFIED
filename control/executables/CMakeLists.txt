@@ -30,7 +30,8 @@ target_compile_definitions(rui_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="
 target_link_libraries(rui_incision_trials dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger motion_generators)
 
 add_executable(rui_incision_trials_lags rui_incision_trials_lags.cpp)
-target_compile_definitions(rui_incision_trials_lags PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/cut_curve/")
+target_compile_definitions(rui_incision_trials_lags PRIVATE TRIAL_CUT_CURVE_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/cut_curve/")
+target_compile_definitions(rui_incision_trials_lags PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(rui_incision_trials_lags dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger motion_generators lagsDS)
 
 add_executable(surface_prober surface_prober.cpp)

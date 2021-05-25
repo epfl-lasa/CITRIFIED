@@ -1,23 +1,10 @@
-/*
- * Copyright (C) 2018 Learning Algorithms and Systems Laboratory, EPFL, Switzerland
- * Author:  Nadia Figueroa
- * email:   nadia.figueroafernandez@epfl.ch
- * website: lasa.epfl.ch
- *
- * This work was supported by the EU project Cogimon H2020-ICT-23-2014.
- *
- * Permission is granted to copy, distribute, and/or modify this program
- * under the terms of the GNU General Public License, version 2 or any
- * later version published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
- * Public License for more details
- */
-
-
+//
+// Created by Rui Wu on 2021/4/16.
+//
 #include "motion_generators/lagsDSMotionGenerator.h"
+#include "state_representation/space/cartesian/CartesianState.hpp"
+
+using namespace state_representation;
 
 lagsDSMotionGenerator::lagsDSMotionGenerator(double frequency,
                                      int K, int M, std::vector<double> Priors, std::vector<double> Mu, std::vector<double> Sigma,
@@ -161,111 +148,18 @@ bool lagsDSMotionGenerator::InitializeDS() {
 
 }
 
-
-//bool lagsDSMotionGenerator::InitializeROS() {
-//
-//    sub_real_pose_              = nh_.subscribe( input_topic_name_ , 1000, &lagsDSMotionGenerator::UpdateRealPosition, this, ros::TransportHints().reliable().tcpNoDelay());
-//    sub_desired_target_         = nh_.subscribe( input_target_topic_name_ , 1000, &lagsDSMotionGenerator::UpdateDynamicTarget, this, ros::TransportHints().reliable().tcpNoDelay());
-//    pub_desired_twist_          = nh_.advertise<geometry_msgs::Twist>(output_topic_name_, 1);
-//	pub_desired_twist_filtered_ = nh_.advertise<geometry_msgs::Pose>(output_filtered_topic_name_, 1);
-//
-//    /* Doesn't seem to work */
-//    pub_tigger_passive_ds_      = nh_.advertise<std_msgs::Bool>("/lwr/joint_controllers/passive_ds_trigger", 1);
-//
-//
-//	pub_target_ = nh_.advertise<geometry_msgs::PointStamped>("DS/target", 1);
-//	pub_DesiredPath_ = nh_.advertise<nav_msgs::Path>("DS/DesiredPath_1", 1);
-//    msg_DesiredPath_.poses.resize(MAX_FRAME);
-//
-//	dyn_rec_f_ = boost::bind(&lagsDSMotionGenerator::DynCallback, this, _1, _2);
-//	dyn_rec_srv_.setCallback(dyn_rec_f_);
-//
-//	if (nh_.ok()) { // Wait for poses being published
-//		ros::spinOnce();
-//		ROS_INFO("The Motion generator is ready.");
-//		return true;
-//	}
-//	else {
-//		ROS_ERROR("The ros node has a problem.");
-//		return false;
-//	}
-//}
-
-
-//void lagsDSMotionGenerator::Run() {
-//
-////	while (nh_.ok()) {
-////
-////        ComputeDesiredVelocity();
-////        PublishDesiredVelocity();
-////        PublishFuturePath();
-////		ros::spinOnce();
-////
-////		loop_rate_.sleep();
-////	}
-////    nh_.shutdown();
-//
-//  ComputeDesiredVelocity();
-//  PublishDesiredVelocity();
-//  PublishFuturePath();
-//
-//}
-
-//void lagsDSMotionGenerator::UpdateRealPosition(const geometry_msgs::Pose::ConstPtr& msg) {
-//
-//	msg_real_pose_ = *msg;
-//
-//	real_pose_(0) = msg_real_pose_.position.x;
-//	real_pose_(1) = msg_real_pose_.position.y;
-//	if (M_== 3)
-//		real_pose_(2) = msg_real_pose_.position.z;
-//}
-//
-///* This should be removed for LAGS -- will not work with the current class */
-//void lagsDSMotionGenerator::UpdateDynamicTarget(const geometry_msgs::Point::ConstPtr& msg) {
-//
-//    msg_desired_target_ = *msg;
-//
-//    if (bDynamic_target_){
-//        target_pose_(0) = msg_desired_target_.x;
-//        target_pose_(1) = msg_desired_target_.y;
-//        if (M_== 3)
-//        	target_pose_(2) = msg_desired_target_.z;
-//    }
-//
-//}
-
-
 MathLib::Vector  lagsDSMotionGenerator::ComputeDesiredVelocity(const CartesianState& eeInRobot_) {
 
 	mutex_.lock();
 
-  real_pose_.Resize(3);
+  real_pose_.Resize(2);
   real_pose_(0)=eeInRobot_.get_position().x();
   real_pose_(1)=eeInRobot_.get_position().y();
-  real_pose_(2)=eeInRobot_.get_position().z();
+//  real_pose_(2)=eeInRobot_.get_position().z();
 
 
 
-	if (phase==0)
-		{
-			if (wait_time<time_count)
-			{
-				wait_time=wait_time+1;
-				std::cerr<<"wait_time: "<<wait_time<<std::endl;
-			}
-			else if (wait_time==time_count)
-			{
-				phase=1;
-			}
 
-			desired_velocity_(0) = 0.0;
-			desired_velocity_(1) = 0.0;
-			desired_velocity_(2) = 0.000001;
-			std::cerr<<"realPose"<<real_pose_(0)<<real_pose_(1)<<std::endl;
-		}
-	else if (phase==1)
-	{
 		if (bGlobal_)
 			/* If you only want to use the global component */
 			desired_velocity_ = LAGS_DS_->compute_fg(real_pose_ - (target_pose_- target_offset_ - learned_att_), learned_att_);
@@ -340,10 +234,10 @@ MathLib::Vector  lagsDSMotionGenerator::ComputeDesiredVelocity(const CartesianSt
 
 
 //  desired_velocity_filtered_ = SED_GMM_->getVelocity(Trans_pose);
-  return desired_velocity_filtered_;
+
 
 	mutex_.unlock();
-
+  return desired_velocity_filtered_;
 }
 
 

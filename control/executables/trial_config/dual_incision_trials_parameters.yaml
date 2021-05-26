@@ -49,7 +49,7 @@ touch:
 insertion:
   d1: 210   # principle linear damping
   d2: 150   # secondary linear damping
-  ak: 4     # angular stiffness
+  ak: 2     # angular stiffness
   ad: 4     # angular damping
   speed: 0.06
   depth: 0.01
@@ -78,6 +78,7 @@ esn:
   filename: ESN_400_20210503.yaml
   buffer_size: 50
   min_time_between_predictions: 60 # in milliseconds
+  permitted_classes: ["apple", "orange", "banana", "prune"]
 
 quebec:
   ctrl_gains: [100, 100, 5, 5]

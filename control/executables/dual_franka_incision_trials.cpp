@@ -98,12 +98,13 @@ int main(int argc, char** argv) {
   sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
 
   // set up GPR predictor
-  std::cout << "Waiting for GPR server..." << std::endl;
   learning::GPR<2> gpr;
   bool gprStarted = false;
-  gpr.testConnection();
-  std::cout << "GPR server ready" << std::endl;
-
+  if (ITS.cut) {
+    std::cout << "Waiting for GPR server..." << std::endl;
+    gpr.testConnection();
+    std::cout << "GPR server ready" << std::endl;
+  }
   // set up ESN classifier
   std::cout << "Initializing ESN..." << std::endl;
   const std::vector<std::string> esnInputFields =
@@ -253,7 +254,7 @@ int main(int argc, char** argv) {
             std::cout << "Starting ESN thread" << std::endl;
             esn.start();
 
-            touchPose = eeInPapa;
+            touchPose = eeInTask;
             touchPoseSet = true;
 
             ITS.setInsertionPhase();
@@ -267,7 +268,7 @@ int main(int argc, char** argv) {
         if (ITS.cut) {
           depth = CP.estimateHeightInTask(eeInTask) - eeInTask.get_position().z();
         } else {
-          depth = (touchPose.get_position() - eeInPapa.get_position()).norm();
+          depth = (touchPose.get_position() - eeInTask.get_position()).norm();
         }
         jsonLogger.addField(logger::MODEL, "depth", depth);
         if (depth > ITS.params["insertion"]["depth"].as<double>()) {
@@ -367,9 +368,27 @@ int main(int argc, char** argv) {
         break;
       }
       case PAUSE: {
-        if (!gprStarted) {
-          gprStarted = gpr.start(1);
+        bool valid = false;
+        if (!valid) {
+          for (auto& permitted : ITS.permittedClasses) {
+            if (permitted == finalESNPrediction.className) {
+              valid = true;
+              break;
+            }
+          }
+          if (!valid) {
+            finished = true;
+            ITS.setRetractionPhase(eeInTask);
+            trialState = RETRACTION;
+            std::cout << "### INVALID CLASS TYPE" << std::endl;
+            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+          }
         }
+
+        if (ITS.cut && !gprStarted) {
+          gprStarted = gpr.start(finalESNPrediction.classIndex);
+        }
+
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
         if (elapsed_seconds.count() > 2.0f) {
           if (ITS.cut && gprStarted) {
@@ -401,7 +420,7 @@ int main(int argc, char** argv) {
           jsonLogger.addField(logger::MODEL, "gpr", gprPrediction->data());
         }
 
-        double angle = touchPose.get_orientation().angularDistance(eeInPapa.get_orientation()) * 180 / M_PI;
+        double angle = touchPose.get_orientation().angularDistance(eeInTask.get_orientation()) * 180 / M_PI;
         double distance = eeInTask.dist(CP.getTouchPointInTask(0), CartesianStateVariable::POSITION);
         if (angle > ITS.params["cut"]["arc_angle"].as<double>()
             || distance > ITS.params["cut"]["cut_distance"].as<double>()) {

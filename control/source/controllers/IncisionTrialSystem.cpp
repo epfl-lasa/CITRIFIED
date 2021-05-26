@@ -74,6 +74,8 @@ IncisionTrialSystem::IncisionTrialSystem(const std::string& configFile) :
   esnFilename = params["esn"]["filename"].as<std::string>();
   esnBufferSize = params["esn"]["buffer_size"].as<int>();
   esnMinTimeBetweenPredictions = params["esn"]["min_time_between_predictions"].as<double>();
+
+  permittedClasses = params["esn"]["permitted_classes"].as<std::vector<std::string>>();
 }
 
 CartesianTwist IncisionTrialSystem::getTwistCommand(const CartesianState& eeInTask,

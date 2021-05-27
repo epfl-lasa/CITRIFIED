@@ -43,7 +43,6 @@ docker run \
   --privileged \
   -it \
   --rm \
+  --add-host lasapc21:128.178.145.15 \
   --net="host" \
   "${IMAGE_NAME}:${MULTISTAGE_TARGET}"
-
-#  --add-host lasapc21:128.178.145.15 \

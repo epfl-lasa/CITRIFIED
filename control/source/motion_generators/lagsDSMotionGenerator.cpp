@@ -207,11 +207,11 @@ MathLib::Vector  lagsDSMotionGenerator::ComputeDesiredVelocity(const CartesianSt
 //		msg_desired_velocity_.angular.x = 0;
 //		msg_desired_velocity_.angular.y = 0;
 //		msg_desired_velocity_.angular.z = 0;
-	}
-	else
-	{
-		desired_velocity_.Zero();
-	}
+//	}
+//	else
+//	{
+//		desired_velocity_.Zero();
+//	}
 
     CCDyn_filter_->SetTarget(desired_velocity_);
     CCDyn_filter_->Update();

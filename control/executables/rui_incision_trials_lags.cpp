@@ -238,7 +238,6 @@ int main(int argc, char** argv) {
 
   CartesianState taskInOptitrack("task", "optitrack");
   auto robotInOptitrack = CartesianState::Identity("robot", "optitrack");
-
   /* wait for optitrack data
   std::cout << "Waiting for optitrack robot base and task base state..." << std::endl;
   while (!optitracker.getState(robotInOptitrack, RB_ID_ROBOT_BASE)
@@ -303,7 +302,8 @@ int main(int argc, char** argv) {
   // set SEDS
   double frequency=900,Mu_scale=1, Sigma_scale=1;
   bool SEDS_state=0;
-  std::string filepath = std::string(TRIAL_CUT_CURVE_CONFIGURATION_DIR) + "cut_curve.yaml";
+//  std::string filepath = std::string(TRIAL_CUT_CURVE_CONFIGURATION_DIR) + "cut_curve.yaml";
+  std::string filepath = std::string(TRIAL_CUT_CURVE_CONFIGURATION_DIR) + "cut_curve_low_gain_coupled.yml";
   YAML::Node LAGS_params = YAML::LoadFile(filepath);
   auto K_gmm = LAGS_params["K"].as<int>();
   auto M_gmm = LAGS_params["M"].as<int>();
@@ -323,7 +323,7 @@ int main(int argc, char** argv) {
 
   double x,y,z;
 
-  MathLib::Vector desired_velocity;
+  MathLib::Vector desired_velocity;desired_velocity.Resize(2);
   lagsDSMotionGenerator lagsDS_motion_generator(frequency, K_gmm, M_gmm, Priors, Mu, Sigma,
                                                 A_g, att_g, A_l, A_d, att_l, w_l, b_l, scale, b_g, gpr_path);
 

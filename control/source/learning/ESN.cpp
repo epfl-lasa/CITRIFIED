@@ -113,8 +113,7 @@ Eigen::MatrixXd ESN::collectStates(const Eigen::MatrixXd& signal) {
         inputScaling_.cwiseProduct(signal.row(i).transpose()) + inputShift_;
     totalState.head(nbInternalUnits_) = (systemEquationWeightMatrix_ * totalState).unaryExpr(&tanh);
     totalState.tail(nbOutputs_) = outputWeights_ * totalState.head(nbInternalUnits_ + nbInputs_);
-
-    stateCollection.row(i) = totalState.head(nbInternalUnits_ + nbInputs_);
+    stateCollection.row(i - nbForgetPoints_) = totalState.head(nbInternalUnits_ + nbInputs_);
   }
   return stateCollection;
 }

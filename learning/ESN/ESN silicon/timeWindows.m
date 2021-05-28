@@ -88,12 +88,12 @@ for i = 1:nb_tw
     input.force_dt_z = zeros(length(input.force_z),1);
     
     dt_fx = mean(diff(input.time));
-    input.force_dt_x(2:end-1) = (input.force_x(3:end) - input.force_x(1:end-2)) / dt_fx;
+    input.force_dt_x(2:end-1) = (input.force_x(3:end) - input.force_x(1:end-2)) / (2*dt_fx);
     input.force_dt_x(1) = input.force_x(2);
     input.force_dt_x(end) = input.force_x(end-1);
     
     dt_fz = mean(diff(input.time));
-    input.force_dt_z(2:end-1) = (input.force_z(3:end) - input.force_z(1:end-2)) / dt_fz;
+    input.force_dt_z(2:end-1) = (input.force_z(3:end) - input.force_z(1:end-2)) / (2*dt_fz);
     input.force_dt_z(1) = input.force_z(2);
     input.force_dt_z(end) = input.force_z(end-1);
     

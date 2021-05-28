@@ -10,16 +10,23 @@ colors = {'b','r'};
 
 %% data set
 % loads cell array 'all_timewindows' from desired data set
-data_path = fullfile('..','..','data','raw_data','mai','test');
+data_path = fullfile('/home/caroline/Workspaces/CITRIFIED/learning/ESN/ESN silicon');
+
+% data_set = 'silicon_combined.mat';
+% data_set = 'silicon_human_0512_labeled.mat';
 data_set = 'silicon_0512_labeled.mat';
+
 load(fullfile(data_path, data_set));
 
 %% settings
 
 plot_figures = false;
 
-save_esn = false;
-esn_path = fullfile(pwd,'ESN_400_20210503.yaml');
+save_esn = true;
+
+% esn_path = fullfile(pwd,'ESN_combined_1.yaml');
+% esn_path = fullfile(pwd,'ESN_human_1.yaml');
+esn_path = fullfile(pwd,'ESN_robot_1.yaml');
 
 %% training parameters
 test_train_rate = 0.4;
@@ -29,10 +36,10 @@ nb_restarts_training = 20;
 % define the grid for the 4 parameters spectral_radius, nb_internal_units,
 % nb_forget_points, tw. For each tw, you need to specify one overlap.
 tw_size_grid = [10 20 30 40 50];
-tw_overlap_grid = [1 2 3 4 5];
+tw_overlap_grid = [1 2 3 4 5]; 
 spectral_radius_grid = [0.1 0.5 0.9];
-nb_internal_units_grid = [100 150 200 300 400];
-nb_forget_points = [0 1 2 3];
+nb_internal_units_grid = [100 150 200 300 400]; 
+nb_forget_points = [0 1 2 3]; 
 performances = [];
 
 for tw=1:length(tw_size_grid)
@@ -57,9 +64,9 @@ for tw=1:length(tw_size_grid)
         for i=1:size(time_tw, 2)
             % get mean delta t
             dt = mean(diff(time_tw(:,i)));
-            acc_z = (velocity_z_tw(3:end,i) - velocity_z_tw(1:end-2,i)) / 2*dt;
+            acc_z = (velocity_z_tw(3:end,i) - velocity_z_tw(1:end-2,i)) / (2*dt);
             acc_z = [acc_z(1); acc_z; acc_z(end)];
-            fd_z = (force_z_tw(3:end,i) - force_z_tw(1:end-2,i)) / 2*dt;
+            fd_z = (force_z_tw(3:end,i) - force_z_tw(1:end-2,i)) / (2*dt);
             fd_z = [fd_z(1); fd_z; fd_z(end)];
             s.input.acceleration_z = acc_z;
             s.input.force_derivative_z = fd_z;
@@ -70,26 +77,27 @@ for tw=1:length(tw_size_grid)
     
     for spectral_radius=spectral_radius_grid
         for nb_internal_units=nb_internal_units_grid
-            for nb_forget_point=nb_forget_points 
+            for nb_forget_point=nb_forget_points
                 %% ESN
-                % generate an esn 
+                % generate an esn
                 disp('Generating ESN ............');
                 esn = generate_esn(2, nb_internal_units, length(classes), ...
                     'spectralRadius', spectral_radius, 'learningMode', 'offline_multipleTimeSeries', ...
                     'reservoirActivationFunction', 'tanh', 'type', 'plain_esn', ...
-                    'outputActivationFunction', 'identity','inverseOutputActivationFunction','identity'); 
-
+                    'outputActivationFunction', 'identity','inverseOutputActivationFunction','identity');
+                
                 train_success = zeros(1, nb_restarts_training);
                 test_success = zeros(1, nb_restarts_training);
-                best_test_success = 0;
+%               best_test_success = 0;
+                best_result.test_success =0;
                 for restart=1:nb_restarts_training
                     cv = cvpartition(length(insertion_data), 'HoldOut', test_train_rate);
                     train_idx = cv.training(1);
                     test_idx = cv.test(1);
-
+                    
                     train_set = insertion_data(train_idx);
                     test_set = insertion_data(test_idx);
-
+                    
                     train_input = [];
                     train_output = [];
                     train_output_labels = [];
@@ -101,7 +109,7 @@ for tw=1:length(tw_size_grid)
                         train_output{end+1} = repmat(output, length(input.acceleration_z), 1);
                         train_output_labels(end+1) = train_set{j}.real_class_index + 1;
                     end
-
+                    
                     test_input = [];
                     test_output = [];
                     test_output_labels = [];
@@ -114,16 +122,16 @@ for tw=1:length(tw_size_grid)
                         test_output_labels(end+1) = test_set{j}.real_class_index + 1;
                     end
                     clear j output
-
+                    
                     [trained_esn, predicted_train_output, predicted_test_output, ~, ~] = ...
-                            esn_train_and_predict(esn, train_input, train_output, test_input, nb_forget_point);
-
+                        esn_train_and_predict(esn, train_input, train_output, test_input, nb_forget_point);
+                    
                     [~, predicted_train_indices, train_scores, ~] = classify_and_evaluate(train_output_labels, predicted_train_output, 3);
                     [~, predicted_test_indices, test_scores, ~] = classify_and_evaluate(test_output_labels, predicted_test_output, 3);
                     train_success(restart) = train_scores.success_rate;
                     test_success(restart) = test_scores.success_rate;
-
-                    if test_success(restart) > best_test_success
+                    
+                    if test_success(restart) > best_result.test_success
                         best_result.test_success = test_success(restart);
                         best_result.train_labels = train_output_labels;
                         best_result.test_labels = test_output_labels;
@@ -133,25 +141,33 @@ for tw=1:length(tw_size_grid)
                         best_result.train_scores = train_scores;
                         best_result.test_scores = test_scores;
                         best_result.nb_forget_points = nb_forget_point;
+                        best_result.spectral_radius = spectral_radius;
+                        best_result.nb_forget_points = nb_forget_point;
+                        best_result.nb_internal_units = nb_internal_units;
+                        best_result.tw_size = tw_size;
+                        best_result.tw_overlap = tw_overlap;
                     end
                 end
-
+                
                 if plot_figures
                     figure(1);
                     plot(train_success,'b-*')
                     hold on; grid on;
                     plot(test_success,'r-o')
                     legend('train success','test success')
-
+                    
                     C = confusionmat([best_result.train_labels best_result.test_labels], [best_result.predicted_train_labels best_result.predicted_test_labels]);
                     C_norm = 100 * C ./ sum(C,2);
-
+                    
                     figure(2);
                     cm = confusionchart(C, classes);
                 end
-
+                
                 performance.spectral_radius = spectral_radius;
                 performance.nb_forget_points = nb_forget_point;
+                performance.nb_internal_units = nb_internal_units;
+                performance.tw_size = tw_size;
+                performance.tw_overlap = tw_overlap;
                 performance.best_result = best_result;
                 performance.mean_test_success = mean(test_success);
                 performances{end+1} = performance;
@@ -159,10 +175,18 @@ for tw=1:length(tw_size_grid)
         end
     end
 end
-    
+
 if save_esn
     writeESNtoYAML(performance.best_result.trained_esn, esn_path, performance.best_result.nb_forget_points, classes);
 end
+% 
+% save('performance_human_1','performances')
+save('performance_robot_1','performances')
+% save('performance_combined_1','performances')
+
+% save('bestresult_human_1','best_result')
+save('bestresult_robot_1','best_result')
+% save('bestresult_combined_1','best_result')
 
 % best_grid_result = 0;
 % grid_results = [];

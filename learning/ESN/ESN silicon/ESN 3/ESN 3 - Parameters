@@ -1,5 +1,0 @@
-tw_size_grid = [10 20 30 40]; 
-tw_overlap_grid = [1 2 3 4];  
-spectral_radius_grid = [0.5]; 
-nb_internal_units_grid = [200 250 300];  
-nb_forget_points = [3]; 

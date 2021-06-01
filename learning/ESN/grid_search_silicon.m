@@ -12,9 +12,7 @@ colors = {'b','r'};
 % loads cell array 'all_timewindows' from desired data set
 data_path = fullfile('/home/caroline/Workspaces/CITRIFIED/learning/ESN/ESN silicon');
 
-% data_set = 'silicon_combined.mat';
-% data_set = 'silicon_human_0512_labeled.mat';
-data_set = 'silicon_0512_labeled.mat';
+data_set = 'silicon_combined.mat';
 
 load(fullfile(data_path, data_set));
 
@@ -24,9 +22,8 @@ plot_figures = false;
 
 save_esn = true;
 
-% esn_path = fullfile(pwd,'ESN_combined_1.yaml');
-% esn_path = fullfile(pwd,'ESN_human_1.yaml');
-esn_path = fullfile(pwd,'ESN_robot_1.yaml');
+esn_path = fullfile(pwd,'ESN_combined_1.yaml');
+
 
 %% training parameters
 test_train_rate = 0.4;
@@ -179,14 +176,10 @@ end
 if save_esn
     writeESNtoYAML(performance.best_result.trained_esn, esn_path, performance.best_result.nb_forget_points, classes);
 end
-% 
-% save('performance_human_1','performances')
-save('performance_robot_1','performances')
-% save('performance_combined_1','performances')
 
-% save('bestresult_human_1','best_result')
-save('bestresult_robot_1','best_result')
-% save('bestresult_combined_1','best_result')
+save('performance_combined_1','performances')
+
+save('bestresult_combined_1','best_result')
 
 % best_grid_result = 0;
 % grid_results = [];

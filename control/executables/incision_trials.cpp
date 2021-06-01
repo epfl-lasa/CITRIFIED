@@ -331,22 +331,36 @@ int main(int argc, char** argv) {
         break;
       }
       case PAUSE: {
-        if (!gprStarted) {
-          //TODO: validate classification against known / approved models
-          // gprStarted = gpr.start(finalESNPrediction.classIndex);
-          gprStarted = gpr.start(0);
-        }
-        std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
-        if (elapsed_seconds.count() > 1.5f) {
-          if (ITS.cut && gprStarted) {
-            if (auto gprPrediction = gpr.getLastPrediction()) {
-              ITS.setCutPhase(eeInTask);
-              trialState = CUT;
-              std::cout << "### STARTING CUT PHASE" << std::endl;
-            } else {
-              gpr.updateState(std::array<double, 2>({ITS.params["cut"]["depth"].as<double>(),
-                                                     ITS.params["cut"]["speed"].as<double>()}));
+        bool valid = false;
+        if (!valid) {
+          for (auto& permitted : ITS.permittedClasses) {
+            if (permitted == finalESNPrediction.className || permitted == "all") {
+              valid = true;
+              break;
             }
+          }
+          if (!valid) {
+            finished = true;
+            ITS.setRetractionPhase(eeInTask);
+            trialState = RETRACTION;
+            std::cout << "### INVALID CLASS TYPE" << std::endl;
+            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+          }
+        }
+
+        if (ITS.cut && !gprStarted) {
+          std::cout << "Starting GPR server" << std::endl;
+          gprStarted = gpr.start(finalESNPrediction.classIndex);
+          // pre-load the GPR model by sending a dummy packet
+          gpr.updateState(std::array<double, 2>{0, 0});
+        }
+
+        std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
+        if (elapsed_seconds.count() > 2.0f) {
+          if (ITS.cut && gprStarted) {
+            ITS.setCutPhase(eeInTask);
+            trialState = CUT;
+            std::cout << "### STARTING CUT PHASE" << std::endl;
           } else {
             finished = true;
             ITS.setRetractionPhase(eeInTask);

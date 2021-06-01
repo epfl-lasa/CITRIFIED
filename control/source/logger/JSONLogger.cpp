@@ -5,7 +5,7 @@
 #include <state_representation/space/cartesian/CartesianPose.hpp>
 #include <state_representation/space/cartesian/CartesianState.hpp>
 
-#define JSON_LOGGER_VERSION ("1.1")
+#define JSON_LOGGER_VERSION ("1.2")
 
 using namespace state_representation;
 

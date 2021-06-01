@@ -12,7 +12,7 @@
 # Set the cut radius to 1m for a practically straight line cut
 # Set the cut radius to 0.02 for small circle
 
-trial_prefix: 'YYYYMMDD_fruit_00'
+trial_prefix: 'YYYYMMDD_fruit_00_'
 trial: '00'
 
 # set false to cut after insertion
@@ -21,9 +21,9 @@ insertion_only: false
 # The attractor position and orientation during the hold phase
 attractor:
   position:
-    x: 0.01
-    y: 0.015
-    z: 0.09
+    x: 0.0
+    y: 0.0
+    z: 0.1
   yaw_angle: 0     # degrees to rotate the initial knife orientation, counter-clockwise from above
   pitch_angle: 15  # degrees to tilt the knife forward, positive around the knife -Y axis
   gains:
@@ -47,7 +47,7 @@ touch:
   ak: 4     # angular stiffness
   ad: 4     # angular damping
   speed: 0.05 # speed of touch approach
-  touch_force: 0.3  # force magnitude to register surface
+  touch_force: 0.4  # force magnitude to register surface
 
 insertion:
   d1: 210   # principle linear damping
@@ -58,8 +58,8 @@ insertion:
   depth: 0.01
 
 cut:
-  depth: 0.008
-  d1: 210   # principle linear damping
+  depth: 0.0075
+  d1: 200   # principle linear damping
   d2: 150   # secondary linear damping
   ak: 4     # angular stiffness
   ad: 4     # angular damping

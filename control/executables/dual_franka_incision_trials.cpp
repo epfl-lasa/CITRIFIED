@@ -393,8 +393,9 @@ int main(int argc, char** argv) {
 
         if (ITS.cut && !gprStarted) {
           std::cout << "Starting GPR server" << std::endl;
-//          gprStarted = gpr.start(finalESNPrediction.classIndex);
-          gprStarted = gpr.start(2);
+          gprStarted = gpr.start(finalESNPrediction.classIndex);
+          // pre-load the GPR model by sending a dummy packet
+          gpr.updateState(std::array<double, 2>{0, 0});
         }
 
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;

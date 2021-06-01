@@ -19,7 +19,7 @@ void Joy::stop() {
 
 void Joy::run() {
   while (keepAlive_) {
-    pure_joy::proto::JoyMessage joyCommand{};
+    zmq_joy::proto::JoyMessage joyCommand{};
     if (interface_.receive(joyCommand)) {
       if (!joyReady_) {
         joyReady_ = true;

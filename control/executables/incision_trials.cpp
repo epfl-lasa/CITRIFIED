@@ -46,8 +46,7 @@ int main(int argc, char** argv) {
 
   // set up FT sensor
   sensors::ToolSpec tool = {
-      .centerOfMass = Eigen::Vector3d(0, 0, 0.02),
-      .mass = 0.07
+      .centerOfMass = Eigen::Vector3d(0, 0, 0.02), .mass = 0.07
   };
   sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
 
@@ -116,6 +115,12 @@ int main(int argc, char** argv) {
   jsonLogger.addBody(logger::MessageType::STATIC, robotInOptitrack);
   jsonLogger.addBody(logger::MessageType::STATIC, taskInOptitrack);
   jsonLogger.write();
+
+  // adaptive cut parameters
+  int cutStable = -ITS.params["cut"]["evaluation_buffer"].as<int>();
+  auto deviationOffset = ITS.params["cut"]["deviation_offset"].as<double>();
+  auto deviationRate = ITS.params["cut"]["offset_incremental_rate"].as<double>();
+  std::array<double, 2> maxDeviation = {0, 0};
 
   std::cout << "Ready to begin trial!" << std::endl;
   // start main control loop
@@ -238,7 +243,9 @@ int main(int argc, char** argv) {
           esn.stop();
 
           // hold the current position
-          ITS.setRetractionPhase(eeInTask, ITS.params["insertion"]["depth"].as<double>() - ITS.params["cut"]["depth"].as<double>());
+          ITS.setRetractionPhase(eeInTask,
+                                 ITS.params["insertion"]["depth"].as<double>()
+                                     - ITS.params["cut"]["depth"].as<double>());
           pauseTimer = std::chrono::system_clock::now();
           trialState = CLASSIFICATION;
           std::cout << "### CLASSIFYING - INCISION DEPTH REACHED" << std::endl;
@@ -247,11 +254,8 @@ int main(int argc, char** argv) {
         esnSkip--;
         if (esnSkip <= 0) {
           // combine sample for esn input
-          esnInputSample << depth,
-              eeLocalTwistFilt.get_linear_velocity().x(),
-              eeLocalTwistFilt.get_linear_velocity().z(),
-              ftWrenchInRobotFilt.get_force().x(),
-              ftWrenchInRobotFilt.get_force().z();
+          esnInputSample
+              << depth, eeLocalTwistFilt.get_linear_velocity().x(), eeLocalTwistFilt.get_linear_velocity().z(), ftWrenchInRobotFilt.get_force().x(), ftWrenchInRobotFilt.get_force().z();
 
           esn.addSample(jsonLogger.getTime(), esnInputSample);
           esnSkip = 2;
@@ -323,14 +327,34 @@ int main(int argc, char** argv) {
         }
         esn.stop();
         trialState = PAUSE;
-        std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
-        std::cout << finalESNPrediction.className << std::endl;
+        std::cout << "### PAUSING - TISSUE CLASSIFIED : " << finalESNPrediction.className << std::endl;
         break;
       }
       case PAUSE: {
-        if (!gprStarted) {
-          gprStarted = gpr.start(1);
+        bool valid = false;
+        if (!valid) {
+          for (auto& permitted : ITS.permittedClasses) {
+            if (permitted == finalESNPrediction.className || permitted == "all") {
+              valid = true;
+              break;
+            }
+          }
+          if (!valid) {
+            finished = true;
+            ITS.setRetractionPhase(eeInTask);
+            trialState = RETRACTION;
+            std::cout << "### INVALID CLASS TYPE" << std::endl;
+            std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+          }
         }
+
+        if (ITS.cut && !gprStarted) {
+          std::cout << "Starting GPR server" << std::endl;
+          gprStarted = gpr.start(finalESNPrediction.classIndex);
+          // pre-load the GPR model by sending a dummy packet
+          gpr.updateState(std::array<double, 2>{0, 0});
+        }
+
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
         if (elapsed_seconds.count() > 2.0f) {
           if (ITS.cut && gprStarted) {
@@ -350,16 +374,59 @@ int main(int argc, char** argv) {
         auto center = ITS.ringDS.get_center();
         auto position = center.get_position();
         position.z() = CP.estimateHeightInTask(eeInTask);
-        jsonLogger.addField(logger::MODEL, "depth", position.z() - eeInTask.get_position().z());
+        double depth = position.z() - eeInTask.get_position().z();
+        jsonLogger.addField(logger::MODEL, "depth", depth);
         position.z() -= ITS.params["cut"]["depth"].as<double>();
         center.set_position(position);
         ITS.ringDS.set_center(center);
 
-        std::array<double, 2>
-            gprRequest = {position.z() - eeInTask.get_position().z(), eeInRobotFilt.get_linear_velocity().x()};
+        std::array<double, 2> gprRequest = {depth, eeInRobotFilt.get_linear_velocity().x()};
         gpr.updateState(gprRequest);
         if (auto gprPrediction = gpr.getLastPrediction()) {
-          jsonLogger.addField(logger::MODEL, "gpr", gprPrediction->data());
+          double deviation = (ftWrenchInRobotFilt.get_force().x() - gprPrediction->mean) / gprPrediction->sigma;
+
+          auto offsetMean = gprPrediction->mean + deviationOffset * gprPrediction->sigma;
+          double offsetDeviation = deviation - deviationOffset;
+
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "mean", gprPrediction->mean);
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "sigma", gprPrediction->sigma);
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "deviation", deviation);
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "deviation_offset", deviationOffset);
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "offset_mean", offsetMean);
+          jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "offset_deviation", offsetDeviation);
+
+          std::cout << "GPR >>> F: " << ftWrenchInRobotFilt.get_force().x() << ", u: " << gprPrediction->mean
+                    << ", sigma: " << gprPrediction->sigma << ", deviation: " << deviation;
+
+          std::cout << " | u': " << offsetMean << ", deviation': " << offsetDeviation
+                    << ", offset: " << deviationOffset << std::endl;
+
+          // incrementally adapt the offset
+          if (abs(deviationOffset + deviationRate * offsetDeviation) < ITS.params["cut"]["max_force_deviation"].as<double>()) {
+            deviationOffset += deviationRate * offsetDeviation;
+          }
+
+          if (cutStable < 0 && abs(offsetDeviation) < ITS.params["cut"]["max_force_deviation"].as<double>()) {
+            ++cutStable;
+          }
+
+          if (cutStable >= 0) {
+            if (offsetDeviation < maxDeviation[0]) {
+              maxDeviation[0] = offsetDeviation;
+            } else if (offsetDeviation > maxDeviation[1]) {
+              maxDeviation[1] = offsetDeviation;
+            }
+
+            if (abs(offsetDeviation) >= ITS.params["cut"]["max_force_deviation"].as<double>()) {
+              //TODO: accumulate error and abort if the total exceeds some time / magnitude constraints
+              std::cout << "### Cut force outside of expected range! Deviation: " << deviation << std::endl;
+              ITS.setRetractionPhase(eeInTask);
+              finished = true;
+              gpr.stop();
+              trialState = RETRACTION;
+              std::cout << "### STARTING RETRACTION PHASE" << std::endl;
+            }
+          }
         }
 
         double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
@@ -369,6 +436,8 @@ int main(int argc, char** argv) {
           ITS.setRetractionPhase(eeInTask);
           finished = true;
           gpr.stop();
+          std::cout << "Cut phase finished. Min / Max observed deviation: " << maxDeviation[0]
+                    << ", " << maxDeviation[1] << std::endl;
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }

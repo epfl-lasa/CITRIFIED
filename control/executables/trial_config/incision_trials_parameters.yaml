@@ -67,10 +67,14 @@ cut:
   width: 0.005
   speed: 0.05
   field_strength: 2
-  normal_gain: 10
+  normal_gain: 20
   angular_gain: 10
   arc_angle: 90     # max cut distance in degrees
   cut_distance: 0.05  # max cut distance in meters
+  max_force_deviation: 2.5 # max deviation of measured force from mean prediction [std deviation]
+  deviation_offset: 0.0 # bias to add to the predicted force (incrementally learned) [std deviation]
+  offset_incremental_rate: 0.01 # incremental learning rate (proportion of deviation added per evaluation)
+  evaluation_buffer: 20 # minimum GPR evaluations within max_force_deviation range before active checking is enabled
 
 probe:
   samples: 12  # maximum number of surface samples to collect

@@ -1,5 +1,3 @@
-#include <yaml-cpp/yaml.h>
-
 #include <dynamical_systems/Linear.hpp>
 #include <dynamical_systems/Circular.hpp>
 

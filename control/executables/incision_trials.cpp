@@ -1,5 +1,3 @@
-#include <yaml-cpp/yaml.h>
-
 #include "controllers/IncisionTrialSystem.h"
 #include "controllers/CutProber.h"
 

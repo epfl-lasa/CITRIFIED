@@ -24,7 +24,7 @@ class GPR(object):
             print("[GPR::init] Choose a valid file and try again!")
 
         self.input_dim = self._gpr.X_train_.shape[1]
-        self.predict([0, 0])
+        self.predict([0] * self.input_dim)
         print("[GPR::init] GPR initialized")
         return self._ready
 

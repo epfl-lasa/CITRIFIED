@@ -3,7 +3,7 @@
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
 #include "network/interfaces.h"
-#include "controllers/TwistController.h"
+#include "controllers/impedance/CartesianTwistController.hpp"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "sensors/RigidBodyTracker.h"
 
@@ -23,9 +23,9 @@ int main(int, char**) {
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
   dynamical_systems::Linear<state_representation::CartesianState> DS(state_representation::CartesianState("attractor", "robot_base"), gains);
 
-  controllers::TwistController ctrl(100, 100, 5, 5);
+  controllers::impedance::CartesianTwistController ctrl(100, 100, 5, 5);
 
-  network::Interface franka(network::InterfaceType::FRANKA_LWI);
+  network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};

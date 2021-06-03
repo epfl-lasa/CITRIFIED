@@ -58,10 +58,10 @@ IncisionTrialSystem::IncisionTrialSystem(const std::string& configFile) :
   ringDS.set_rotation_offset(orientation);
 
   // Configure controller
-  ctrl = controllers::TwistController(params["default"]["d1"].as<double>(),
-                                      params["default"]["d2"].as<double>(),
-                                      params["default"]["ak"].as<double>(),
-                                      params["default"]["ad"].as<double>());
+  ctrl = controllers::impedance::CartesianTwistController(params["default"]["d1"].as<double>(),
+                                                          params["default"]["d2"].as<double>(),
+                                                          params["default"]["ak"].as<double>(),
+                                                          params["default"]["ad"].as<double>());
 
   cut = !params["insertion_only"].as<bool>();
   trialName = params["trial_prefix"].as<std::string>();
@@ -74,6 +74,8 @@ IncisionTrialSystem::IncisionTrialSystem(const std::string& configFile) :
   esnFilename = params["esn"]["filename"].as<std::string>();
   esnBufferSize = params["esn"]["buffer_size"].as<int>();
   esnMinTimeBetweenPredictions = params["esn"]["min_time_between_predictions"].as<double>();
+
+  permittedClasses = params["esn"]["permitted_classes"].as<std::vector<std::string>>();
 }
 
 CartesianTwist IncisionTrialSystem::getTwistCommand(const CartesianState& eeInTask,
@@ -114,10 +116,9 @@ void IncisionTrialSystem::setTouchPhase() {
   pointDS.set_gain(DSgains);
   zVelocity = -params["touch"]["speed"].as<double>();
 
-  // set the controller to specific insertion phase gains
-  ctrl.set_linear_damping(params["touch"]["d1"].as<double>(), params["touch"]["d2"].as<double>());
-  ctrl.angular_stiffness = params["touch"]["ak"].as<double>();
-  ctrl.angular_damping = params["touch"]["ad"].as<double>();
+  // set the controller to specific touch phase gains
+  ctrl.set_linear_gains(params["touch"]["d1"].as<double>(), params["touch"]["d2"].as<double>());
+  ctrl.set_angular_gains(params["touch"]["ak"].as<double>(), params["touch"]["ad"].as<double>());
 }
 
 void IncisionTrialSystem::setInsertionPhase() {
@@ -127,9 +128,8 @@ void IncisionTrialSystem::setInsertionPhase() {
   zVelocity = -params["insertion"]["speed"].as<double>();
 
   // set the controller to specific insertion phase gains
-  ctrl.set_linear_damping(params["insertion"]["d1"].as<double>(), params["insertion"]["d2"].as<double>());
-  ctrl.angular_stiffness = params["insertion"]["ak"].as<double>();
-  ctrl.angular_damping = params["insertion"]["ad"].as<double>();
+  ctrl.set_linear_gains(params["insertion"]["d1"].as<double>(), params["insertion"]["d2"].as<double>());
+  ctrl.set_angular_gains(params["insertion"]["ak"].as<double>(), params["insertion"]["ad"].as<double>());
 }
 
 void IncisionTrialSystem::setCutPhase(const CartesianPose& eeInTask) {
@@ -145,10 +145,9 @@ void IncisionTrialSystem::setCutPhase(const CartesianPose& eeInTask) {
   centerpose.set_position(center);
   ringDS.set_center(centerpose);
 
-  // set the controller to specific insertion phase gains
-  ctrl.set_linear_damping(params["cut"]["d1"].as<double>(), params["cut"]["d2"].as<double>());
-  ctrl.angular_stiffness = params["cut"]["ak"].as<double>();
-  ctrl.angular_damping = params["cut"]["ad"].as<double>();
+  // set the controller to specific cut phase gains
+  ctrl.set_linear_gains(params["cut"]["d1"].as<double>(), params["cut"]["d2"].as<double>());
+  ctrl.set_angular_gains(params["cut"]["ak"].as<double>(), params["cut"]["ad"].as<double>());
 }
 
 void IncisionTrialSystem::setRetractionPhase(const CartesianPose& eeInTask, double offset) {
@@ -165,7 +164,6 @@ void IncisionTrialSystem::setRetractionPhase(const CartesianPose& eeInTask, doub
   zVelocity = 0;
 
   // reset the controller to default damping values
-  ctrl.set_linear_damping(params["default"]["d1"].as<double>(), params["default"]["d2"].as<double>());
-  ctrl.angular_stiffness = params["default"]["ak"].as<double>();
-  ctrl.angular_damping = params["default"]["ad"].as<double>();
+  ctrl.set_linear_gains(params["default"]["d1"].as<double>(), params["default"]["d2"].as<double>());
+  ctrl.set_angular_gains(params["default"]["ak"].as<double>(), params["default"]["ad"].as<double>());
 }

@@ -24,10 +24,9 @@ fi
 IMAGE_NAME=citrified/control/remote-dev
 CONTAINER_NAME=citrified-control-remote-dev
 PORT_SSH=2222
-PORT_STATE=5550
-PORT_COMMAND=5551
 PORT_OPTITRACK=5511
 PORT_GPR=7777
+PORT_JOY=8888
 
 if [ "$REBUILD" -eq 1 ]; then
   DOCKER_BUILDKIT=1 docker build --no-cache --target project-dependencies -f ../Dockerfile --tag $IMAGE_NAME ..
@@ -44,7 +43,9 @@ docker network inspect citrinet >/dev/null 2>&1 || \
 docker run -d --cap-add sys_ptrace \
   --network=citrinet \
   -p127.0.0.1:"$PORT_SSH":22 \
-  -p"$PORT_STATE":"$PORT_STATE" -p"$PORT_COMMAND":"$PORT_COMMAND" \
+  -p1601:1601 -p1602:1602 \
+  -p1701:1701 -p1702:1702 \
   -p"$PORT_OPTITRACK":"$PORT_OPTITRACK" \
   -p"$PORT_GPR":"$PORT_GPR" \
+  -p"$PORT_JOY":"$PORT_JOY" \
   --name $CONTAINER_NAME $IMAGE_NAME

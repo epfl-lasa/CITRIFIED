@@ -17,3 +17,8 @@ fi
   && mv franka_lightweight_interface/include/franka_lightweight_interface/franka_lwi_communication_protocol.h . \
   && rm -rf franka_lightweight_interface
 )
+
+(
+  mkdir -p ../include/network \
+  && cp ../../pure_zmq_joy/include/pure_zmq_joy/zmq_joy_protocol.h ../include/network
+)

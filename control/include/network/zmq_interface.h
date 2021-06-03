@@ -27,6 +27,23 @@ inline void configurePubSubSockets(zmq::context_t& context,
   }
 }
 
+inline void configureSubSocket(zmq::context_t& context,
+                               zmq::socket_t& subscriber,
+                               const std::string& subscriber_uri,
+                               const bool bind = true) {
+  context = zmq::context_t(1);
+
+  subscriber = zmq::socket_t(context, ZMQ_SUB);
+  subscriber.set(zmq::sockopt::conflate, 1);
+  subscriber.set(zmq::sockopt::subscribe, "");
+
+  if (bind) {
+    subscriber.bind("tcp://" + subscriber_uri);
+  } else {
+    subscriber.connect("tcp://" + subscriber_uri);
+  }
+}
+
 inline void configurePairSocket(zmq::context_t& context,
                                 zmq::socket_t& socket,
                                 const std::string& socket_uri,

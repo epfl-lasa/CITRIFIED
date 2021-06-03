@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
   ctrl.gain = 10;
 
   // Set up franka ZMQ
-  network::Interface franka(network::InterfaceType::FRANKA_LWI);
+  network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};

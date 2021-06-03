@@ -1,25 +1,74 @@
+#include <dynamical_systems/Linear.hpp>
+#include <dynamical_systems/Circular.hpp>
+
+#include "controllers/FrankaController.h"
 #include "controllers/IncisionTrialSystem.h"
 #include "controllers/CutProber.h"
 
-#include "sensors/ForceTorqueSensor.h"
 #include "franka_lwi/franka_lwi_utils.h"
-#include "sensors/RigidBodyTracker.h"
+#include "sensors/ForceTorqueSensor.h"
 #include "filters/DigitalButterworth.h"
 #include "network/interfaces.h"
 #include "logger/JSONLogger.h"
 #include "learning/ESNWrapper.h"
 #include "learning/GPR.h"
 
-#define RB_ID_ROBOT_BASE 1
-#define RB_ID_TASK_BASE 2
-
 using namespace state_representation;
+
+class QuebecWrapper {
+public:
+  explicit QuebecWrapper(const YAML::Node& params) :
+      franka_quebec(network::InterfaceType::FRANKA_QUEBEC_17, "quebec", "task"),
+      frame_quebec(CartesianState::Identity("quebec", "papa")),
+      task_in_quebec("task", "quebec"),
+      orientation_ds_quebec(task_in_quebec),
+      position_ds_quebec(task_in_quebec, 1, 1, 1),
+      ctrl_quebec(100, 100, 4, 4) {
+    // assume frame papa = world
+    frame_quebec.set_position(0.899, 0, 0);
+    frame_quebec.set_orientation(Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())));
+
+    std::vector<double> orientation_gains = {0.0, 0.0, 0.0, 10.0, 10.0, 10.0};
+    state_representation::CartesianPose attractor_quebec("attractor_quebec",frame_quebec.get_name());
+    attractor_quebec.from_std_vector(params["quebec"]["position"].as<std::vector<double>>());
+    attractor_quebec.from_std_vector(params["quebec"]["orientation"].as<std::vector<double>>());
+    orientation_ds_quebec = dynamical_systems::Linear<CartesianState>(attractor_quebec, orientation_gains);
+
+    position_ds_quebec.set_center(attractor_quebec);
+    position_ds_quebec.set_radiuses(params["quebec"]["ellipse"].as<std::vector<double>>());
+    position_ds_quebec.set_normal_gain(params["quebec"]["normal_gain"].as<double>());
+    position_ds_quebec.set_planar_gain(params["quebec"]["planar_gain"].as<double>());
+    position_ds_quebec.set_circular_velocity(params["quebec"]["circular_velocity"].as<double>());
+
+    auto gains = params["quebec"]["ctrl_gains"].as<std::vector<double>>();
+    ctrl_quebec.set_gains(Eigen::Vector4d(gains.data()));
+
+    franka_quebec.set_callback([this] (const CartesianState& state, const Jacobian& jacobian) -> JointTorques {
+      return control_loop_quebec(state, jacobian);
+    });
+  }
+
+  JointTorques control_loop_quebec(const CartesianState& state, const Jacobian& jacobian) {
+    task_in_quebec = state;
+    CartesianTwist dsTwist = orientation_ds_quebec.evaluate(state) + position_ds_quebec.evaluate(state);
+    dsTwist.clamp(0.5, 0.75);
+
+    return ctrl_quebec.compute_command(dsTwist, state, jacobian);
+  }
+
+  controllers::FrankaController franka_quebec;
+  CartesianState frame_quebec;
+  CartesianState task_in_quebec;
+  dynamical_systems::Linear<CartesianState> orientation_ds_quebec;
+  dynamical_systems::Circular position_ds_quebec;
+  controllers::impedance::CartesianTwistController ctrl_quebec;
+};
 
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // set up control system
-  auto configFile = std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml";
+  auto configFile = std::string(TRIAL_CONFIGURATION_DIR) + "dual_incision_trials_parameters.yaml";
   IncisionTrialSystem ITS(configFile);
   CutProber CP(configFile);
   CP.setStart(ITS.pointDS.get_attractor());
@@ -37,32 +86,23 @@ int main(int argc, char** argv) {
     jsonLogger.addSubfield(logger::METADATA, "cut", "speed", ITS.params["cut"]["speed"].as<double>());
     jsonLogger.addSubfield(logger::METADATA, "cut", "normal_gain", ITS.params["cut"]["normal_gain"].as<double>());
   }
-
-  // set up optitrack
-  sensors::RigidBodyTracker optitracker;
-  optitracker.start();
+  jsonLogger.write();
 
   // set up FT sensor
   sensors::ToolSpec tool = {
-      .centerOfMass = Eigen::Vector3d(0, 0, 0.02), .mass = 0.07
+      .centerOfMass = Eigen::Vector3d(0, 0, 0.02),
+      .mass = 0.07
   };
   sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
 
-  CartesianState taskInOptitrack("task", "optitrack");
-  CartesianState robotInOptitrack("robot", "optitrack");
-  // wait for optitrack data
-  std::cout << "Waiting for optitrack robot base and task base state..." << std::endl;
-  while (!optitracker.getState(robotInOptitrack, RB_ID_ROBOT_BASE)
-      || !optitracker.getState(taskInOptitrack, RB_ID_TASK_BASE)) {}
-  std::cout << "Optitrack ready" << std::endl;
-
   // set up GPR predictor
-  std::cout << "Waiting for GPR server..." << std::endl;
   learning::GPR<2> gpr;
   bool gprStarted = false;
-  gpr.testConnection();
-  std::cout << "GPR server ready" << std::endl;
-
+  if (ITS.cut) {
+    std::cout << "Waiting for GPR server..." << std::endl;
+    gpr.testConnection();
+    std::cout << "GPR server ready" << std::endl;
+  }
   // set up ESN classifier
   std::cout << "Initializing ESN..." << std::endl;
   const std::vector<std::string> esnInputFields =
@@ -89,30 +129,29 @@ int main(int argc, char** argv) {
   filter::DigitalButterworth wrenchFilter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 6);
   filter::DigitalButterworth stateFilter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 13);
 
-  // set up robot connection
-  network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
+  // set up robots
+  network::Interface franka_papa(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
+  QuebecWrapper quebec_wrapper(ITS.params);
+  quebec_wrapper.franka_quebec.start();
+
   // prepare all state objects
-  CartesianState eeInRobot("ee", "robot");
-  CartesianState eeInRobotFilt = eeInRobot;
-  CartesianWrench ftWrenchInRobot("ft_sensor", "robot");
+  CartesianState eeInPapa("ee", "papa");
+  CartesianState eeInPapaFilt = eeInPapa;
+  CartesianWrench ftWrenchInPapa("ft_sensor", "papa");
   CartesianTwist eeLocalTwist("ee", "ee");
   CartesianTwist eeLocalTwistFilt = eeLocalTwist;
-  CartesianWrench ftWrenchInRobotFilt = ftWrenchInRobot;
+  CartesianWrench ftWrenchInPapaFilt = ftWrenchInPapa;
 
-  state_representation::Jacobian jacobian("franka", 7, "ee", "robot");
+  state_representation::Jacobian jacobian("papa", 7, "ee", "papa");
 
-  CartesianPose touchPose = eeInRobot;
+  CartesianPose touchPose = eeInPapa;
   bool touchPoseSet = false;
 
   filter::DigitalButterworth filter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 4);
   auto filterInput = Eigen::VectorXd::Zero(4);
-
-  jsonLogger.addBody(logger::MessageType::STATIC, robotInOptitrack);
-  jsonLogger.addBody(logger::MessageType::STATIC, taskInOptitrack);
-  jsonLogger.write();
 
   // adaptive cut parameters
   int cutStable = -ITS.params["cut"]["evaluation_buffer"].as<int>();
@@ -127,37 +166,38 @@ int main(int argc, char** argv) {
   auto frequencyTimer = std::chrono::system_clock::now();
   auto pauseTimer = std::chrono::system_clock::now();
   TrialState trialState = TrialState::APPROACH;
-  while (franka.receive(state)) {
+  while (franka_papa.receive(state)) {
 
     //  update states
-    frankalwi::utils::toCartesianState(state, eeInRobot);
+    frankalwi::utils::toCartesianState(state, eeInPapa);
     frankalwi::utils::toJacobian(state.jacobian, jacobian);
-    eeLocalTwist.set_twist((-1.0 * CartesianTwist(eeInRobot).inverse()).get_twist());
+    eeLocalTwist.set_twist((-1.0 * CartesianTwist(eeInPapa).inverse()).get_twist());
 
-    // update optitrack states
-    optitracker.getState(robotInOptitrack, RB_ID_ROBOT_BASE);
-    optitracker.getState(taskInOptitrack, RB_ID_TASK_BASE);
-    auto taskInRobot = robotInOptitrack.inverse() * taskInOptitrack;
-    auto eeInTask = taskInRobot.inverse() * eeInRobot;
-    ITS.setDSBaseFrame(taskInRobot);
+    // update target states
+    CartesianState taskInPapa = eeInPapa;
+    if (!quebec_wrapper.task_in_quebec.is_empty()) {
+      taskInPapa = quebec_wrapper.frame_quebec * quebec_wrapper.task_in_quebec;
+    }
+    auto eeInTask = taskInPapa.inverse() * eeInPapa;
+    ITS.setDSBaseFrame(taskInPapa);
 
     // update ft wrench
     if (ft_sensor.biasOK()) {
-      ft_sensor.readContactWrench(ftWrenchInRobot, eeInRobot.get_orientation().toRotationMatrix());
+      ft_sensor.readContactWrench(ftWrenchInPapa, eeInPapa.get_orientation().toRotationMatrix());
     }
 
     // filter data: robot state
     Eigen::Matrix<double, 13, 1> stateVector;
-    stateVector << eeInRobot.get_pose(), eeInRobot.get_twist();
+    stateVector << eeInPapa.get_pose(), eeInPapa.get_twist();
     auto stateFilt = stateFilter.computeFilterOutput(stateVector);
-    eeInRobotFilt.set_pose(stateFilt.head(7));
-    eeInRobotFilt.set_twist(stateFilt.tail(6));
+    eeInPapaFilt.set_pose(stateFilt.head(7));
+    eeInPapaFilt.set_twist(stateFilt.tail(6));
 
     // filter data: localised twist and force
     eeLocalTwistFilt.set_twist(twistFilter.computeFilterOutput(eeLocalTwist.get_twist()));
-    ftWrenchInRobotFilt.set_wrench(wrenchFilter.computeFilterOutput(ftWrenchInRobot.get_wrench()));
+    ftWrenchInPapaFilt.set_wrench(wrenchFilter.computeFilterOutput(ftWrenchInPapa.get_wrench()));
 
-    if (ftWrenchInRobot.get_force().norm() > ITS.params["default"]["max_force"].as<double>()) {
+    if (ftWrenchInPapa.get_force().norm() > ITS.params["default"]["max_force"].as<double>()) {
       std::cout << "Max force exceeded" << std::endl;
       CP.full = true;
       ITS.setRetractionPhase(eeInTask);
@@ -169,7 +209,8 @@ int main(int argc, char** argv) {
 
     switch (trialState) {
       case APPROACH:
-        if ((eeInTask.get_position() - ITS.pointDS.get_attractor().get_position()).norm() < 0.02) {
+        if (eeInTask.dist(ITS.pointDS.get_attractor(), state_representation::CartesianStateVariable::POSITION) < 0.02 &&
+            eeInTask.dist(ITS.pointDS.get_attractor(), state_representation::CartesianStateVariable::ORIENTATION) < 0.1) {
           pauseTimer = std::chrono::system_clock::now();
           trialState = CALIBRATION;
           std::cout << "### STARTING CALIBRATION PHASE" << std::endl;
@@ -178,7 +219,7 @@ int main(int argc, char** argv) {
       case CALIBRATION: {
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
         if (elapsed_seconds.count() > 2.0f) {
-          if (ft_sensor.computeBias(eeInRobot.get_orientation().toRotationMatrix(), 2000)) {
+          if (ft_sensor.computeBias(eeInPapa.get_orientation().toRotationMatrix(), 2000)) {
             ITS.setTouchPhase();
             trialState = TOUCH;
             std::cout << "### STARTING TOUCH PHASE" << std::endl;
@@ -187,8 +228,8 @@ int main(int argc, char** argv) {
         break;
       }
       case TOUCH:
-        if (abs(ftWrenchInRobotFilt.get_force().z()) > ITS.params["touch"]["touch_force"].as<double>()) {
-          std::cout << "Surface detected at position " << eeInRobot.get_position().transpose() << std::endl;
+        if (abs(ftWrenchInPapaFilt.get_force().z()) > ITS.params["touch"]["touch_force"].as<double>()) {
+          std::cout << "Surface detected at position " << eeInPapa.get_position().transpose() << std::endl;
 
           jsonLogger.addField(logger::MODEL, "touch_position", std::vector<double>({
                                                                                        eeInTask.get_position().x(),
@@ -217,7 +258,7 @@ int main(int argc, char** argv) {
             std::cout << "Starting ESN thread" << std::endl;
             esn.start();
 
-            touchPose = eeInRobot;
+            touchPose = eeInTask;
             touchPoseSet = true;
 
             ITS.setInsertionPhase();
@@ -231,7 +272,7 @@ int main(int argc, char** argv) {
         if (ITS.cut) {
           depth = CP.estimateHeightInTask(eeInTask) - eeInTask.get_position().z();
         } else {
-          depth = (touchPose.get_position() - eeInRobot.get_position()).norm();
+          depth = (touchPose.get_position() - eeInTask.get_position()).norm();
         }
         jsonLogger.addField(logger::MODEL, "depth", depth);
         if (depth > ITS.params["insertion"]["depth"].as<double>()) {
@@ -241,10 +282,7 @@ int main(int argc, char** argv) {
           esn.stop();
 
           // hold the current position
-          ITS.setRetractionPhase(eeInTask,
-                                 ITS.params["insertion"]["depth"].as<double>()
-                                     - ITS.params["cut"]["depth"].as<double>());
-          pauseTimer = std::chrono::system_clock::now();
+          ITS.setRetractionPhase(eeInTask, ITS.params["insertion"]["depth"].as<double>() - ITS.params["cut"]["depth"].as<double>());
           trialState = CLASSIFICATION;
           std::cout << "### CLASSIFYING - INCISION DEPTH REACHED" << std::endl;
         }
@@ -252,8 +290,11 @@ int main(int argc, char** argv) {
         esnSkip--;
         if (esnSkip <= 0) {
           // combine sample for esn input
-          esnInputSample
-              << depth, eeLocalTwistFilt.get_linear_velocity().x(), eeLocalTwistFilt.get_linear_velocity().z(), ftWrenchInRobotFilt.get_force().x(), ftWrenchInRobotFilt.get_force().z();
+          esnInputSample << depth,
+              eeLocalTwistFilt.get_linear_velocity().x(),
+              eeLocalTwistFilt.get_linear_velocity().z(),
+              ftWrenchInPapaFilt.get_force().x(),
+              ftWrenchInPapaFilt.get_force().z();
 
           esn.addSample(jsonLogger.getTime(), esnInputSample);
           esnSkip = 2;
@@ -324,8 +365,10 @@ int main(int argc, char** argv) {
           jsonLogger.addField(logger::MessageType::ESN, "class_name", finalESNPrediction.className);
         }
         esn.stop();
+        pauseTimer = std::chrono::system_clock::now();
         trialState = PAUSE;
-        std::cout << "### PAUSING - TISSUE CLASSIFIED : " << finalESNPrediction.className << std::endl;
+        std::cout << "### PAUSING - TISSUE CLASSIFIED" << std::endl;
+        std::cout << finalESNPrediction.className << std::endl;
         break;
       }
       case PAUSE: {
@@ -378,10 +421,10 @@ int main(int argc, char** argv) {
         center.set_position(position);
         ITS.ringDS.set_center(center);
 
-        std::array<double, 2> gprRequest = {depth, eeInRobotFilt.get_linear_velocity().x()};
+        std::array<double, 2> gprRequest = {depth, eeInPapaFilt.get_linear_velocity().x()};
         gpr.updateState(gprRequest);
         if (auto gprPrediction = gpr.getLastPrediction()) {
-          double deviation = (ftWrenchInRobotFilt.get_force().x() - gprPrediction->mean) / gprPrediction->sigma;
+          double deviation = (ftWrenchInPapaFilt.get_force().x() - gprPrediction->mean) / gprPrediction->sigma;
 
           auto offsetMean = gprPrediction->mean + deviationOffset * gprPrediction->sigma;
           double offsetDeviation = deviation - deviationOffset;
@@ -393,14 +436,15 @@ int main(int argc, char** argv) {
           jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "offset_mean", offsetMean);
           jsonLogger.addSubfield(logger::MessageType::MODEL, "gpr", "offset_deviation", offsetDeviation);
 
-          std::cout << "GPR >>> F: " << ftWrenchInRobotFilt.get_force().x() << ", u: " << gprPrediction->mean
+          std::cout << "GPR >>> F: " << ftWrenchInPapaFilt.get_force().x() << ", u: " << gprPrediction->mean
                     << ", sigma: " << gprPrediction->sigma << ", deviation: " << deviation;
 
-          std::cout << " | u': " << offsetMean << ", deviation': " << offsetDeviation
-                    << ", offset: " << deviationOffset << std::endl;
+          std::cout << " | u': " << offsetMean << ", deviation': " << offsetDeviation << ", offset: " << deviationOffset
+                    << std::endl;
 
           // incrementally adapt the offset
-          if (abs(deviationOffset + deviationRate * offsetDeviation) < ITS.params["cut"]["max_force_deviation"].as<double>()) {
+          if (abs(deviationOffset + deviationRate * offsetDeviation)
+              < ITS.params["cut"]["max_force_deviation"].as<double>()) {
             deviationOffset += deviationRate * offsetDeviation;
           }
 
@@ -427,15 +471,15 @@ int main(int argc, char** argv) {
           }
         }
 
-        double angle = touchPose.get_orientation().angularDistance(eeInRobot.get_orientation()) * 180 / M_PI;
-        double distance = (eeInRobot.get_position() - touchPose.get_position()).norm();
+        double angle = touchPose.get_orientation().angularDistance(eeInTask.get_orientation()) * 180 / M_PI;
+        double distance = eeInTask.dist(CP.getTouchPointInTask(0), CartesianStateVariable::POSITION);
         if (angle > ITS.params["cut"]["arc_angle"].as<double>()
             || distance > ITS.params["cut"]["cut_distance"].as<double>()) {
           ITS.setRetractionPhase(eeInTask);
           finished = true;
           gpr.stop();
-          std::cout << "Cut phase finished. Min / Max observed deviation: " << maxDeviation[0]
-                    << ", " << maxDeviation[1] << std::endl;
+          std::cout << "Cut phase finished. Min / Max observed deviation: " << maxDeviation[0] << ", "
+                    << maxDeviation[1] << std::endl;
           trialState = RETRACTION;
           std::cout << "### STARTING RETRACTION PHASE" << std::endl;
         }
@@ -458,25 +502,25 @@ int main(int argc, char** argv) {
         break;
     }
 
-    CartesianTwist commandTwistInRobot = ITS.getTwistCommand(eeInTask, taskInRobot, trialState);
-    CartesianWrench commandWrenchInRobot = ITS.getWrenchCommand(commandTwistInRobot, eeInRobot);
+    CartesianTwist commandTwistInPapa = ITS.getTwistCommand(eeInTask, taskInPapa, trialState);
+    CartesianWrench commandWrenchInPapa = ITS.getWrenchCommand(commandTwistInPapa, eeInPapa);
 
-    frankalwi::utils::fromJointTorque(jacobian.transpose() * commandWrenchInRobot, command);
-    franka.send(command);
+    frankalwi::utils::fromJointTorque(jacobian.transpose() * commandWrenchInPapa, command);
+    franka_papa.send(command);
 
     jsonLogger.addTime();
     jsonLogger.addField(logger::CONTROL, "phase", trialStateMap.at(trialState));
     if (!ITS.cut || CP.full) {
-      jsonLogger.addBody(logger::RAW, eeInRobot);
+      jsonLogger.addBody(logger::RAW, eeInPapa);
       jsonLogger.addBody(logger::RAW, eeInTask);
       jsonLogger.addBody(logger::RAW, eeLocalTwist);
-      jsonLogger.addBody(logger::RAW, taskInRobot);
-      jsonLogger.addBody(logger::RAW, ftWrenchInRobot);
+      jsonLogger.addBody(logger::RAW, taskInPapa);
+      jsonLogger.addBody(logger::RAW, ftWrenchInPapa);
 
-      jsonLogger.addBody(logger::FILTERED, eeInRobotFilt);
+      jsonLogger.addBody(logger::FILTERED, eeInPapaFilt);
       jsonLogger.addBody(logger::FILTERED, eeLocalTwistFilt);
-      jsonLogger.addBody(logger::FILTERED, ftWrenchInRobotFilt);
-      jsonLogger.addCommand(commandTwistInRobot, commandWrenchInRobot);
+      jsonLogger.addBody(logger::FILTERED, ftWrenchInPapaFilt);
+      jsonLogger.addCommand(commandTwistInPapa, commandWrenchInPapa);
 
       std::vector<double> gains(4);
       Eigen::MatrixXd::Map(&gains[0], 4, 1) = ITS.ctrl.get_gains();

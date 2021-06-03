@@ -1,4 +1,3 @@
-import os
 import struct
 
 from gpr import GPR, ZMQInterface
@@ -6,10 +5,9 @@ from gpr import GPR, ZMQInterface
 if __name__ == "__main__":
     # create interface with default state_uri and command_uri
     interface = ZMQInterface('0.0.0.0:7777')
-    # create gpr from pickle file
-    file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rbf_orange_0503.pickle")
     gpr = GPR()
-    class_switcher = {1: 'orange', 2: 'apple'}
+    class_switcher = {0: 'apple', 2: 'orange'}
+    file_switcher = {'apple': 'rbf_apple_0503.pickle', 'orange': 'rbf_orange_0503.pickle'}
 
     while True:
         # now = time.time()
@@ -34,8 +32,10 @@ if __name__ == "__main__":
                 interface.send(False, '?')
                 print("This class index is not supported. Could not load GPR model.")
                 continue
-            if gpr.init(file):
+            if gpr.init(file_switcher[class_name]):
                 interface.send(True, '?')
+        elif header == 99:
+            interface.send('True', '?')
         else:
             print("This kind of header type is not defined. Exit")
             exit(1)

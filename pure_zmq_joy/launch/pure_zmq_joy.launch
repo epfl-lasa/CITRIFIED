@@ -1,0 +1,10 @@
+<launch>
+    <arg name="launch_joy" default="false"/>
+    <arg name="controller_name" default="Sony PLAYSTATION(R)3 Controller"/>
+
+    <group if="$(arg launch_joy)">
+        <node name="joy_node" pkg="joy" type="joy_node" args="_dev_name:='$(arg controller_name)'"/>
+    </group>
+
+    <node name="pure_zmq_joy" pkg="pure_zmq_joy" type="pure_zmq_joy_node" output="screen"/>
+</launch>

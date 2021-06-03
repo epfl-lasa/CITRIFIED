@@ -5,7 +5,7 @@
 #include <dynamical_systems/Linear.hpp>
 #include <dynamical_systems/Ring.hpp>
 
-#include "controllers/TwistController.h"
+#include "controllers/impedance/CartesianTwistController.hpp"
 
 enum TrialState {
   APPROACH, CALIBRATION, TOUCH, INSERTION, CLASSIFICATION, PAUSE, CUT, RETRACTION
@@ -49,7 +49,7 @@ public:
 
   dynamical_systems::Linear<state_representation::CartesianState> pointDS;
   dynamical_systems::Ring ringDS;
-  controllers::TwistController ctrl;
+  controllers::impedance::CartesianTwistController ctrl;
   std::vector<double> DSgains;
 
   double zVelocity = 0.0;
@@ -58,4 +58,6 @@ public:
   std::string esnFilename;
   int esnBufferSize = 50;
   double esnMinTimeBetweenPredictions = 0;
+
+  std::vector<std::string> permittedClasses;
 };

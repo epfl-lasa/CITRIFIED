@@ -1,6 +1,4 @@
 #include <iostream>
-#include <cstdio>
-#include <iomanip>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
@@ -17,8 +15,8 @@ void throttledPrintWrench(const state_representation::CartesianWrench& wrench,
     std::cout << "Wrench --------------" << std::endl;
     std::cout << wrench << std::endl;
 
-//    std::cout << "Bias --------------" << std::endl;
-//    std::cout << bias << std::endl;
+    std::cout << "Bias --------------" << std::endl;
+    std::cout << bias << std::endl;
     count = 0;
   }
   ++count;
@@ -31,7 +29,6 @@ int main(int argc, char** argv) {
   tool.mass = 0.08;
   tool.centerOfMass = Eigen::Vector3d(0, 0, 0.025);
   sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
-//  sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool, true);
   state_representation::CartesianWrench rawWrench("ft_sensor_raw", "ft_sensor");
   state_representation::CartesianWrench wrench("ft_sensor", "ft_sensor");
   state_representation::CartesianWrench bias("ft_sensor", "ft_sensor");
@@ -50,7 +47,7 @@ int main(int argc, char** argv) {
     frankalwi::utils::toCartesianPose(state, pose);
     // just for test purposes
     if (!ft_sensor.readRawData(rawWrench)) {
-      std::cout << "getting raw data failed" << std::endl;
+      std::cout << "Getting raw data failed" << std::endl;
       break;
     }
     if (ft_sensor.computeBias(worldToEERotation, 200)) {

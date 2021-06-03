@@ -35,8 +35,8 @@ target_link_libraries(mocap_point_attractor local_controllers sensors motion_gen
 add_executable(test_ft_sensor tests/test_ft_sensor.cpp)
 target_link_libraries(test_ft_sensor sensors)
 
-add_executable(test_learning tests/test_learning.cpp)
-target_link_libraries(test_learning learning cppzmq)
+add_executable(test_gpr_server tests/test_gpr_server.cpp)
+target_link_libraries(test_gpr_server learning cppzmq)
 
 add_executable(test_interface tests/test_interface.cpp)
 target_link_libraries(test_interface state_representation cppzmq)

@@ -1,7 +1,5 @@
 #include "controllers/CutProber.h"
 
-#include <numeric>
-
 using namespace state_representation;
 
 CutProber::CutProber(const std::string& configFile) : IncisionTrialSystem(configFile), dt_(1) {

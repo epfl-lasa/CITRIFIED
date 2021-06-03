@@ -1,7 +1,4 @@
-#include <yaml-cpp/yaml.h>
-
 #include <dynamical_systems/Linear.hpp>
-#include <dynamical_systems/Circular.hpp>
 
 #include "controllers/FrankaController.h"
 #include "controllers/IncisionTrialSystem.h"
@@ -150,7 +147,6 @@ int main(int argc, char** argv) {
   state_representation::Jacobian jacobian("papa", 7, "ee", "papa");
 
   CartesianPose touchPose = eeInPapa;
-  bool touchPoseSet = false;
 
   filter::DigitalButterworth filter("esn_filter", std::string(TRIAL_CONFIGURATION_DIR) + "filter_config.yaml", 4);
   auto filterInput = Eigen::VectorXd::Zero(4);
@@ -261,7 +257,6 @@ int main(int argc, char** argv) {
             esn.start();
 
             touchPose = eeInTask;
-            touchPoseSet = true;
 
             ITS.setInsertionPhase();
             trialState = INSERTION;
@@ -393,8 +388,9 @@ int main(int argc, char** argv) {
 
         if (ITS.cut && !gprStarted) {
           std::cout << "Starting GPR server" << std::endl;
-//          gprStarted = gpr.start(finalESNPrediction.classIndex);
-          gprStarted = gpr.start(2);
+          gprStarted = gpr.start(finalESNPrediction.classIndex);
+          // pre-load the GPR model by sending a dummy packet
+          gpr.updateState(std::array<double, 2>{0, 0});
         }
 
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;

@@ -1,41 +1,45 @@
 add_executable(circular_cut circular_cut.cpp)
 target_link_libraries(circular_cut motion_generators controllers)
 
+add_executable(dual_franka dual_franka.cpp)
+target_link_libraries(dual_franka cppzmq dynamical_systems local_controllers)
+
+add_executable(dual_incision_trials dual_franka_incision_trials.cpp)
+target_compile_definitions(dual_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(dual_incision_trials dynamical_systems local_controllers sensors filters learning logger)
+
+add_executable(optitrack_incision_trials optitrack_incision_trials.cpp)
+target_compile_definitions(optitrack_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(optitrack_incision_trials dynamical_systems local_controllers sensors filters learning logger)
+
+add_executable(silicon_insertion_trials silicon_insertion_trials.cpp)
+target_compile_definitions(silicon_insertion_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(silicon_insertion_trials dynamical_systems local_controllers sensors filters learning logger)
+
 add_executable(ik_controller simple_ik_controller.cpp)
-target_link_libraries(ik_controller motion_generators local_controllers)
+target_link_libraries(ik_controller cppzmq local_controllers logger)
+
+add_executable(simple_zmqjoy_attractor simple_joy_attractor.cpp)
+target_link_libraries(simple_zmqjoy_attractor dynamical_systems controllers sensors)
 
 add_executable(simple_point_attractor simple_point_attractor.cpp)
 target_link_libraries(simple_point_attractor cppzmq state_representation dynamical_systems controllers)
 
-add_executable(simple_joy_attractor simple_joy_attractor.cpp)
-target_link_libraries(simple_joy_attractor cppzmq state_representation dynamical_systems controllers sensors)
-
-add_executable(dual_franka dual_franka.cpp)
-target_link_libraries(dual_franka local_controllers cppzmq yaml-cpp)
-
-add_executable(test_interface test_interface.cpp)
-target_link_libraries(test_interface cppzmq state_representation)
-
-add_executable(example_ft_sensor example_ft_sensor.cpp)
-target_link_libraries(example_ft_sensor sensors cppzmq)
-
-add_executable(mocap_point_attractor mocap_point_attractor.cpp)
-target_link_libraries(mocap_point_attractor sensors motion_generators local_controllers state_representation)
-
-add_executable(incision_trials incision_trials.cpp)
-target_compile_definitions(incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
-target_link_libraries(incision_trials local_controllers cppzmq sensors filters learning logger)
-
-add_executable(dual_incision_trials dual_franka_incision_trials.cpp)
-target_compile_definitions(dual_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
-target_link_libraries(dual_incision_trials dynamical_systems local_controllers yaml-cpp cppzmq sensors filters learning logger)
-
 add_executable(surface_prober surface_prober.cpp)
 target_compile_definitions(surface_prober PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
-target_link_libraries(surface_prober local_controllers cppzmq sensors filters learning logger)
+target_link_libraries(surface_prober local_controllers sensors filters learning logger)
 
-add_executable(test_learning test_learning.cpp)
+add_executable(mocap_point_attractor tests/mocap_point_attractor.cpp)
+target_link_libraries(mocap_point_attractor local_controllers sensors motion_generators)
+
+add_executable(test_ft_sensor tests/test_ft_sensor.cpp)
+target_link_libraries(test_ft_sensor sensors)
+
+add_executable(test_learning tests/test_learning.cpp)
 target_link_libraries(test_learning learning cppzmq)
 
-add_executable(test_joy test_joy.cpp)
-target_link_libraries(test_joy cppzmq sensors)
+add_executable(test_interface tests/test_interface.cpp)
+target_link_libraries(test_interface state_representation cppzmq)
+
+add_executable(test_zmqjoy tests/test_joy.cpp)
+target_link_libraries(test_zmqjoy sensors)

@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
   // set up control system
-  auto configFile = std::string(TRIAL_CONFIGURATION_DIR) + "incision_trials_parameters.yaml";
+  auto configFile = std::string(TRIAL_CONFIGURATION_DIR) + "silicon_trials_parameters.yaml";
   IncisionTrialSystem ITS(configFile);
 
   std::cout << ITS.trialName << std::endl;

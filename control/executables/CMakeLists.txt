@@ -8,13 +8,17 @@ add_executable(dual_incision_trials dual_franka_incision_trials.cpp)
 target_compile_definitions(dual_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(dual_incision_trials dynamical_systems local_controllers sensors filters learning logger)
 
+add_executable(dual_joy_incision_trials dual_franka_joy_incision_trials.cpp)
+target_compile_definitions(dual_joy_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(dual_joy_incision_trials dynamical_systems local_controllers sensors filters learning logger)
+
 add_executable(optitrack_incision_trials optitrack_incision_trials.cpp)
 target_compile_definitions(optitrack_incision_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(optitrack_incision_trials dynamical_systems local_controllers sensors filters learning logger)
 
-#add_executable(silicon_insertion_trials silicon_insertion_trials.cpp)
-#target_compile_definitions(silicon_insertion_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
-#target_link_libraries(silicon_insertion_trials dynamical_systems local_controllers sensors filters learning logger)
+add_executable(silicon_insertion_trials silicon_insertion_trials.cpp)
+target_compile_definitions(silicon_insertion_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_link_libraries(silicon_insertion_trials dynamical_systems local_controllers sensors filters learning logger)
 
 add_executable(ik_controller simple_ik_controller.cpp)
 target_link_libraries(ik_controller cppzmq local_controllers logger)

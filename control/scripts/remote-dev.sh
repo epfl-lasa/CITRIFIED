@@ -66,7 +66,9 @@ docker run -d --cap-add sys_ptrace \
   --publish 127.0.0.1:"${SSH_PORT}":22 \
   --network=citrinet \
   -p1601:1601 -p1602:1602 \
+  -p1603:1603 -p1604:1604 \
   -p1701:1701 -p1702:1702 \
+  -p1703:1703 -p1704:1704 \
   -p"$PORT_OPTITRACK":"$PORT_OPTITRACK" \
   -p"$PORT_GPR":"$PORT_GPR" \
   -p"$PORT_JOY":"$PORT_JOY" \

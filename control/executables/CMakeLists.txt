@@ -42,6 +42,9 @@ target_link_libraries(test_ft_sensor sensors)
 add_executable(test_gpr_server tests/test_gpr_server.cpp)
 target_link_libraries(test_gpr_server cppzmq learning)
 
+add_executable(test_gripper tests/test_gripper.cpp)
+target_link_libraries(test_gripper cppzmq)
+
 add_executable(test_interface tests/test_interface.cpp)
 target_link_libraries(test_interface cppzmq state_representation)
 

@@ -3,23 +3,21 @@ ARG TAG=latest
 FROM $BASE:$TAG as project-dependencies
 
 # get base dependencies
-RUN sudo apt-get install -y libtool pkg-config autoconf automake git libsodium-dev libzmq3-dev
-RUN sudo apt-get install -y libeigen3-dev libboost-all-dev libtbb-dev libgtest-dev
-
-RUN sudo apt-get -qq update && sudo apt-get -qq --yes --force-yes install autoconf automake
-RUN wget http://members.loria.fr/JBMouret/mirrors/nlopt-2.4.2.tar.gz \
-  && tar -zxvf nlopt-2.4.2.tar.gz \
-  && cd nlopt-2.4.2 \
-  && ./configure -with-cxx --enable-shared --without-python --without-matlab --without-octave \
-  && sudo make install \
-  && sudo ldconfig \
-  && cd .. \
-  && rm -rf nlopt-2.4.2
-
-RUN git clone -b release-2.1 --single-branch https://github.com/resibots/limbo.git \
-  && cd limbo \
-  && ./waf configure \
-  && ./waf build
+RUN apt-get update && apt-get install -y \
+    libtool \
+    pkg-config \
+    autoconf \
+    automake \
+    bash-completion \
+    git \
+    libboost-all-dev \
+    libeigen3-dev \
+    libsodium-dev \
+    libzmq3-dev \
+    libtbb-dev \
+    libgtest-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /tmp
 # get cppzmq bindings
@@ -113,7 +111,22 @@ COPY lib lib
 COPY source source
 COPY CMakeLists.txt CMakeLists.txt
 
-WORKDIR /tmp/CITRIFIED/control/build
+
+# tag a new build stage that compiles and runs the test targets
+FROM project-sources as tester
+
+WORKDIR /usr/src/CITRIFIED/control/build
+RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=True \
+  && make
+RUN make test
+
+
+# tag a new build stage that compiles the sources
+FROM project-sources as runtime
+
+RUN useradd -ms /bin/bash citrified
+
+WORKDIR /usr/src/CITRIFIED/control/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Release \
   && make \
   && mkdir -p /home/citrified/executables \

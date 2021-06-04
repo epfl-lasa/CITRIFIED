@@ -2,7 +2,7 @@
 /lib/
 
 .ipynb_checkpoints
-*/.idea
+.idea
 
 /rviz_visualization/ros_ws/build/
 /rviz_visualization/ros_ws/devel/

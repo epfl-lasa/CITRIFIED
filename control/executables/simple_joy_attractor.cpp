@@ -36,7 +36,7 @@ void throttledPrint(const state_representation::CartesianState& robot,
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
-  state_representation::CartesianPose attractor("attractor", "franka");
+  auto attractor = state_representation::CartesianPose::Identity("attractor", "franka");
   state_representation::CartesianState robot("end-effector", "franka");
   state_representation::Jacobian jacobian("franka", 7, "end-effector", "franka");
 
@@ -79,8 +79,8 @@ int main(int argc, char** argv) {
     throttledPrint(robot, attractor, dsTwist, joint_command, 500);
 
     franka.send(command);
-    auto vec = attractor.to_std_vector();
-    std::array<double, 7> attractorPose = vec.data();
+    std::array<double, 7> attractorPose{};
+    Eigen::MatrixXd::Map(&attractorPose[0], 7, 1) = attractor.get_pose().array();
     state.eePose = frankalwi::proto::EEPose(attractorPose);
     bridge.send(state);
   }

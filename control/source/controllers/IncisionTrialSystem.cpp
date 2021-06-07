@@ -5,7 +5,6 @@
 using namespace state_representation;
 
 IncisionTrialSystem::IncisionTrialSystem(const std::string& configFile) :
-    pointDS(CartesianPose::Identity("center", "task")),
     ringDS(CartesianPose::Identity("center", "task")),
     ctrl(1, 1, 1, 1) {
 

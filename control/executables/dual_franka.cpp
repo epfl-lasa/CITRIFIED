@@ -16,15 +16,12 @@ public:
   DualFrankaController() :
     franka_papa(network::InterfaceType::FRANKA_PAPA_16, "papa", "ee_papa"),
     franka_quebec(network::InterfaceType::FRANKA_QUEBEC_17, "quebec", "ee_quebec"),
-    frame_papa(CartesianState::Identity("papa")),
-    frame_quebec(CartesianState::Identity("quebec")),
-    ds_papa(frame_papa),
-    ds_quebec(frame_quebec),
     ctrl_papa(0, 0, 0, 0),
     ctrl_quebec(100, 100, 5, 5) {
 
     // assume frame papa = world
     frame_papa = CartesianState::Identity("papa");
+    frame_quebec = CartesianState("quebec");
     frame_quebec.set_position(0.899, 0, 0);
     frame_quebec.set_orientation(Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())));
 

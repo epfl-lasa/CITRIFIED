@@ -5,6 +5,7 @@
 using namespace state_representation;
 
 IncisionTrialSystem::IncisionTrialSystem(const std::string& configFile) :
+    ringDS(CartesianPose::Identity("center", "task")),
     ctrl(1, 1, 1, 1) {
 
   params = YAML::LoadFile(configFile);

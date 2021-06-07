@@ -1,0 +1,75 @@
+# CHECKLIST:
+# update the fruit number
+# update the trial number
+# change the position / orientation
+# check the insertion depth
+
+trial_prefix: 'YYYYMMDD_silicon_01_'
+trial: '00'
+
+# set false to cut after insertion
+insertion_only: true
+
+# The attractor position and orientation during the hold phase
+attractor:
+  position:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  yaw_angle: 0     # degrees to rotate the initial knife orientation, counter-clockwise from above
+  pitch_angle: 0  # degrees to tilt the knife forward, positive around the knife -Y axis
+  gains:
+    linear: 50.0
+    angular: 10.0
+
+default:
+  d1: 50   # principle linear damping
+  d2: 50   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+  max_linear_velocity: 0.5  # clamp linear twist command to this magnitude
+  max_angular_velocity: 1.0 # clamp angular twist command to this magnitude
+  max_control_force: 50.0   # clamp wrench force command to this magnitude
+  max_control_torque: 50.0  # clamp wrench torque command to this magnitude
+  max_force: 15             # force magnitude to trigger retraction
+
+touch:
+  d1: 100   # principle linear damping
+  d2: 100   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+  speed: 0.04 # speed of touch approach
+  touch_force: 0.1  # force magnitude to register surface
+
+insertion:
+  d1: 210   # principle linear damping
+  d2: 150   # secondary linear damping
+  ak: 4     # angular stiffness
+  ad: 4     # angular damping
+  speed: 0.0
+  depth: 0.07
+
+cut:
+  depth: 0.0075
+  d1: 200   # principle linear damping
+  d2: 150   # secondary linear damping
+  ak: 3     # angular stiffness
+  ad: 3     # angular damping
+  radius: 0.02
+  width: 0.005
+  speed: 0.05
+  field_strength: 2
+  normal_gain: 10
+  angular_gain: 10
+  arc_angle: 90     # max cut distance in degrees
+  cut_distance: 0.04  # max cut distance in meters
+  max_force_deviation: 2.5 # max deviation of measured force from mean prediction [std deviation]
+  deviation_offset: 0.0 # bias to add to the predicted force (incrementally learned) [std deviation]
+  offset_incremental_rate: 0.01 # incremental learning rate (proportion of deviation added per evaluation)
+  evaluation_buffer: 20 # minimum GPR evaluations within max_force_deviation range before active checking is enabled
+
+esn:
+  filename: esn_1/ESN_combined_1.yaml
+  buffer_size: 50
+  min_time_between_predictions: 80 # in milliseconds
+  permitted_classes: [ "tube", "no-tube" ]

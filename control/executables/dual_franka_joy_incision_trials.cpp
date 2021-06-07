@@ -20,8 +20,7 @@ public:
   explicit QuebecWrapper(const YAML::Node& params) :
       franka_quebec(network::InterfaceType::FRANKA_QUEBEC_17, "quebec", "task"),
       frame_quebec(CartesianState::Identity("quebec", "papa")),
-      task_in_quebec("task", "quebec"),
-      ds_quebec(task_in_quebec),
+      ds_quebec(CartesianState::Identity("task", "quebec")),
       attractor_quebec("attractor_quebec",frame_quebec.get_name()),
       ctrl_quebec(100, 100, 4, 4) {
     // assume frame papa = world

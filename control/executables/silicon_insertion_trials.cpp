@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
         std::chrono::duration<double> elapsed_seconds = std::chrono::system_clock::now() - pauseTimer;
         if (elapsed_seconds.count() > 2.0f) {
           if (ft_sensor.computeBias(eeInRobot.get_orientation().toRotationMatrix(), 2000)) {
-            ITS.setTouchPhase();
+            ITS.setInsertionPhase();
             std::cout << "Starting ESN thread" << std::endl;
             esn.start();
             pauseTimer = std::chrono::system_clock::now();

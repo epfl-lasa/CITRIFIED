@@ -1,0 +1,11 @@
+<launch>
+    <arg name="rviz_config" default="$(find zmq_bridge)/launch/rviz.rviz" />
+    <arg name="robot_urdf_path" default="$(find franka_panda_description)/robots/panda_arm.urdf.xacro" />
+
+    <param name="robot_description" command="$(find xacro)/xacro $(arg robot_urdf_path)" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
+
+    <node name="zmq_bridge" pkg="zmq_bridge" type="zmq_bridge_node" output="screen"/>
+
+    <node name="rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(arg rviz_config)" output="screen"/>
+</launch>

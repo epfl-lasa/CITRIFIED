@@ -1,8 +1,14 @@
 FROM osrf/ros:noetic-desktop AS project-sources
 
+# env vars for the nvidia-container-runtime.
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES graphics,utility,compute
+
 ENV DEBIAN_FRONTEND=noninteractive
+ENV QT_X11_NO_MITSHM 1
 
 RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
     libsodium-dev \
     libzmq3-dev \
     sudo git nano wget \
@@ -44,6 +50,7 @@ RUN cd ~/ros_ws/src && /bin/bash -c "source /ros_entrypoint.sh; catkin_init_work
 WORKDIR ${HOME}/ros_ws/src
 RUN git clone https://github.com/ros-drivers/joystick_drivers.git && mv joystick_drivers/joy ./joy \
    && rm -r joystick_drivers
+RUN git clone https://github.com/justagist/franka_panda_description.git
 RUN cd ${HOME}/ros_ws && /bin/bash -c "source /ros_entrypoint.sh; catkin_make"
 
 # Change .bashrc
@@ -53,8 +60,8 @@ RUN sudo chmod +x /sbin/update_bashrc ; sudo chown ros /sbin/update_bashrc ; syn
 # ros user with everything pre-built
 FROM ros-ws AS ros-user
 
-COPY --chown=ros . ./pure_zmq_joy/
-RUN rm -rf ./pure_zmq_joy/docker ./pure_zmq_joy/Dockerfile
+COPY --chown=ros ./pure_zmq_joy/ ./pure_zmq_joy/
+COPY --chown=ros ./zmq_bridge/ ./zmq_bridge/
 RUN cd ${HOME}/ros_ws && /bin/bash -c "source /ros_entrypoint.sh; catkin_make"
 
 # Change entrypoint to source ~/.bashrc and start in ~

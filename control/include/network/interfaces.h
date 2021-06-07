@@ -6,7 +6,7 @@
 namespace network {
 
 enum InterfaceType {
-  FRANKA_PAPA_16, FRANKA_QUEBEC_17, OPTITRACK, GPR, JOY
+  FRANKA_PAPA_16, FRANKA_QUEBEC_17, OPTITRACK, GPR, JOY, BRIDGE
 };
 
 class Interface {
@@ -47,6 +47,9 @@ inline Interface::Interface(InterfaceType type) : type_(type) {
       break;
     case JOY:
       zmq_interface::configureSubSocket(context_, subscriber_, "0.0.0.0:8888", true);
+      break;
+    case BRIDGE:
+      zmq_interface::configurePubSocket(context_, publisher_, "0.0.0.0:9999", true);
       break;
   }
 }

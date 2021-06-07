@@ -48,6 +48,7 @@ int main(int argc, char** argv) {
   network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  network::Interface bridge(network::InterfaceType::BRIDGE);
 
   sensors::Joy joy(0.0001, 0.0005);
   joy.start();
@@ -78,5 +79,9 @@ int main(int argc, char** argv) {
     throttledPrint(robot, attractor, dsTwist, joint_command, 500);
 
     franka.send(command);
+    auto vec = attractor.to_std_vector();
+    std::array<double, 7> attractorPose = vec.data();
+    state.eePose = frankalwi::proto::EEPose(attractorPose);
+    bridge.send(state);
   }
 }

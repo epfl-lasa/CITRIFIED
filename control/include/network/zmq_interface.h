@@ -44,6 +44,21 @@ inline void configureSubSocket(zmq::context_t& context,
   }
 }
 
+inline void configurePubSocket(zmq::context_t& context,
+                               zmq::socket_t& publisher,
+                               const std::string& publisher_uri,
+                               const bool bind = true) {
+  context = zmq::context_t(1);
+
+  publisher = zmq::socket_t(context, ZMQ_PUB);
+
+  if (bind) {
+    publisher.bind("tcp://" + publisher_uri);
+  } else {
+    publisher.connect("tcp://" + publisher_uri);
+  }
+}
+
 inline void configurePairSocket(zmq::context_t& context,
                                 zmq::socket_t& socket,
                                 const std::string& socket_uri,

@@ -9,7 +9,20 @@ if [ "$path" != "CITRIFIED/control/scripts" ]; then
 fi
 
 IMAGE_NAME=citrified/control/runtime
-PORT_STATE=5550
-PORT_COMMAND=5551
+PORT_OPTITRACK=5511
+PORT_GPR=7777
+PORT_JOY=8888
+PORT_BRIDGE=9999
 
-docker run -it --rm -p"$PORT_STATE":"$PORT_STATE" -p"$PORT_COMMAND":"$PORT_COMMAND" $IMAGE_NAME
+docker network inspect citrinet >/dev/null 2>&1 || \
+  docker network create --subnet=172.20.0.0/16 --gateway=172.20.0.1 citrinet
+
+docker run -it --rm \
+  --network=citrinet \
+  -p1601:1601 -p1602:1602 \
+  -p1701:1701 -p1702:1702 \
+  -p"$PORT_OPTITRACK":"$PORT_OPTITRACK" \
+  -p"$PORT_GPR":"$PORT_GPR" \
+  -p"$PORT_JOY":"$PORT_JOY" \
+  -p"$PORT_BRIDGE":"$PORT_BRIDGE" \
+  "${IMAGE_NAME}"

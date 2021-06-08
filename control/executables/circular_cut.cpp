@@ -1,74 +1,66 @@
 #include <vector>
 #include <iostream>
-#include <cstdio>
 
-#include <state_representation/space/cartesian/CartesianPose.hpp>
 #include <state_representation/space/cartesian/CartesianState.hpp>
 #include <state_representation/robot/Jacobian.hpp>
+#include <dynamical_systems/Linear.hpp>
+#include <dynamical_systems/Circular.hpp>
+#include <controllers/impedance/CartesianTwistController.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
 
-#include "controllers/impedance/CartesianTwistController.hpp"
-#include "motion_generators/PointAttractorDS.h"
-#include "motion_generators/CircularDS.h"
-#include "motion_generators/RingDS.h"
 #include "franka_lwi/franka_lwi_utils.h"
 #include "network/interfaces.h"
 
 class BlendDS {
 public:
   BlendDS() {
-    orientationDS.setTargetPose(state_representation::CartesianPose("world", center, defaultOrientation));
-    orientationDS.linearDS.set_gain(pointGains);
+    orientationDS.set_attractor(state_representation::CartesianPose("world", center, defaultOrientation));
+    orientationDS.set_gain(pointGains);
 
-    flatCircleDS = motion_generator::CircleDS(state_representation::CartesianPose("world", center, defaultOrientation));
-    flatCircleDS.circularDS.set_radius(radius);
-    flatCircleDS.circularDS.set_circular_velocity(radialVelocity);
-    flatCircleDS.circularDS.set_planar_gain(circGains[0]);
-    flatCircleDS.circularDS.set_normal_gain(circGains[1]);
+    flatCircleDS = dynamical_systems::Circular(state_representation::CartesianPose("world", center, defaultOrientation),
+                                               radius,
+                                               1.0,
+                                               radialVelocity);
+    flatCircleDS.set_planar_gain(circGains[0]);
+    flatCircleDS.set_normal_gain(circGains[1]);
 
-    inclinedCircleDS = motion_generator::CircleDS(
-        state_representation::CartesianPose("world", center, inclination * defaultOrientation));
-    inclinedCircleDS.circularDS.set_radius(radius);
-    inclinedCircleDS.circularDS.set_circular_velocity(radialVelocity);
-    inclinedCircleDS.circularDS.set_planar_gain(circGains[0]);
-    inclinedCircleDS.circularDS.set_normal_gain(circGains[1]);
+    inclinedCircleDS = dynamical_systems::Circular(state_representation::CartesianPose("world",
+                                                                                       center,
+                                                                                       inclination
+                                                                                           * defaultOrientation),
+                                                   radius,
+                                                   1.0,
+                                                   radialVelocity);
+    inclinedCircleDS.set_planar_gain(circGains[0]);
+    inclinedCircleDS.set_normal_gain(circGains[1]);
   }
 
   Eigen::Vector3d center = {0.3, 0.3, 0.555};
-  Eigen::Quaterniond defaultOrientation = {0, 0.707, 0.707, 0};//{0.0, 0.919, 0.393, 0.0};
+  Eigen::Quaterniond defaultOrientation = {0, 0.707, 0.707, 0}; //{0.0, 0.919, 0.393, 0.0};
   Eigen::Quaterniond inclination = {0.866, 0.0, 0.5, 0.0};
-  double radius = 0.05f;
-  double radialVelocity = 1.0f;
-  double circGains[2] = {1000.0f, 5.0f};
+  double radius = 0.05;
+  double radialVelocity = 1.0;
+  double circGains[2] = {1000.0, 5.0};
   std::vector<double> pointGains = {0.0, 0.0, 0.0, 10.0, 10.0, 10.0};
 
-  motion_generator::PointAttractor orientationDS;
-  motion_generator::CircleDS flatCircleDS;
-  motion_generator::CircleDS inclinedCircleDS;
+  dynamical_systems::Linear<state_representation::CartesianState> orientationDS;
+  dynamical_systems::Circular flatCircleDS;
+  dynamical_systems::Circular inclinedCircleDS;
 
-  std::vector<double> blend(frankalwi::proto::StateMessage<7> state) {
-//    updateOrientationTarget(state);
+  state_representation::CartesianTwist blend(frankalwi::proto::StateMessage<7> state) {
+    updateOrientationTarget(state);
     state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
     frankalwi::utils::toCartesianPose(state, pose);
-    state_representation::CartesianTwist twist = orientationDS.getTwist(pose);
-    // TODO this is just an intermediate solution
-    std::vector<double> v1 = {
-        twist.get_linear_velocity().x(), twist.get_linear_velocity().y(), twist.get_linear_velocity().z(),
-        twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
-    };
+    auto v1 = orientationDS.evaluate(pose);
     auto v2 = blendCircles(state);
 
-    std::vector<double> velocity(6, 0);
-    for (std::size_t dof = 0; dof < 6; ++dof) {
-      if (dof < 3) {
-        velocity[dof] = v2[dof];
-      } else {
-        velocity[dof] = v1[dof];
-      }
-    }
+    auto twist = state_representation::CartesianTwist("end-effector",
+                                                      v2.get_linear_velocity(),
+                                                      v1.get_angular_velocity(),
+                                                      "robot");
 
-    return velocity;
+    return twist.clamped(0.25, 0.75, 1e-3, 1e-3);
   }
 
 private:
@@ -85,15 +77,15 @@ private:
       angle -= 2 * M_PI;
     }
 
-    //rotate default quaternion about world Z by angle to follow cut in one semicircle,
+    // rotate default quaternion about world Z by angle to follow cut in one semicircle,
     // then the opposite way during the restoration phase
     Eigen::Quaterniond
         target = Eigen::Quaterniond(Eigen::AngleAxisd(angle, Eigen::Vector3d::UnitZ())) * defaultOrientation;
 
-    orientationDS.setTargetOrientation(state_representation::CartesianPose("world", center, target));
+    orientationDS.set_attractor(state_representation::CartesianPose("world", center, target));
   }
 
-  std::vector<double> blendCircles(frankalwi::proto::StateMessage<7> state) {
+  state_representation::CartesianTwist blendCircles(frankalwi::proto::StateMessage<7> state) {
     const double xBlendWidth = 0.1 * radius;
     const double heightCutoffStart = 2 * radius;
     const double heightCutoffEnd = 3 * radius;
@@ -102,8 +94,8 @@ private:
 
     state_representation::CartesianPose pose(state_representation::CartesianPose::Identity("world"));
     frankalwi::utils::toCartesianPose(state, pose);
-    state_representation::CartesianTwist flatCircleTwist = flatCircleDS.getTwist(pose);
-    state_representation::CartesianTwist inclinedCircleTwist = inclinedCircleDS.getTwist(pose);
+    auto flatCircleTwist = flatCircleDS.evaluate(pose);
+    auto inclinedCircleTwist = inclinedCircleDS.evaluate(pose);
 
     Eigen::Vector3d l;
     if (state.eePose.position.x - center.x() > xBlendWidth) {
@@ -116,39 +108,24 @@ private:
       l = flatCircleTwist.get_linear_velocity() * scale + inclinedCircleTwist.get_linear_velocity() * (1 - scale);
     }
 
-    /*
-    if (state.eePose.position.z - center.z() > heightCutoffStart) {
-      double scale = heightCutoffEnd - (state.eePose.position.z - center.z()) / (heightCutoffEnd - heightCutoffStart);
-      if (scale < 0.0) {
-        scale = 0.0;
-      }
-      l *= scale;
-    }
-     */
+//    if (state.eePose.position.z - center.z() > heightCutoffStart) {
+//      double scale = heightCutoffEnd - (state.eePose.position.z - center.z()) / (heightCutoffEnd - heightCutoffStart);
+//      if (scale < 0.0) {
+//        scale = 0.0;
+//      }
+//      l *= scale;
+//    }
 
-    std::vector<double> v = {l[0], l[1], l[2] + zVel, 0, 0, 0};
-//    std::vector<double> v = {l0[0], l0[1], l0[2], 0, 0, 0};
-    return v;
+    l += Eigen::Vector3d(0, 0, zVel);
+    state_representation::CartesianTwist velocity("end-effector", l, "robot");
+    return velocity;
   }
 };
 
 int main(int argc, char** argv) {
-//  BlendDS DS;
+  BlendDS DS;
 
-  motion_generator::RingDS DS;
-  DS.center = {0.35, 0, 0.46};
-  DS.inclination = Eigen::Quaterniond(1, 0, 0, 0);
-  DS.radius = 0.04;
-  DS.width = 0.005;
-  DS.speed = 0.045;
-  DS.normalGain = 10;
-  DS.fieldStrength = 2;
-  DS.angularGain = 10;
-  DS.maxAngularSpeed = 1.5;
-
-  DS.defaultPose = Eigen::Quaterniond(0.0, -0.393, 0.919, 0.0).normalized();
-
-  controllers::impedance::CartesianTwistController ctrl(230, 150, 5, 5);
+  controllers::impedance::CartesianTwistController ctrl(23, 15, .5, .5);
 
   std::cout << std::fixed << std::setprecision(3);
 
@@ -165,8 +142,7 @@ int main(int argc, char** argv) {
     frankalwi::utils::toCartesianState(state, robot_ee);
     frankalwi::utils::toJacobian(state.jacobian, jacobian);
 
-//    std::vector<double> desiredVelocity = DS.blend(state);
-    state_representation::CartesianTwist twist = DS.getTwist(robot_ee);
+    auto twist = DS.blend(state);
 
     state_representation::JointTorques joint_command = ctrl.compute_command(twist, robot_ee, jacobian);
 

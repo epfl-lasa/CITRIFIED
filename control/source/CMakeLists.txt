@@ -5,9 +5,6 @@ if (BUILD_TESTING)
   add_test(NAME run_tests COMMAND run_tests)
 endif ()
 
-add_library(motion_generators STATIC "")
-add_subdirectory(motion_generators)
-
 add_library(local_controllers STATIC "")
 add_subdirectory(controllers)
 

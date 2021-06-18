@@ -20,3 +20,9 @@ the `build-run.sh` script.
 
 This will launch RViz and if you correctly publish the robot state and attractor pose to the ZMQ socket with same URI
 from C++ (as it is done [here](../../control/executables/simple_joy_attractor.cpp)), you should see the robot in RViz.
+
+## Authors / Maintainers
+
+For any questions or further explanations, please contact the authors.
+
+- Dominic Reber ([dominic.reber@epfl.ch](mailto:dominic.reber@epfl.ch))

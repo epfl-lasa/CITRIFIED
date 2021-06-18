@@ -63,3 +63,9 @@ in [optitrack_incision_trials](../../control/executables/optitrack_incision_tria
 ## Training models
 
 To see how to generate GPR models and save them to a `.pickle` file, refer to [this notebook]().
+
+## Authors / Maintainers
+
+For any questions or further explanations, please contact the authors.
+
+- Dominic Reber ([dominic.reber@epfl.ch](mailto:dominic.reber@epfl.ch))

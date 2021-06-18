@@ -106,8 +106,8 @@ See the instructions for CLion
 configuration [here](https://github.com/epfl-lasa/control_libraries/blob/main/CONTRIBUTING.md#configuring-the-development-environment)
 . Remote host development may also be possible in other IDEs.
 
-By default, the container is launched with the host port 2222 remapped to the container SSH port. The host ports 1601 (
-1701) and 1602 (1702) are bound to the matching container ports for the state and command messages, respectively.
+By default, the container is launched with the host port 2222 remapped to the container SSH port. The host ports 1601 (1701) 
+and 1602 (1702) are bound to the matching container ports for the state and command messages, respectively.
 
 If you need to configure different ports, change the shell variables for SSH, state message and command message port
 numbers in the `remote-dev.sh` script.
@@ -119,3 +119,18 @@ image.
 
 Then run [run.sh](scripts/run.sh) from inside the `scripts` directory to spin up an interactive container shell with the
 compiled executables ready to go.
+
+### Simulation
+
+For easy task with no force interaction, there exists a simulation to visualize the robot moving with torque commands
+generated from dynamical systems. Read installation
+instructions [here](executables/README.md#franka_papa_16-and-franka_quebec_17) and check
+the [detailed executables descriptions](executables/README.md) for the possibility of running a specific executable with
+the simulator.
+
+## Authors / Maintainers
+
+For any questions or further explanations, please contact the authors.
+
+- Enrico Eberhard ([enrico.eberhard@epfl.ch](mailto:enrico.eberhard@epfl.ch))
+- Dominic Reber ([dominic.reber@epfl.ch](mailto:dominic.reber@epfl.ch))

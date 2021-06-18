@@ -8,7 +8,8 @@ and republishes those to ROS topic in order to have a visualization of the robot
 To run the bridge, execute the following commands:
 
 ```bash
-cd ../ROS/docker
+cd ../docker
+bash setup.sh
 bash build-run.sh
 # this builds and runs a docker container in interactive mode
 # inside the container, run
@@ -20,6 +21,9 @@ the `build-run.sh` script.
 
 This will launch RViz and if you correctly publish the robot state and attractor pose to the ZMQ socket with same URI
 from C++ (as it is done [here](../../control/executables/simple_joy_attractor.cpp)), you should see the robot in RViz.
+
+Also note that the ZMQ socket URI (9999) and the panda joints (panda_joint1 through panda_joint7) are hardcoded and have
+to correspond to the URI in the interface in the executable and the robot that is used.
 
 ## Authors / Maintainers
 

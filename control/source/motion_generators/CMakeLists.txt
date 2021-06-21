@@ -3,10 +3,13 @@ target_sources(motion_generators
             BaseDS.cpp
         PUBLIC
             CircularDS.cpp
-        RingDS.cpp
-            PointAttractorDS.cpp)
+            RingDS.cpp
+            PointAttractorDS.cpp
+            CoupledDSMotionGenerator.cpp
+            LagsDSMotionGenerator.cpp
+)
 target_include_directories(motion_generators PUBLIC)
-target_link_libraries(motion_generators Eigen3::Eigen cppzmq state_representation dynamical_systems)
+target_link_libraries(motion_generators Eigen3::Eigen state_representation dynamical_systems mathlib fast_gmm lagsDS)
 
 if(BUILD_TESTING)
     file(GLOB_RECURSE MODULE_TEST_SOURCES tests test_*.cpp)

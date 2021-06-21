@@ -47,3 +47,8 @@ target_link_libraries(test_interface state_representation cppzmq)
 
 add_executable(test_zmqjoy tests/test_joy.cpp)
 target_link_libraries(test_zmqjoy sensors)
+
+add_executable(rui_test rui_test.cpp)
+target_compile_definitions(rui_test PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_compile_definitions(rui_test PRIVATE TRIAL_CUT_CURVE_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/cut_curve/")
+target_link_libraries(rui_test yaml-cpp cppzmq state_representation controllers motion_generators)

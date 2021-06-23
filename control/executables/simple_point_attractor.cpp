@@ -41,7 +41,8 @@ int main(int argc, char** argv) {
   state_representation::Jacobian jacobian("franka", 7, "end-effector", "franka");
 
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
-  dynamical_systems::Linear<state_representation::CartesianState> DS(attractor, gains);
+  dynamical_systems::Linear<state_representation::CartesianState> DS;
+  DS.set_gain(gains);
 
   controllers::impedance::CartesianTwistController ctrl(100, 100, 5, 5);
 
@@ -63,8 +64,8 @@ int main(int argc, char** argv) {
     attractor.set_orientation(orientation.normalized());
     positionSet = true;
     orientationSet = true;
+    DS.set_attractor(attractor);
   }
-  DS.set_attractor(attractor);
 
   network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};

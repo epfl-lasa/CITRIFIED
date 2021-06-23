@@ -20,5 +20,5 @@ fi
 
 (
   mkdir -p ../include/network \
-  && cp ../../pure_zmq_joy/include/pure_zmq_joy/zmq_joy_protocol.h ../include/network
+  && cp ../../ROS/pure_zmq_joy/include/pure_zmq_joy/zmq_joy_protocol.h ../include/network
 )

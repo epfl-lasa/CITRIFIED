@@ -82,13 +82,6 @@ inline bool send(zmq::socket_t& socket, const T& obj) {
   return res.has_value();
 }
 
-inline bool send_string(zmq::socket_t& socket, const std::string& obj) {
-  zmq::message_t message(obj.size());
-  memcpy(message.data(), obj.data(), obj.size());
-  auto res = socket.send(message, zmq::send_flags::none);
-  return res.has_value();
-}
-
 template<typename T>
 inline bool receive(zmq::socket_t& socket, T& obj, const zmq::recv_flags flags = zmq::recv_flags::none) {
   zmq::message_t message;

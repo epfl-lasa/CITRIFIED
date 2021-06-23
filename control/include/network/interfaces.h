@@ -22,8 +22,6 @@ public:
   template<typename T>
   bool send(const T& message);
 
-  bool send_string(const std::string& message);
-
 private:
   InterfaceType type_;
   zmq::context_t context_;
@@ -81,22 +79,6 @@ inline bool Interface::send(const T& message) {
     default:
       if (publisher_.connected()) {
         return zmq_interface::send(publisher_, message);
-      }
-      break;
-  }
-  return false;
-}
-
-inline bool Interface::send_string(const std::string& message) {
-  switch (type_) {
-    case GPR:
-      if (subscriber_.connected()) {
-        return zmq_interface::send_string(subscriber_, message);
-      }
-      break;
-    default:
-      if (publisher_.connected()) {
-        return zmq_interface::send_string(publisher_, message);
       }
       break;
   }

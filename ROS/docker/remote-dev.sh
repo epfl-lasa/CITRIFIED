@@ -57,8 +57,8 @@ docker run \
   --net="host" \
   --volume="citrified_ros_pkg_vol:/home/ros/ros_ws/src/citrified" \
   --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-  --volume="${XAUTH}:${XAUTH}" \
-  --env XAUTHORITY="${XAUTH}" \
+  --volume="${XAUTHORITY}:${XAUTHORITY}" \
+  --env XAUTHORITY="${XAUTHORITY}" \
   --env DISPLAY="${DISPLAY}" \
   "${IMAGE_NAME}:${MULTISTAGE_TARGET}"
 

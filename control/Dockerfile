@@ -50,6 +50,7 @@ RUN apt-get update && apt-get install -y \
     libsodium-dev \
     libzmq3-dev \
     libtbb-dev \
+    libyaml-cpp-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -66,15 +67,6 @@ RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.
 # install KDL
 RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
   && cd orocos_kinematics_dynamics/orocos_kdl \
-  && mkdir build \
-  && cd build \
-  && cmake .. \
-  && make \
-  && make install
-
-# install yaml-cpp
-RUN git clone https://github.com/jbeder/yaml-cpp.git \
-  && cd yaml-cpp \
   && mkdir build \
   && cd build \
   && cmake .. \

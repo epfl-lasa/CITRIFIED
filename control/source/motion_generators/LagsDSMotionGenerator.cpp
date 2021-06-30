@@ -35,8 +35,8 @@ LagsDSMotionGenerator::LagsDSMotionGenerator(double frequency,
     gpr_path_(std::move(gpr_path)),
     dt_(1 / frequency),
     Wn_(0),
-    scaling_factor_(0.5),
-    ds_vel_limit_(0.5),
+    scaling_factor_(15),
+    ds_vel_limit_(5),
     b_global_(false) {}
 
 bool LagsDSMotionGenerator::init() {
@@ -170,7 +170,7 @@ Eigen::VectorXd LagsDSMotionGenerator::computeDesiredVelocity(const Eigen::Vecto
   desired_velocity = desired_velocity * scaling_factor_;
 
   // Same velocity throughout state-space to avoid jittering
-  desired_velocity = desired_velocity / desired_velocity.norm() * 0.05;
+//  desired_velocity = desired_velocity / desired_velocity.norm() * 0.05;
 
   if (desired_velocity.norm() > ds_vel_limit_) {
     std::cerr << "HIGH vel." << std::endl;

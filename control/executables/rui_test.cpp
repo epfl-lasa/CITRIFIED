@@ -52,9 +52,9 @@ int main(int argc, char** argv) {
   state_representation::CartesianState robot("end-effector", "franka");
   state_representation::Jacobian jacobian("franka", 7, "end-effector", "franka");
 
-  controllers::impedance::CartesianTwistController ctrl(10, 10, .5, .5);
+  controllers::impedance::CartesianTwistController ctrl(100, 100, 5, 5);
 
-  network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
+  network::Interface franka(network::InterfaceType::FRANKA_QUEBEC_17);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
 
@@ -115,7 +115,8 @@ int main(int argc, char** argv) {
     auto velocity = ds.computeDesiredVelocity(robot.get_position().head(2));
     velocity = Eigen::Vector3d(velocity(0), velocity(1), 0);
     dsTwist.set_linear_velocity(velocity);
-    dsTwist.clamp(0.25, 0.5);
+    std::cout << dsTwist << std::endl;
+    dsTwist.clamp(0.2, 0.5);
 
     state_representation::JointTorques joint_command = ctrl.compute_command(dsTwist, robot, jacobian);
 

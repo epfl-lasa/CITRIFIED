@@ -74,7 +74,7 @@ bool CoupledDSMotionGenerator::initializeDS() {
 Eigen::VectorXd CoupledDSMotionGenerator::computeDesiredVelocity(const Eigen::VectorXd& input) {
   MathLib::Vector pose(k_gmm_);
   for (int i = 0; i < k_gmm_; ++i) {
-    pose[i] = input(i);
+    pose[i] = input(i) - attractor_[i];
   }
 
   MathLib::Vector desiredVelocity = SED_GMM_->getVelocity(pose);

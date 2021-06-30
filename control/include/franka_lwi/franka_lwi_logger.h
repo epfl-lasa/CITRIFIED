@@ -64,15 +64,15 @@ public:
 
   void writeLine(const frankalwi::proto::StateMessage<7>& state) {
     if (outputFile_.is_open() && size_ < maxSize_) {
-      writeColumns(state.jointPosition.data);
-      writeColumns(state.jointVelocity.data);
-      writeColumns(state.jointTorque.data);
-      writeColumns(frankalwi::proto::vec3DToArray(state.eePose.position));
-      writeColumns(frankalwi::proto::quaternionToArray(state.eePose.orientation));
-      writeColumns(frankalwi::proto::vec3DToArray(state.eeTwist.linear));
-      writeColumns(frankalwi::proto::vec3DToArray(state.eeTwist.angular));
-      writeColumns(frankalwi::proto::vec3DToArray(state.eeWrench.linear));
-      writeColumns(frankalwi::proto::vec3DToArray(state.eeWrench.angular));
+      writeColumns(state.jointPosition.array());
+      writeColumns(state.jointVelocity.array());
+      writeColumns(state.jointTorque.array());
+      writeColumns(state.eePose.position.array());
+      writeColumns(state.eePose.orientation.array());
+      writeColumns(state.eeTwist.linear.array());
+      writeColumns(state.eeTwist.angular.array());
+      writeColumns(state.eeWrench.linear.array());
+      writeColumns(state.eeWrench.angular.array());
       writeLast(state.jacobian);
       ++size_;
     }

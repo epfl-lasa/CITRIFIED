@@ -48,6 +48,7 @@ int main(int argc, char** argv) {
   network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  command.controlType = frankalwi::proto::JOINT_TORQUE;
   network::Interface bridge(network::InterfaceType::BRIDGE);
 
   sensors::Joy joy(0.0001, 0.0005);

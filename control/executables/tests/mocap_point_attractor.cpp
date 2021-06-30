@@ -12,16 +12,18 @@ int main(int, char**) {
   tracker.start();
   int robotBaseID = 1;  // the OptiTrack streaming ID for the robot base frame
   int attractorID = 2;  // the OptiTrack streaming ID for the attractor frame
-  Eigen::Vector3d attractor_offset(0, 0, 0.05);  // the distance offset to follow (in attractor frame)
+  Eigen::Vector3d attractor_offset(0, 0, 0.2);  // the distance offset to follow (in attractor frame)
+  Eigen::Quaterniond attractor_rotation(0, 0, 1, 0);  // the rotation offset to follow (in attractor frame)
 
-  state_representation::CartesianPose offset("offset", attractor_offset, "attractor");
+  state_representation::CartesianPose offset("offset", attractor_offset, attractor_rotation, "attractor");
   state_representation::CartesianState attractor("attractor", "optitrack");
   state_representation::CartesianPose robotInOptitrack("robot_base", "optitrack");
   state_representation::CartesianState robot_ee("robot_ee", "robot_base");
   state_representation::Jacobian jacobian("franka", 7, "robot_ee", "robot_base");
 
   std::vector<double> gains = {50.0, 50.0, 50.0, 10.0, 10.0, 10.0};
-  dynamical_systems::Linear<state_representation::CartesianState> DS(state_representation::CartesianState("attractor", "robot_base"), gains);
+  dynamical_systems::Linear<state_representation::CartesianState>
+      DS(state_representation::CartesianState::Identity("attractor", "robot_base"), gains);
 
   controllers::impedance::CartesianTwistController ctrl(100, 100, 5, 5);
 
@@ -29,6 +31,7 @@ int main(int, char**) {
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  command.controlType = frankalwi::proto::JOINT_TORQUE;
 
   std::cout << "Waiting for optitrack data for attractor and robot base..." << std::endl;
   while (!tracker.getState(robotInOptitrack, robotBaseID) || !tracker.getState(attractor, attractorID)) {}

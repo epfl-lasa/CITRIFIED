@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
   network::Interface franka_papa(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  command.controlType = frankalwi::proto::JOINT_TORQUE;
 
   QuebecWrapper quebec_wrapper(ITS.params);
   quebec_wrapper.franka_quebec.start();

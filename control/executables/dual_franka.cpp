@@ -21,7 +21,7 @@ public:
 
     // assume frame papa = world
     frame_papa = CartesianState::Identity("papa");
-    frame_quebec = CartesianState("quebec", "papa");
+    frame_quebec = CartesianState("quebec");
     frame_quebec.set_position(0.899, 0, 0);
     frame_quebec.set_orientation(Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())));
 
@@ -30,7 +30,6 @@ public:
     state_representation::CartesianPose attractor_papa("attractor_papa",
                                                        Eigen::Vector3d(0.35, 0, 0.5),
                                                        frame_papa.get_name());
-    attractor_papa.set_position(0.35, 0, 0.5);
     ds_papa = Linear<CartesianState>(attractor_papa, gains);
 
     state_representation::CartesianPose attractor_quebec("attractor_quebec",

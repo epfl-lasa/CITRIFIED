@@ -125,7 +125,7 @@ private:
 int main(int argc, char** argv) {
   BlendDS DS;
 
-  controllers::impedance::CartesianTwistController ctrl(23, 15, .5, .5);
+  controllers::impedance::CartesianTwistController ctrl(230, 150, 5, 5);
 
   std::cout << std::fixed << std::setprecision(3);
 
@@ -134,6 +134,7 @@ int main(int argc, char** argv) {
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  command.controlType = frankalwi::proto::JOINT_TORQUE;
 
   state_representation::CartesianState robot_ee("end-effector", "robot");
   state_representation::Jacobian jacobian("franka", 7, "end-effector", "robot");

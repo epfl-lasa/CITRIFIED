@@ -71,6 +71,7 @@ int main(int argc, char** argv) {
 
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  command.controlType = frankalwi::proto::JOINT_TORQUE;
 
   auto start = std::chrono::system_clock::now();
   int iterations;
@@ -92,9 +93,9 @@ int main(int argc, char** argv) {
     command.jointTorque[4] = 0.05;
     command.jointTorque[5] = 0.06;
     command.jointTorque[6] = 0.07;
-    if (!franka.send(command)) {
-      std::cerr << "Warning: Couldn't send command to Franka!" << std::endl;
-    };
+//    if (!franka.send(command)) {
+//      std::cerr << "Warning: Couldn't send command to Franka!" << std::endl;
+//    };
     ++iterations;
   }
 }

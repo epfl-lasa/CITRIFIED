@@ -2,7 +2,6 @@
 #include <iostream>
 
 #include <state_representation/space/cartesian/CartesianPose.hpp>
-#include <state_representation/space/cartesian/CartesianState.hpp>
 #include <dynamical_systems/Linear.hpp>
 
 #include <franka_lwi/franka_lwi_communication_protocol.h>
@@ -70,6 +69,7 @@ int main(int argc, char** argv) {
   network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  command.controlType = frankalwi::proto::JOINT_TORQUE;
 
   // control loop
   while (franka.receive(state)) {

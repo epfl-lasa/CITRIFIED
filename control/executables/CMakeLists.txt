@@ -1,5 +1,5 @@
 add_executable(circular_cut circular_cut.cpp)
-target_link_libraries(circular_cut motion_generators controllers)
+target_link_libraries(circular_cut cppzmq state_representation dynamical_systems controllers)
 
 add_executable(dual_franka dual_franka.cpp)
 target_link_libraries(dual_franka cppzmq dynamical_systems local_controllers)
@@ -20,8 +20,8 @@ add_executable(silicon_insertion_trials silicon_insertion_trials.cpp)
 target_compile_definitions(silicon_insertion_trials PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
 target_link_libraries(silicon_insertion_trials dynamical_systems local_controllers sensors filters learning logger)
 
-add_executable(ik_controller simple_ik_controller.cpp)
-target_link_libraries(ik_controller cppzmq local_controllers logger)
+add_executable(simple_ik_controller simple_ik_controller.cpp)
+target_link_libraries(simple_ik_controller cppzmq local_controllers logger)
 
 add_executable(simple_zmqjoy_attractor simple_joy_attractor.cpp)
 target_link_libraries(simple_zmqjoy_attractor dynamical_systems controllers sensors)
@@ -34,16 +34,16 @@ target_compile_definitions(surface_prober PRIVATE TRIAL_CONFIGURATION_DIR="${CMA
 target_link_libraries(surface_prober local_controllers sensors filters learning logger)
 
 add_executable(mocap_point_attractor tests/mocap_point_attractor.cpp)
-target_link_libraries(mocap_point_attractor local_controllers sensors motion_generators)
+target_link_libraries(mocap_point_attractor dynamical_systems controllers sensors)
 
 add_executable(test_ft_sensor tests/test_ft_sensor.cpp)
 target_link_libraries(test_ft_sensor sensors)
 
 add_executable(test_gpr_server tests/test_gpr_server.cpp)
-target_link_libraries(test_gpr_server learning cppzmq)
+target_link_libraries(test_gpr_server cppzmq learning)
 
 add_executable(test_interface tests/test_interface.cpp)
-target_link_libraries(test_interface state_representation cppzmq)
+target_link_libraries(test_interface cppzmq state_representation)
 
 add_executable(test_zmqjoy tests/test_joy.cpp)
 target_link_libraries(test_zmqjoy sensors)

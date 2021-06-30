@@ -37,7 +37,6 @@ int main(int argc, char** argv) {
   network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
 
   frankalwi::proto::StateMessage<7> state{};
-  frankalwi::proto::CommandMessage<7> command{};
 
   auto start = std::chrono::system_clock::now();
   int iterations = 0;

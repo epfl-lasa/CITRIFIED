@@ -47,6 +47,7 @@ int main(int argc, char** argv) {
         twist.get_angular_velocity().x(), twist.get_angular_velocity().y(), twist.get_angular_velocity().z()
     };
     command = ctrl.getJointTorque(state, desiredVelocity);
+    command.controlType = frankalwi::proto::JOINT_TORQUE;
     if (!franka.send(command)) {
       std::cerr << "Warning: Couldn't send command to Franka!" << std::endl;
     };

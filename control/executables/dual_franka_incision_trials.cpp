@@ -20,16 +20,13 @@ public:
   explicit QuebecWrapper(const YAML::Node& params) :
       franka_quebec(network::InterfaceType::FRANKA_QUEBEC_17, "quebec", "task"),
       frame_quebec(CartesianState::Identity("quebec", "papa")),
-      task_in_quebec("task", "quebec"),
-      orientation_ds_quebec(task_in_quebec),
-      position_ds_quebec(task_in_quebec, 1, 1, 1),
       ctrl_quebec(100, 100, 4, 4) {
     // assume frame papa = world
     frame_quebec.set_position(0.899, 0, 0);
     frame_quebec.set_orientation(Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())));
 
     std::vector<double> orientation_gains = {0.0, 0.0, 0.0, 10.0, 10.0, 10.0};
-    state_representation::CartesianPose attractor_quebec("attractor_quebec",frame_quebec.get_name());
+    state_representation::CartesianPose attractor_quebec("attractor_quebec", frame_quebec.get_name());
     attractor_quebec.from_std_vector(params["quebec"]["position"].as<std::vector<double>>());
     attractor_quebec.from_std_vector(params["quebec"]["orientation"].as<std::vector<double>>());
     orientation_ds_quebec = dynamical_systems::Linear<CartesianState>(attractor_quebec, orientation_gains);
@@ -43,7 +40,7 @@ public:
     auto gains = params["quebec"]["ctrl_gains"].as<std::vector<double>>();
     ctrl_quebec.set_gains(Eigen::Vector4d(gains.data()));
 
-    franka_quebec.set_callback([this] (const CartesianState& state, const Jacobian& jacobian) -> JointTorques {
+    franka_quebec.set_callback([this](const CartesianState& state, const Jacobian& jacobian) -> JointTorques {
       return control_loop_quebec(state, jacobian);
     });
   }
@@ -90,8 +87,7 @@ int main(int argc, char** argv) {
 
   // set up FT sensor
   sensors::ToolSpec tool = {
-      .centerOfMass = Eigen::Vector3d(0, 0, 0.02),
-      .mass = 0.07
+      .centerOfMass = Eigen::Vector3d(0, 0, 0.02), .mass = 0.07
   };
   sensors::ForceTorqueSensor ft_sensor("ft_sensor", "128.178.145.248", 100, tool);
 
@@ -133,6 +129,7 @@ int main(int argc, char** argv) {
   network::Interface franka_papa(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  command.controlType = frankalwi::proto::JOINT_TORQUE;
 
   QuebecWrapper quebec_wrapper(ITS.params);
   quebec_wrapper.franka_quebec.start();
@@ -282,7 +279,9 @@ int main(int argc, char** argv) {
           esn.stop();
 
           // hold the current position
-          ITS.setRetractionPhase(eeInTask, ITS.params["insertion"]["depth"].as<double>() - ITS.params["cut"]["depth"].as<double>());
+          ITS.setRetractionPhase(eeInTask,
+                                 ITS.params["insertion"]["depth"].as<double>()
+                                     - ITS.params["cut"]["depth"].as<double>());
           trialState = CLASSIFICATION;
           std::cout << "### CLASSIFYING - INCISION DEPTH REACHED" << std::endl;
         }
@@ -524,7 +523,7 @@ int main(int argc, char** argv) {
 
       std::vector<double> gains(4);
       Eigen::MatrixXd::Map(&gains[0], 4, 1) = ITS.ctrl.get_gains();
-      jsonLogger.addField(logger::CONTROL, "gains",  gains);
+      jsonLogger.addField(logger::CONTROL, "gains", gains);
     }
 
     jsonLogger.write();

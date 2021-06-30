@@ -69,7 +69,7 @@ cut:
   evaluation_buffer: 20 # minimum GPR evaluations within max_force_deviation range before active checking is enabled
 
 esn:
-  filename: esn_1/ESN_combined_1.yaml
+  filename: ESN_combined_1.yaml
   buffer_size: 50
   min_time_between_predictions: 80 # in milliseconds
   permitted_classes: [ "tube", "no-tube" ]

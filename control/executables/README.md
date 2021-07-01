@@ -98,7 +98,12 @@ tests/test_gpr_server.cpp | GPR (test_interface.py) | Test connection with the G
 tests/test_interface.cpp | robot (real or sim) | Test connection with the robot.
 tests/test_joy.cpp | joy | Test connection with the joystick.
 
-Notes: pickles, config files yamls, optitrack markers.
+**NOTE**: A few points to keep in mind: 
+- The `trial_config` directory contains all YAML files that parametrize the tasks and define the ESNs / filters used 
+  in the executables. Make sure to add all the necessary files / parameters there.
+- The GPR server needs `.pickle` files to load the GPR model from. Make sure to add them.
+- Define the Optitrack rigid bodies with care and take the time to nicely align their coordinate system with your 
+  task requirements.
 
 ## Authors / Maintainers
 

@@ -11,9 +11,9 @@ This directory contains all source code and build variables for robot control im
     - The header files, grouped in subdirectories by module.
 - `scripts`
     - Shell scripts for configuring environments and other tasks. There is a setup script that has to be run to pull a
-      franka_lwi header from a remote repository.
+      franka_lwi header from a remote repository as well as other header files for communication protocols.
 - `source`
-    - The source files of various project modules, grouped in subdirectories by module. Each module has a CMakeLists
+    - The source files of various project modules, grouped in subdirectories by module. Each module has a *CMakeLists*
       file to link and build the module source, with the toplevel file adding each module.
 
 ### Modules
@@ -72,7 +72,7 @@ see [here](executables/README.md).
 
 ## Usage
 
-### Setup
+## Setup
 
 After cloning this repository, run the script [setup.sh](scripts/setup.sh) from inside the `scripts` directory to
 complete any setup steps.
@@ -94,7 +94,7 @@ Finally, it is important that the port numbers for the state and command sockets
 controller and the robot. If you change the default port numbers, make sure both sides of the interface (and any Docker
 port bindings) are updated accordingly.
 
-### Development Environment
+## Development Environment
 
 Run the script [remote-dev.sh](scripts/remote-dev.sh) from the inside the `scripts` directory to build and launch a
 Docker container as a background daemon process. This environment can be accessed over SSH as a remote host for building
@@ -112,7 +112,7 @@ and 1602 (1702) are bound to the matching container ports for the state and comm
 If you need to configure different ports, change the shell variables for SSH, state message and command message port
 numbers in the `remote-dev.sh` script.
 
-### Deployment
+## Deployment
 
 Run the script [build.sh](scripts/build.sh) from inside the `scripts` directory to compile the project into a Docker
 image.
@@ -120,7 +120,7 @@ image.
 Then run [run.sh](scripts/run.sh) from inside the `scripts` directory to spin up an interactive container shell with the
 compiled executables ready to go.
 
-### Simulation
+## Simulation
 
 For easy task with no force interaction, there exists a simulation to visualize the robot moving with torque commands
 generated from dynamical systems. Read installation

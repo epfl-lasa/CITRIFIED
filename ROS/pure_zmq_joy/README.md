@@ -15,7 +15,6 @@ reading [here](#controller-is-connected-to-another-machine-in-the-same-network).
 2. Build and run the docker image:
    ```bash
    cd ../docker
-   bash setup.sh
    bash build-run.sh
    # this builds and runs a docker container in interactive mode
    # inside the container, run
@@ -50,6 +49,7 @@ ports in the robot room), there are a few extra steps:
       host (`--add-host <hostname:hosturi>`) in the `docker run` command.
     - Run
       ```bash
+      cd ../docker
       bash build-run.sh
       # this builds and runs a docker container in interactive mode
       # inside the container, run

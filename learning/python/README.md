@@ -20,7 +20,7 @@ bash run.sh
 python test_interface.py
 ```
 
-Then, execute `test_gpr_server`. The output should look like this:
+Then, execute `test_gpr_server.cpp`. The output should look like this:
 
 ```
 Waiting for GPR server...

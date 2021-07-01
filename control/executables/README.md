@@ -17,7 +17,7 @@ The most important interface is the robot interface. In order to run any executa
   supported, no dual robot simulation):
   ```bash
   cd CITRIFIED && cd ..
-  git clone --branch citrified --single-branch https://github.com/epfl-lasa/pybullet_robot.git
+  git clone --branch citrified --single-branch https://github.com/domire8/pybullet_robot.git
   cd pybullet_robot
   bash build.sh
   bash run.sh
@@ -37,8 +37,8 @@ See how to use (and test) the FT sensor [here](tests/test_ft_sensor.cpp).
 
 ### Optitrack
 
-With the help of the Optitrack interface, it is possible to get the pose of markers from the [*
-OptitrackZMQBridge*](../../optitrack/source/OptiTrackZMQBridge.cpp). Just make sure
+With the help of the Optitrack interface, it is possible to get the pose of markers from the
+[*OptiTrackZMQBridge*](../../optitrack/source/OptiTrackZMQBridge.cpp). Just make sure
 
 - Motive is [streaming the data](https://v22.wiki.optitrack.com/index.php?title=Data_Streaming),
 - the ZMQ bridge is [up and running](../../optitrack/README.md) and configured with the right IP,
@@ -72,10 +72,33 @@ instructions and further details please refer to its [README](../../learning/pyt
 ### Joy and Bridge
 
 These two interfaces are used with the corresponding [ROS packages implemented here](../../ROS). They simply subscribe
-to ROS topics and republish to a ZMQ socket, and the other way round. The READMEs for [*pure_zmq_joy*](../../ROS/pure_zmq_joy/README.md)
-and [*zmq_bridge*](../../ROS/zmq_bridge/README.md) provide instructions for setting up and running the ROS packages.
+to ROS topics and republish to a ZMQ socket, and the other way round. The READMEs for
+[*pure_zmq_joy*](../../ROS/pure_zmq_joy/README.md) and [*zmq_bridge*](../../ROS/zmq_bridge/README.md) provide
+instructions for setting up and running the ROS packages. Make sure that both setup scripts (the one
+in [control](../scripts/setup.sh) and the one in [ROS](../../ROS/docker/setup.sh)) are executed prior to the usage such
+that all the headers with the communication protocols are in sync.
 
 ## Executables
+
+Name | Needed components | Remarks
+------|-------------------|---------
+circular_cut.cpp | robot (real or sim) | A circular cut by blending two DS together.
+dual_franka.cpp | robots (real) | The robots will try to maintain a constant offset between their end-effectors (given by *target_in_papa_ee*) but *FRANKA_PAPA_16* has zero control gains so can essentially be moved around by hand and *FRANKA_QUEBEC_17* will try to follow.
+dual_franka_incision_trials.cpp | robots (real), FT, GPR | Incision trials with *FRANKA_QUEBEC_17* holding the base and moving around with a circular DS while *FRANKA_PAPA_16* probes the fruit surface, inserts and cuts. The parameters can be modified in `trial_config/dual_incision_trials_parameters.yaml`.
+dual_franka_joy_incision_trials.cpp | robots (real), FT, GPR, joy | Essentially the same as above but *FRANKA_QUEBEC_17* is controlled with the joystick. The parameters can be modified in `trial_config/dual_incision_trials_parameters.yaml`.
+optitrack_incision_trials.cpp | robot (real), FT, GPR, Optitrack | Incision trials where the task base is tracked by Optitrack while *FRANKA_PAPA_16* probes the fruit surface, inserts and cuts. The parameters can be modified in `trial_config/incision_trials_parameters.yaml`.
+silicon_insertion_trials.cpp | robot (real), FT | Silicon insertions where a human needs to puncture tubes in silicon layers. The parameters can be modified in `trial_config/silicon_trials_parameters.yaml`.
+simple_ik_controller.cpp | robot (real or sim) | Move to an attractor in space using an inverse kinematics controller.
+simple_joy_attractor.cpp | robot (real or sim), joy, bridge (optionally) | Move attractor of end-effector around with the joystick and optionally visualize the robot in RViz.
+simple_point_attractor.cpp | robot (real or sim) | Move to an attractor in space passed in command line (for example 0.5 0 0.5 0 1 0 0).
+surface_prober.cpp | robot (real), FT | Probe surface of fruit to get a surface shape estimation. The parameters can be modified in `trial_config/surface_probe_parameters.yaml`.
+tests/mocap_point_attractor.cpp | robot (real), Optitrack | Move to an attractor that is tracked by Optitrack with an offset defined by the variable *offset*.
+tests/test_ft_sensor.cpp | FT | Get measurements from Force Torque sensor to test connection.
+tests/test_gpr_server.cpp | GPR (test_interface.py) | Test connection with the GPR server.
+tests/test_interface.cpp | robot (real or sim) | Test connection with the robot.
+tests/test_joy.cpp | joy | Test connection with the joystick.
+
+Notes: pickles, config files yamls, optitrack markers.
 
 ## Authors / Maintainers
 

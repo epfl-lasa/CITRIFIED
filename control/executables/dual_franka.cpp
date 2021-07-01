@@ -21,7 +21,7 @@ public:
 
     // assume frame papa = world
     frame_papa = CartesianState::Identity("papa");
-    frame_quebec = CartesianState("quebec", "papa");
+    frame_quebec = CartesianState("quebec");
     frame_quebec.set_position(0.899, 0, 0);
     frame_quebec.set_orientation(Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ())));
 

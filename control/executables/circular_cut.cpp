@@ -125,7 +125,7 @@ private:
 int main(int argc, char** argv) {
   BlendDS DS;
 
-  controllers::impedance::CartesianTwistController ctrl(23, 15, .5, .5);
+  controllers::impedance::CartesianTwistController ctrl(230, 150, 5, 5);
 
   std::cout << std::fixed << std::setprecision(3);
 

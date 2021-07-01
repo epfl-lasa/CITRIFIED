@@ -47,3 +47,8 @@ target_link_libraries(test_interface cppzmq state_representation)
 
 add_executable(test_zmqjoy tests/test_joy.cpp)
 target_link_libraries(test_zmqjoy sensors)
+
+add_executable(test_learned_ds tests/test_learned_ds.cpp)
+target_compile_definitions(test_learned_ds PRIVATE TRIAL_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/")
+target_compile_definitions(test_learned_ds PRIVATE TRIAL_CUT_CURVE_CONFIGURATION_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trial_config/cut_curve/")
+target_link_libraries(test_learned_ds yaml-cpp cppzmq state_representation controllers motion_generators)

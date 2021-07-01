@@ -51,6 +51,7 @@ RUN apt-get update && apt-get install -y \
     libzmq3-dev \
     libtbb-dev \
     libyaml-cpp-dev \
+    libarmadillo-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -82,6 +83,30 @@ RUN git clone -b develop --single-branch https://github.com/epfl-lasa/control_li
   && mkdir -p control_libraries/source/build \
   && cd control_libraries/source/build \
   && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ROBOT_MODEL="OFF" .. \
+  && make -j \
+  && make install
+
+# install gaussian_process_regression
+RUN git clone -b agnostic --single-branch https://github.com/epfl-lasa/gaussian-process-regression.git \
+  && mkdir -p gaussian-process-regression/build \
+  && cd gaussian-process-regression/build \
+  && cmake -DCMAKE_BUILD_TYPE=Release .. \
+  && make -j \
+  && make install
+
+# install fast_gmm
+RUN git clone -b agnostic-eigen --single-branch https://github.com/epfl-lasa/fast-gmm.git \
+  && mkdir -p fast-gmm/build \
+  && cd fast-gmm/build \
+  && cmake -DCMAKE_BUILD_TYPE=Release .. \
+  && make -j \
+  && make install
+
+# install lags-DS
+RUN git clone -b fix/header-install --single-branch https://github.com/domire8/lagsDS-lib.git \
+  && mkdir -p lagsDS-lib/build \
+  && cd lagsDS-lib/build \
+  && cmake -DCMAKE_BUILD_TYPE=Release .. \
   && make -j \
   && make install
 

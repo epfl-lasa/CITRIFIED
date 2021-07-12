@@ -2,21 +2,8 @@
 
 ## Preparation
 
-1. Make sure that the experiment data is available in the data folder. The folder structure should look like that (
-   except for the raw data, see the specific notebooks for more details):
-
-   ```bash
-   data
-   └──some_type_of_data
-      └──experiment
-         └──fruit
-            └──cut_quality
-               ├──fruit_cutquality_1.csv
-               ├──fruit_cutquality_2.csv
-               ├──...
-               └──...
-   ```
-
+1. Make sure that the experiment data is available in the `path/to/CITRIFIED/data` folder.
+   
 2. Also make sure that the Jupyter notebooks are available at `path/to/CITRIFIED/notebooks`. This should be ok by
    default.
 

@@ -9,6 +9,7 @@ Given that you have a gcc/g++ compiler installed on the computer, run
 
 ```bash
 make all
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/lib
 ```
 
 This will build the executables and put them into the `run` folder. Then,

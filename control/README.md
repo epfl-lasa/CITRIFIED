@@ -70,8 +70,6 @@ To add new executables, simply create a `.cpp` file in the `executables` directo
 linking instructions. For detailed usage instructions and explanations on the executables,
 see [here](executables/README.md).
 
-## Usage
-
 ## Setup
 
 After cloning this repository, run the script [setup.sh](scripts/setup.sh) from inside the `scripts` directory to

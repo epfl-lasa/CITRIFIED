@@ -1,0 +1,3 @@
+[submodule "learning/ESN/echo-state-networks"]
+	path = learning/ESN/echo-state-networks
+	url = git@github.com:epfl-lasa/echo-state-networks.git

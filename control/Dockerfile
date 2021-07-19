@@ -1,21 +1,56 @@
-ARG BASE=ghcr.io/eeberhard/cpp-remote-env
-ARG TAG=latest
-FROM $BASE:$TAG as project-dependencies
+FROM ubuntu:20.04 AS core-build-dependencies
+ENV DEBIAN_FRONTEND=noninteractive
 
-# get base dependencies
+# install core compilation and access dependencies for building the libraries
 RUN apt-get update && apt-get install -y \
-    libtool \
-    pkg-config \
-    autoconf \
-    automake \
-    bash-completion \
+    gcc \
+    g++ \
+    make \
+    cmake \
     git \
+    curl \
+    wget \
+    lsb-release \
+    gnupg2 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+
+FROM core-build-dependencies as development-dependencies
+
+RUN apt-get update && apt-get install -y \
+    libgtest-dev \
+    build-essential \
+    ssh \
+    libssl-dev \
+    gdb \
+    clang \
+    rsync \
+    tar \
+    python \
+    sudo \
+    iputils-ping \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# install gtest
+WORKDIR /tmp/gtest_build
+RUN cmake /usr/src/gtest \
+  && make \
+  && cp lib/* /usr/local/lib || cp *.a /usr/local/lib
+
+RUN rm -rf /tmp/*
+
+
+FROM development-dependencies as project-dependencies
+
+RUN apt-get update && apt-get install -y \
     libboost-all-dev \
     libeigen3-dev \
     libsodium-dev \
     libzmq3-dev \
     libtbb-dev \
-    libgtest-dev \
+    libyaml-cpp-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,26 +64,9 @@ RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.
   && cmake .. -DCPPZMQ_BUILD_TESTS=OFF \
   && make -j4 install
 
-# install control libraries
-RUN git clone -b develop --single-branch https://github.com/epfl-lasa/control_libraries.git \
-  && mkdir -p control_libraries/source/build \
-  && cd control_libraries/source/build \
-  && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ROBOT_MODEL="OFF" .. \
-  && make -j \
-  && make install
-
 # install KDL
 RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
   && cd orocos_kinematics_dynamics/orocos_kdl \
-  && mkdir build \
-  && cd build \
-  && cmake .. \
-  && make \
-  && make install
-
-# install yaml-cpp
-RUN git clone https://github.com/jbeder/yaml-cpp.git \
-  && cd yaml-cpp \
   && mkdir build \
   && cd build \
   && cmake .. \
@@ -59,17 +77,42 @@ RUN git clone https://github.com/jbeder/yaml-cpp.git \
 RUN wget https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp \
   && mv json.hpp /usr/local/include
 
-# install gtest
-RUN mkdir -p /tmp/gtest_build \
-  && cd /tmp/gtest_build \
-  && cmake /usr/src/gtest \
-  && make \
-  && cp lib/* /usr/local/lib || cp *.a /usr/local/lib
+# install control libraries
+RUN git clone -b develop --single-branch https://github.com/epfl-lasa/control_libraries.git \
+  && mkdir -p control_libraries/source/build \
+  && cd control_libraries/source/build \
+  && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ROBOT_MODEL="OFF" .. \
+  && make -j \
+  && make install
 
 # clean up installation artefacts
-WORKDIR /
 RUN rm -rf /tmp/*
 RUN ldconfig
+
+
+FROM project-dependencies as remote-development
+
+RUN ( \
+    echo 'LogLevel DEBUG2'; \
+    echo 'PubkeyAuthentication yes'; \
+    echo 'Subsystem sftp /usr/lib/openssh/sftp-server'; \
+  ) > /etc/ssh/sshd_config_development \
+  && mkdir /run/sshd
+
+RUN useradd -m remote && yes | passwd remote && usermod -s /bin/bash remote
+WORKDIR /home/remote
+
+RUN ( \
+    echo '#!/bin/bash'; \
+    echo 'mkdir -p /home/remote/.ssh'; \
+    echo 'echo "$1" > /home/remote/.ssh/authorized_keys'; \
+    echo 'chmod -R 755 /home/remote/.ssh'; \
+    echo 'chown -R remote:remote /home/remote/.ssh'; \
+    echo '/usr/sbin/sshd -D -e -f /etc/ssh/sshd_config_development'; \
+  ) > /.ssh_entrypoint.sh && chmod 744 /.ssh_entrypoint.sh
+
+ENTRYPOINT ["/.ssh_entrypoint.sh"]
+
 
 # tag a new build stage that copies the project source files
 FROM project-dependencies as project-sources

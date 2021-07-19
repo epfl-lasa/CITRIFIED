@@ -58,6 +58,7 @@ void FrankaController::control_loop() {
 void FrankaController::control_step() {
   frankalwi::proto::StateMessage<7> state_message{};
   frankalwi::proto::CommandMessage<7> command_message{};
+  command_message.controlType = frankalwi::proto::JOINT_TORQUE;
   if (franka_.receive(state_message)) {
     state_mutex_.lock();
     frankalwi::utils::toCartesianState(state_message, robot_state_);

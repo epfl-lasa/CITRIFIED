@@ -41,15 +41,15 @@ TEST_F(ESNWrapperTest, TestPrediction) {
   EXPECT_EQ(time.size(), bufferSize);
   EXPECT_EQ(data.rows(), bufferSize);
 
-  EXPECT_NEAR(data(0, 4), 0, tol);
-  EXPECT_NEAR(data(0, 5), 0, tol);
+  EXPECT_NEAR(data(0, 4), data(1, 4), tol);
+  EXPECT_NEAR(data(0, 5), data(1, 5), tol);
   for (int i = 1; i < bufferSize - 1; ++i) {
     EXPECT_NEAR(time(i), i * dt, tol);
     EXPECT_NEAR(data(i, 4), cos(i * dt), tol);
     EXPECT_NEAR(data(i, 5), -sin(i * dt), tol);
   }
-  EXPECT_NEAR(data(bufferSize - 1, 4), 0, tol);
-  EXPECT_NEAR(data(bufferSize - 1, 5), 0, tol);
+  EXPECT_NEAR(data(bufferSize - 1, 4), data(bufferSize - 2, 4), tol);
+  EXPECT_NEAR(data(bufferSize - 1, 5), data(bufferSize - 2, 5), tol);
 
   //trying to retrieve the prediction again should fail
   EXPECT_FALSE(esn.getLastPrediction());

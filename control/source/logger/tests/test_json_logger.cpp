@@ -2,9 +2,7 @@
 #include <iostream>
 
 #include <state_representation/space/cartesian/CartesianPose.hpp>
-#include <state_representation/space/cartesian/CartesianTwist.hpp>
 #include <state_representation/space/cartesian/CartesianWrench.hpp>
-#include <state_representation/space/cartesian/CartesianState.hpp>
 
 #include "logger/JSONLogger.h"
 

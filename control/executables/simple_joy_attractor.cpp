@@ -36,7 +36,7 @@ void throttledPrint(const state_representation::CartesianState& robot,
 int main(int argc, char** argv) {
   std::cout << std::fixed << std::setprecision(3);
 
-  state_representation::CartesianPose attractor("attractor", "franka");
+  auto attractor = state_representation::CartesianPose::Identity("attractor", "franka");
   state_representation::CartesianState robot("end-effector", "franka");
   state_representation::Jacobian jacobian("franka", 7, "end-effector", "franka");
 
@@ -48,6 +48,8 @@ int main(int argc, char** argv) {
   network::Interface franka(network::InterfaceType::FRANKA_PAPA_16);
   frankalwi::proto::StateMessage<7> state{};
   frankalwi::proto::CommandMessage<7> command{};
+  command.controlType = frankalwi::proto::JOINT_TORQUE;
+  network::Interface bridge(network::InterfaceType::BRIDGE);
 
   sensors::Joy joy(0.0001, 0.0005);
   joy.start();
@@ -78,5 +80,9 @@ int main(int argc, char** argv) {
     throttledPrint(robot, attractor, dsTwist, joint_command, 500);
 
     franka.send(command);
+    std::array<double, 7> attractorPose{};
+    Eigen::MatrixXd::Map(&attractorPose[0], 7, 1) = attractor.get_pose().array();
+    state.eePose = frankalwi::proto::EEPose(attractorPose);
+    bridge.send(state);
   }
 }

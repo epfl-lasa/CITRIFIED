@@ -13,7 +13,7 @@ fi
 (
   mkdir -p ../include/franka_lwi \
   && cd ../include/franka_lwi \
-  && git clone https://github.com/epfl-lasa/franka_lightweight_interface.git \
+  && git clone -b v1.1 --single-branch https://github.com/epfl-lasa/franka_lightweight_interface.git \
   && mv franka_lightweight_interface/include/franka_lightweight_interface/franka_lwi_communication_protocol.h . \
   && rm -rf franka_lightweight_interface
 )

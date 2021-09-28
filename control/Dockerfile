@@ -65,7 +65,7 @@ RUN wget https://github.com/zeromq/cppzmq/archive/v4.7.1.tar.gz -O cppzmq-4.7.1.
   && make -j4 install
 
 # install KDL
-RUN git clone https://github.com/orocos/orocos_kinematics_dynamics.git \
+RUN git clone -b v1.5.0 --single-branch https://github.com/orocos/orocos_kinematics_dynamics.git \
   && cd orocos_kinematics_dynamics/orocos_kdl \
   && mkdir build \
   && cd build \
@@ -78,7 +78,7 @@ RUN wget https://github.com/nlohmann/json/releases/download/v3.9.1/json.hpp \
   && mv json.hpp /usr/local/include
 
 # install control libraries
-RUN git clone -b develop --single-branch https://github.com/epfl-lasa/control_libraries.git \
+RUN git clone -b v3.1.0 --single-branch https://github.com/epfl-lasa/control_libraries.git \
   && mkdir -p control_libraries/source/build \
   && cd control_libraries/source/build \
   && cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_ROBOT_MODEL="OFF" .. \
@@ -130,7 +130,7 @@ FROM project-sources as tester
 WORKDIR /usr/src/CITRIFIED/control/build
 RUN cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=True \
   && make
-RUN make test
+RUN CTEST_OUTPUT_ON_FAILURE=1 make test
 
 
 # tag a new build stage that compiles the sources

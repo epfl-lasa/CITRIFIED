@@ -28,6 +28,18 @@ bridge is working:
 
 then press 1. You should now see the data that is received from Motive and published to ZMQ.
 
+### Docker
+There is a simple docker wrapper to directly startup the optitrack.  
+For this use in this directory:
+Build docker:
+``` bash
+bash docker-build.sh
+```
+Run docker:
+``` bash
+bash docker-run.sh
+```
+
 # NatNet SDK 3.1 and SampleClient
 
 The headers and shared library for the NatNet SDK as well as the SampleClient.cpp source file were created by
